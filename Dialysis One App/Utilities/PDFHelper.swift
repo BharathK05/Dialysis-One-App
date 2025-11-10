@@ -1,3 +1,11 @@
+//
+//  PDFHelper.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 09/11/25.
+//
+
+
 import UIKit
 import PDFKit
 
@@ -6,12 +14,12 @@ class PDFHelper {
     /// Generate thumbnail from first page of PDF
     static func generateThumbnail(from url: URL, size: CGSize = CGSize(width: 120, height: 120)) -> UIImage? {
         guard let document = PDFDocument(url: url) else {
-            print("❌ Failed to load PDF document")
+            print("Failed to load PDF document")
             return nil
         }
         
         guard let page = document.page(at: 0) else {
-            print("❌ Failed to get first page of PDF")
+            print("Failed to get first page of PDF")
             return nil
         }
         
