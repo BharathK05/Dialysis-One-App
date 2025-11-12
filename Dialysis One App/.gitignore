@@ -64,6 +64,7 @@ Secrets.swift
 APIKeys.swift
 *.plist.secret
 Secrets.plist
+GoogleService-Info.plist
 
 # macOS
 .DS_Store
