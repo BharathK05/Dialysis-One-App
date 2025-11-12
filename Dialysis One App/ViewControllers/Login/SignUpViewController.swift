@@ -118,8 +118,8 @@ class SignUpViewController: UIViewController {
                 // You can save fullName to UserDefaults or a separate database later
                 UserDefaults.standard.set(fullName, forKey: "userFullName")
                 
-                self.showSuccessAlert()
-                
+                self.navigateToVerifyCode(email: email)
+
             case .failure(let error):
                 let errorMessage = FirebaseAuthManager.shared.getErrorMessage(from: error)
                 self.showAlert(title: "Sign Up Failed", message: errorMessage)
@@ -135,13 +135,12 @@ class SignUpViewController: UIViewController {
     }
     
     func navigateToOnboarding() {
-        // TODO: Uncomment and implement when onboarding screens are ready
-        // let onboardingVC = OnboardingViewController(nibName: "OnboardingViewController", bundle: nil)
-        // onboardingVC.modalPresentationStyle = .fullScreen
-        // present(onboardingVC, animated: true)
-        
-        print("📱 TODO: Navigate to onboarding screens")
+        let onboardingVC = OnboardingViewController(nibName: "OnboardingViewController", bundle: nil)
+        onboardingVC.modalPresentationStyle = .fullScreen
+        self.present(onboardingVC, animated: true)
     }
+
+
     
     func isValidEmail(_ email: String) -> Bool {
         let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
@@ -189,12 +188,16 @@ class SignUpViewController: UIViewController {
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
-            // TODO: When onboarding is ready, call navigateToOnboarding() instead
-            // self.navigateToOnboarding()
-            
-            // For now, dismiss back to sign in
-            self.dismiss(animated: true)
+            self.navigateToVerifyCode(email: self.emailTextField.text ?? "")
         })
         present(alert, animated: true)
     }
+
+    func navigateToVerifyCode(email: String) {
+        let verifyVC = VerifyCodeViewController(nibName: "VerifyCodeViewController", bundle: nil)
+        verifyVC.email = email
+        verifyVC.modalPresentationStyle = .fullScreen
+        self.present(verifyVC, animated: true)
+    }
+
 }

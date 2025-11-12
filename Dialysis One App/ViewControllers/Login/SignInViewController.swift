@@ -65,7 +65,8 @@ class SignInViewController: UIViewController {
                     }
 
                     print("Login successful! User ID: \(user.uid)")
-                    self.navigateToTabBar()
+                    self.navigateToOnboarding()
+
 
                 case .failure(let error):
                     let errorMessage = FirebaseAuthManager.shared.getErrorMessage(from: error)
@@ -134,4 +135,10 @@ class SignInViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
+    func navigateToOnboarding() {
+        let onboardingVC = OnboardingViewController(nibName: "OnboardingViewController", bundle: nil)
+        onboardingVC.modalPresentationStyle = .fullScreen
+        present(onboardingVC, animated: true)
+    }
+
 }
