@@ -29,6 +29,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 let homeVC = HomeDashboardViewController()
                 let navigationController = UINavigationController(rootViewController: homeVC)
                 window?.rootViewController = navigationController
+
+
             }
             
             window?.makeKeyAndVisible()
@@ -64,4 +66,3 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 
 }
-
