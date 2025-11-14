@@ -26,9 +26,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 window?.rootViewController = tabBarController
             } else {
                 // Show login screen
-                let loginVC = SignInViewController(nibName: "SignInViewController", bundle: nil)
-                let navigationController = UINavigationController(rootViewController: loginVC)
-                window?.rootViewController = navigationController
+                let nutrientVC = NutrientBalanceViewController()
+                let nav = UINavigationController(rootViewController: nutrientVC)
+                nav.navigationBar.isHidden = true  // optional, since VC already hides it
+                window?.rootViewController = nav
             }
             
             window?.makeKeyAndVisible()
