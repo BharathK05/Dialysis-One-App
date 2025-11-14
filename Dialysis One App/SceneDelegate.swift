@@ -26,9 +26,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 window?.rootViewController = tabBarController
             } else {
                 // Show login screen
-                let onboardingVC = OnboardingViewController(nibName: "OnboardingViewController", bundle: nil)
-                let navigationController = UINavigationController(rootViewController: onboardingVC)
-                navigationController.navigationBar.isHidden = true
+                let homeVC = HomeDashboardViewController()
+                let navigationController = UINavigationController(rootViewController: homeVC)
                 window?.rootViewController = navigationController
 
 
