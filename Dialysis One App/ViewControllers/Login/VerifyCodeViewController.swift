@@ -116,9 +116,14 @@ class VerifyCodeViewController: UIViewController {
     }
     
     @IBAction func cancelButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true)
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootVC = window.rootViewController {
+            rootVC.dismiss(animated: true)
+        } else {
+            dismiss(animated: true)
+        }
     }
-
     
     // MARK: - Loading Indicator
     private var loadingView: UIView?
