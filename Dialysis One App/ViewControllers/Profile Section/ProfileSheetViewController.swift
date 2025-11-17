@@ -1,24 +1,20 @@
 //
-//  HomeViewController.swift
+//  ProfileSheetViewController.swift
 //  Dialysis One App
 //
-//  Created by user@22 on 08/11/25.
+//  Created by user@22 on 17/11/25.
 //
 
 import UIKit
 
-class HomeViewController: UIViewController {
-    @IBOutlet weak var todayLabel: UILabel!
-    @IBOutlet weak var profileImageView: UIImageView!
-
+class ProfileSheetViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        profileImageView.layer.cornerRadius = profileImageView.bounds.height / 2
-        profileImageView.clipsToBounds = true
+        // Do any additional setup after loading the view.
     }
-
+    
 
     /*
     // MARK: - Navigation
