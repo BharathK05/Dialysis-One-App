@@ -65,7 +65,7 @@ class SignInViewController: UIViewController {
                     }
 
                     print("Login successful! User ID: \(user.uid)")
-                    self.navigateToTabBar()
+                    self.switchToMainApp()
 
                 case .failure(let error):
                     let errorMessage = FirebaseAuthManager.shared.getErrorMessage(from: error)
@@ -95,11 +95,16 @@ class SignInViewController: UIViewController {
     }
     
     // MARK: - Navigation
-    func navigateToTabBar() {
-        let tabBarController = MainTabBarController()
-        tabBarController.modalPresentationStyle = .fullScreen
-        present(tabBarController, animated: true)
+    func switchToMainApp() {
+        guard let sceneDelegate = UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate else {
+            return
+        }
+
+        let tabBar = MainTabBarController()
+        sceneDelegate.window?.rootViewController = tabBar
+        sceneDelegate.window?.makeKeyAndVisible()
     }
+
     
     // MARK: - Loading Indicator
     private var loadingView: UIView?
