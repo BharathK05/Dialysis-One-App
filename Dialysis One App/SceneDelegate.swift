@@ -6,35 +6,38 @@
 //
 
 import UIKit
+import FirebaseAuth
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
+    func scene(_ scene: UIScene,
+               willConnectTo session: UISceneSession,
+               options connectionOptions: UIScene.ConnectionOptions) {
 
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-            guard let windowScene = (scene as? UIWindowScene) else { return }
-            
-            window = UIWindow(windowScene: windowScene)
-            
-            // For testing: set true to skip login, false to show login
-            let isLoggedIn = false
-            
-            if isLoggedIn {
-                // Go directly to tab bar (for testing)
-                let tabBarController = MainTabBarController()
-                window?.rootViewController = tabBarController
-            } else {
-                // Show login screen
-                let homeVC = HomeDashboardViewController()
-                let navigationController = UINavigationController(rootViewController: homeVC)
-                window?.rootViewController = navigationController
+        guard let windowScene = (scene as? UIWindowScene) else { return }
 
+        window = UIWindow(windowScene: windowScene)
 
-            }
-            
-            window?.makeKeyAndVisible()
+        let user = Auth.auth().currentUser
+
+        // USER LOGGED IN & VERIFIED
+        if let u = user, u.isEmailVerified {
+            window?.rootViewController = MainTabBarController()
         }
+        // USER NOT LOGGED IN
+        else {
+            let loginVC = SignInViewController(nibName: "SignInViewController", bundle: nil)
+            let nav = UINavigationController(rootViewController: loginVC)
+            nav.setNavigationBarHidden(true, animated: false)
+            window?.rootViewController = nav
+        }
+
+        window?.makeKeyAndVisible()
+    }
+
+
 
     func sceneDidDisconnect(_ scene: UIScene) {
         // Called as the scene is being released by the system.

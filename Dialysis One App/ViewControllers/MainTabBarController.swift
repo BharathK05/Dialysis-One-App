@@ -18,9 +18,14 @@ class MainTabBarController: UITabBarController {
     
     func setupTabs() {
         // Create view controllers from XIBs
-        let homeVC = HomeViewController(nibName: "HomeViewController", bundle: nil)
+        let homeVC = HomeDashboardViewController()
+        let _homeNav = UINavigationController(rootViewController: homeVC)
+        
         let healthandvitalsVC = HealthAndVitalsViewController(nibName: "HealthAndVitalsViewController", bundle: nil)
-        let reliefguideVC = ReliefGuideViewController(nibName: "ReliefGuideViewController", bundle: nil)
+        let _vitalsNav = UINavigationController(rootViewController: healthandvitalsVC)
+        
+        let storyboard = UIStoryboard(name: "ReliefGuideViewController", bundle: nil)
+        let reliefguideVC = storyboard.instantiateViewController(withIdentifier: "ReliefGuideViewController")
         
         // Set tab bar items
         homeVC.tabBarItem = UITabBarItem(
