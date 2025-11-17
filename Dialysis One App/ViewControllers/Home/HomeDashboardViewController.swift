@@ -227,6 +227,8 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         profileButton.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(profileButton)
         
+        profileButton.addTarget(self, action: #selector(profileButtonTapped), for: .touchUpInside)
+        
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
@@ -236,6 +238,19 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             profileButton.widthAnchor.constraint(equalToConstant: 40),
             profileButton.heightAnchor.constraint(equalToConstant: 40)
         ])
+    }
+    
+    @objc func profileButtonTapped() {
+        let sheetVC = ProfileSheetViewController()
+        sheetVC.modalPresentationStyle = .pageSheet
+
+        if let sheet = sheetVC.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+
+        present(sheetVC, animated: true)
     }
     
     private func setupQuickAddSection() {

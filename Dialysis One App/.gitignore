@@ -78,3 +78,7 @@ GoogleService-Info.plist
 # Temporary files
 *.swp
 *~.nib
+
+# Xcode UI state (local only)
+xcuserdata/
+*.xcuserstate
