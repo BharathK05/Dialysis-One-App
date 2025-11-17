@@ -8,11 +8,15 @@
 import UIKit
 
 class HomeViewController: UIViewController {
+    @IBOutlet weak var todayLabel: UILabel!
+    @IBOutlet weak var profileImageView: UIImageView!
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Do any additional setup after loading the view.
+        profileImageView.layer.cornerRadius = profileImageView.bounds.height / 2
+        profileImageView.clipsToBounds = true
     }
 
 
