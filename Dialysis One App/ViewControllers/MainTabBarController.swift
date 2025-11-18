@@ -21,7 +21,7 @@ class MainTabBarController: UITabBarController {
         let homeVC = HomeDashboardViewController()
         let homeNav = UINavigationController(rootViewController: homeVC)
         
-        let healthandvitalsVC = HealthAndVitalsViewController(nibName: "HealthAndVitalsViewController", bundle: nil)
+        let healthandvitalsVC = HealthAndVitalsViewController()
         let vitalsNav = UINavigationController(rootViewController: healthandvitalsVC)
         
         let storyboard = UIStoryboard(name: "ReliefGuideViewController", bundle: nil)
