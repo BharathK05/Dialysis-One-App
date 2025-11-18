@@ -450,6 +450,13 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         cameraVC.modalPresentationStyle = .fullScreen
         present(cameraVC, animated: true)
     }
+    
+    
+    @objc private func weightCardTapped() {
+        print("Weight card tapped!") // Add this to test
+        let weightCheckVC = WeightCheckViewController()
+        navigationController?.pushViewController(weightCheckVC, animated: true)
+    }
 
   
     
@@ -902,6 +909,18 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             chevronImageView.widthAnchor.constraint(equalToConstant: 14),
             chevronImageView.heightAnchor.constraint(equalToConstant: 14)
         ])
+        
+        // ADD TAP GESTURE HERE - AFTER ALL CONSTRAINTS
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(weightCardTapped))
+        weightCard.addGestureRecognizer(tapGesture)
+        weightCard.isUserInteractionEnabled = true
+        
+        // Disable user interaction on child views
+        blurView.isUserInteractionEnabled = false
+        iconView.isUserInteractionEnabled = false
+        titleLabel.isUserInteractionEnabled = false
+        valueLabel.isUserInteractionEnabled = false
+        chevronImageView.isUserInteractionEnabled = false
     }
     
     private func saveImageToTemp(_ image: UIImage) -> URL? {
