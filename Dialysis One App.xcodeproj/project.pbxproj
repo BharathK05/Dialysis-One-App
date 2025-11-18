@@ -178,6 +178,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Dialysis One App/Dialysis One App.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -186,6 +187,7 @@
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to capture photos for your dialysis records";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Dialysis One reads your Blood Pressure and Blood Oxygen data to display your vitals.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access to select images";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -219,6 +221,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Dialysis One App/Dialysis One App.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -227,6 +230,7 @@
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to capture photos for your dialysis records";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Dialysis One reads your Blood Pressure and Blood Oxygen data to display your vitals.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access to select images";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
