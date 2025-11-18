@@ -2,57 +2,52 @@
 //  ReportPreviewViewController.swift
 //  Dialysis One App
 //
-//  Created by user@22 on 09/11/25.
+//  Created by user@22 on 18/11/25.
 //
 
 import UIKit
-import WebKit
 import PDFKit
 
 class ReportPreviewViewController: UIViewController {
-    
-    @IBOutlet weak var webView: WKWebView!
-    
-    var reportURL: URL?
+    private let pdfView = PDFView()
+    var fileURL: URL?
     var reportTitle: String?
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupNavigationBar()
-        loadPDF()
+        view.backgroundColor = .systemBackground
+        navigationItem.title = reportTitle ?? "Preview"
+        setupPDF()
+        loadFile()
     }
-    
-    func setupNavigationBar() {
-        title = reportTitle ?? "Report Preview"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .action,
-            target: self,
-            action: #selector(shareTapped)
-        )
+
+    private func setupPDF() {
+        pdfView.translatesAutoresizingMaskIntoConstraints = false
+        pdfView.autoScales = true
+        view.addSubview(pdfView)
+        NSLayoutConstraint.activate([
+            pdfView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            pdfView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            pdfView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            pdfView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
-    
-    func loadPDF() {
-        guard let url = reportURL else { return }
-        
-        // Check if file exists
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            showAlert(message: "File not found")
-            return
+
+    private func loadFile() {
+        guard let u = fileURL else { return }
+        if let doc = PDFDocument(url: u) {
+            pdfView.document = doc
+        } else {
+            let lbl = UILabel()
+            lbl.text = "Unable to open file"
+            lbl.textAlignment = .center
+            view.addSubview(lbl)
+            lbl.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                lbl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                lbl.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            ])
         }
-        
-        // Load PDF in web view
-        webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
-    }
-    
-    @objc func shareTapped() {
-        guard let url = reportURL else { return }
-        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        present(activityVC, animated: true)
-    }
-    
-    func showAlert(message: String) {
-        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
     }
 }
+
