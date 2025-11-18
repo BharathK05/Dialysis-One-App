@@ -18,14 +18,11 @@ class MainTabBarController: UITabBarController {
     
     func setupTabs() {
         // Create view controllers from XIBs
-        
+        let homeVC = HomeDashboardViewController()
         let homeNav = UINavigationController(rootViewController: homeVC)
         
-
-
-        let healthandvitalsVC = HealthAndVitalsViewController()
-        let _vitalsNav = UINavigationController(rootViewController: healthandvitalsVC)
-
+        let healthandvitalsVC = HealthAndVitalsViewController(nibName: "HealthAndVitalsViewController", bundle: nil)
+        let vitalsNav = UINavigationController(rootViewController: healthandvitalsVC)
         
         let storyboard = UIStoryboard(name: "ReliefGuideViewController", bundle: nil)
         let reliefguideVC = storyboard.instantiateViewController(withIdentifier: "ReliefGuideViewController")
@@ -49,10 +46,8 @@ class MainTabBarController: UITabBarController {
             selectedImage: UIImage(systemName: "stethoscope")
         )
         
-
-        // Add to tab bar
-        viewControllers = [homeNav, _vitalsNav, reliefguideVC]
-
+        // Add NAVIGATION CONTROLLERS to tab bar
+        viewControllers = [homeNav, vitalsNav, reliefguideVC]
     }
     
     func customizeTabBar() {
