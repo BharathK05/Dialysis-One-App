@@ -18,18 +18,23 @@ class MainTabBarController: UITabBarController {
     
     func setupTabs() {
         // Create view controllers from XIBs
-        let homeVC = HomeViewController(nibName: "HomeViewController", bundle: nil)
-        let healthandvitalsVC = HealthAndVitalsViewController(nibName: "HealthAndVitalsViewController", bundle: nil)
-        let reliefguideVC = ReliefGuideViewController(nibName: "ReliefGuideViewController", bundle: nil)
+        let homeVC = HomeDashboardViewController()
+        let homeNav = UINavigationController(rootViewController: homeVC)
         
-        // Set tab bar items
-        homeVC.tabBarItem = UITabBarItem(
+        let healthandvitalsVC = HealthAndVitalsViewController(nibName: "HealthAndVitalsViewController", bundle: nil)
+        let vitalsNav = UINavigationController(rootViewController: healthandvitalsVC)
+        
+        let storyboard = UIStoryboard(name: "ReliefGuideViewController", bundle: nil)
+        let reliefguideVC = storyboard.instantiateViewController(withIdentifier: "ReliefGuideViewController")
+        
+        // Set tab bar items ON THE NAVIGATION CONTROLLERS
+        homeNav.tabBarItem = UITabBarItem(
             title: "Home",
             image: UIImage(systemName: "house"),
             selectedImage: UIImage(systemName: "house.fill")
         )
         
-        healthandvitalsVC.tabBarItem = UITabBarItem(
+        vitalsNav.tabBarItem = UITabBarItem(
             title: "Health and Vitals",
             image: UIImage(systemName: "heart.text.clipboard"),
             selectedImage: UIImage(systemName: "heart.text.clipboard.fill")
@@ -41,8 +46,8 @@ class MainTabBarController: UITabBarController {
             selectedImage: UIImage(systemName: "stethoscope")
         )
         
-        // Add to tab bar
-        viewControllers = [homeVC, healthandvitalsVC, reliefguideVC]
+        // Add NAVIGATION CONTROLLERS to tab bar
+        viewControllers = [homeNav, vitalsNav, reliefguideVC]
     }
     
     func customizeTabBar() {
