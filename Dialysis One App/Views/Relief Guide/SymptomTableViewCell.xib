@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24128" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view contentMode="scaleToFill" id="iN0-l3-epB" customClass="SymptomTableViewCell" customModule="Dialysis_One_App" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="ndw-ez-dms">
+                    <rect key="frame" x="16" y="126" width="361" height="650"/>
+                    <subviews>
+                        <stackView opaque="NO" contentMode="scaleToFill" alignment="center" spacing="12" translatesAutoresizingMaskIntoConstraints="NO" id="qaN-pZ-XZb">
+                            <rect key="frame" x="16" y="12" width="329" height="626"/>
+                            <subviews>
+                                <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="LG5-tK-qd0">
+                                    <rect key="frame" x="0.0" y="285" width="56" height="56"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="56" id="HQv-ZW-pgz"/>
+                                        <constraint firstAttribute="width" constant="56" id="IvT-zk-qEX"/>
+                                    </constraints>
+                                </imageView>
+                                <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="4" translatesAutoresizingMaskIntoConstraints="NO" id="D01-ae-Let">
+                                    <rect key="frame" x="68" y="292.33333333333331" width="233" height="41.333333333333314"/>
+                                    <subviews>
+                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Title" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="KFz-P2-D39">
+                                            <rect key="frame" x="0.0" y="0.0" width="233" height="20.333333333333332"/>
+                                            <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
+                                            <nil key="textColor"/>
+                                            <nil key="highlightedColor"/>
+                                        </label>
+                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Subtitle" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="X2Z-dJ-3GJ">
+                                            <rect key="frame" x="0.0" y="24.333333333333371" width="233" height="17"/>
+                                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                            <nil key="textColor"/>
+                                            <nil key="highlightedColor"/>
+                                        </label>
+                                    </subviews>
+                                </stackView>
+                                <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="chevron.right" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="kLc-cr-URx">
+                                    <rect key="frame" x="313" y="307" width="16" height="12.333333333333314"/>
+                                    <color key="tintColor" systemColor="secondaryLabelColor"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="16" id="d3h-V5-k4t"/>
+                                        <constraint firstAttribute="width" constant="16" id="r4i-d1-6BU"/>
+                                    </constraints>
+                                </imageView>
+                            </subviews>
+                        </stackView>
+                    </subviews>
+                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                    <constraints>
+                        <constraint firstAttribute="bottom" secondItem="qaN-pZ-XZb" secondAttribute="bottom" constant="12" id="Fpq-cg-7d3"/>
+                        <constraint firstItem="qaN-pZ-XZb" firstAttribute="top" secondItem="ndw-ez-dms" secondAttribute="top" constant="12" id="o4Q-cA-d6h"/>
+                        <constraint firstAttribute="trailing" secondItem="qaN-pZ-XZb" secondAttribute="trailing" constant="16" id="wek-G4-FeJ"/>
+                        <constraint firstItem="qaN-pZ-XZb" firstAttribute="leading" secondItem="ndw-ez-dms" secondAttribute="leading" constant="16" id="z2f-hq-4Vs"/>
+                    </constraints>
+                    <userDefinedRuntimeAttributes>
+                        <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
+                            <integer key="value" value="16"/>
+                        </userDefinedRuntimeAttribute>
+                    </userDefinedRuntimeAttributes>
+                </view>
+            </subviews>
+            <viewLayoutGuide key="safeArea" id="vUN-kp-3ea"/>
+            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+            <constraints>
+                <constraint firstItem="ndw-ez-dms" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="16" id="Nar-Vr-03W"/>
+                <constraint firstItem="vUN-kp-3ea" firstAttribute="bottom" secondItem="ndw-ez-dms" secondAttribute="bottom" constant="8" id="WUA-N9-EIr"/>
+                <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="ndw-ez-dms" secondAttribute="trailing" constant="16" id="bZQ-j1-Rl1"/>
+                <constraint firstItem="ndw-ez-dms" firstAttribute="top" secondItem="vUN-kp-3ea" secondAttribute="top" constant="8" id="vuo-d2-nbM"/>
+            </constraints>
+            <connections>
+                <outlet property="card" destination="ndw-ez-dms" id="B9U-lm-Buf"/>
+                <outlet property="chevronImageView" destination="kLc-cr-URx" id="hqw-qs-nPE"/>
+                <outlet property="iconImageView" destination="LG5-tK-qd0" id="bsX-F5-0DZ"/>
+                <outlet property="subtitleLabel" destination="X2Z-dJ-3GJ" id="FJg-x9-bh1"/>
+                <outlet property="titleLabel" destination="KFz-P2-D39" id="WHH-lJ-K4c"/>
+            </connections>
+            <point key="canvasLocation" x="45" y="91"/>
+        </view>
+    </objects>
+    <resources>
+        <image name="chevron.right" catalog="system" width="97" height="128"/>
+        <systemColor name="secondaryLabelColor">
+            <color red="0.23529411759999999" green="0.23529411759999999" blue="0.26274509800000001" alpha="0.59999999999999998" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>
