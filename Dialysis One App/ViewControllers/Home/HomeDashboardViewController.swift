@@ -840,11 +840,17 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         ])
         
         if type == .water {
+            container.isUserInteractionEnabled = true
             let tap = UITapGestureRecognizer(target: self, action: #selector(openHydrationStatus))
             container.addGestureRecognizer(tap)
-            container.isUserInteractionEnabled = true
+            
+            // Disable interaction on child views
+            blurView.isUserInteractionEnabled = false
+            circularProgress.isUserInteractionEnabled = false
+            valueLabel.isUserInteractionEnabled = false
+            totalLabel.isUserInteractionEnabled = false
         }
-        
+
         return container
     }
     

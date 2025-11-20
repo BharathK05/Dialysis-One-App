@@ -32,9 +32,10 @@ class GradientCardView: UIView {
         layer.cornerRadius = 18
         layer.masksToBounds = true
         
+        // 75% opacity on both gradient stops
         gradientLayer.colors = [
-            UIColor(hex: 0xF5F5F5).cgColor,
-            UIColor(hex: 0x93C3E8).cgColor
+            UIColor(hex: 0xF5F5F5, alpha: 0.75).cgColor,
+            UIColor(hex: 0x93C3E8, alpha: 0.75).cgColor
         ]
         gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
         gradientLayer.endPoint   = CGPoint(x: 0.5, y: 1.0)
@@ -46,6 +47,7 @@ class GradientCardView: UIView {
         gradientLayer.frame = bounds
     }
 }
+
 
 // MARK: - Activity Row
 
@@ -212,11 +214,7 @@ class CircularProgressView: UIView {
     }
 }
 
-// MARK: - Animated Wave View
-
-// MARK: - Animated Wave View
-
-// MARK: - Animated Wave View (Natural Floating Water Effect)
+// MARK: - Animated Wave View (Static Shape, Flowy Motion)
 
 class WaveView: UIView {
     private let gradientLayer1 = CAGradientLayer()
@@ -228,7 +226,7 @@ class WaveView: UIView {
     private var phase1: CGFloat = 0
     private var phase2: CGFloat = 0
 
-    /// 0.0 – 1.0 water height
+    /// 0.0 – 1.0 : water height linked to progress
     var level: CGFloat = 0.0
 
     override init(frame: CGRect) {
@@ -241,26 +239,25 @@ class WaveView: UIView {
         setup()
     }
 
-    deinit { displayLink?.invalidate() }
+    deinit {
+        displayLink?.invalidate()
+    }
 
     private func setup() {
         backgroundColor = .clear
 
-        // Perfect blue hues, NO grey tint
         gradientLayer1.colors = [
-            UIColor(hex: 0x43A7EF, alpha: 0.48).cgColor,
-            UIColor(hex: 0x5BB2F0, alpha: 0.55).cgColor
-        ]
-
-        gradientLayer2.colors = [
             UIColor(hex: 0x43A7EF, alpha: 0.40).cgColor,
-            UIColor(hex: 0x5BB2F0, alpha: 0.50).cgColor
+            UIColor(hex: 0x5BB2F0, alpha: 0.38).cgColor
         ]
-
         gradientLayer1.startPoint = CGPoint(x: 0, y: 0)
         gradientLayer1.endPoint   = CGPoint(x: 1, y: 1)
         gradientLayer1.mask = waveLayer1
 
+        gradientLayer2.colors = [
+            UIColor(hex: 0x43A7EF, alpha: 0.35).cgColor,
+            UIColor(hex: 0x5BB2F0, alpha: 0.45).cgColor
+        ]
         gradientLayer2.startPoint = CGPoint(x: 1, y: 0)
         gradientLayer2.endPoint   = CGPoint(x: 0, y: 1)
         gradientLayer2.mask = waveLayer2
@@ -268,32 +265,56 @@ class WaveView: UIView {
         layer.addSublayer(gradientLayer1)
         layer.addSublayer(gradientLayer2)
 
-        displayLink = CADisplayLink(target: self, selector: #selector(update))
+        displayLink = CADisplayLink(target: self, selector: #selector(updateWaves))
         displayLink?.add(to: .main, forMode: .common)
     }
 
-    @objc private func update() {
-        // Slow & calming motion
-        phase1 += 0.004
-        phase2 += 0.003
+    // ---------------------------------------------------
+    // MARK: UPDATE LOOP — Sideways + Vertical Bobbing
+    // ---------------------------------------------------
+    @objc private func updateWaves() {
 
-        animateWave(layer: waveLayer1,
-                    phase: phase1,
-                    baseAmplitude: 45,
-                    level: level)
+        // Midpoint between slow & fast version → smooth fluid wave
+        phase1 += 0.00375     // ideal speed
+        phase2 += 0.00315
 
-        animateWave(layer: waveLayer2,
-                    phase: phase2,
-                    baseAmplitude: 60,
-                    level: level)
+        animateWave(
+            layer: waveLayer1,
+            phase: phase1,
+            baseAmplitude: 50,
+            level: level,
+            baselineOffset: 0,
+            wavelengthFactor: 1.6,
+            bobbingStrength: 10,
+            bobbingSpeed: 0.9
+        )
+
+        animateWave(
+            layer: waveLayer2,
+            phase: phase2 + .pi/2,
+            baseAmplitude: 55,
+            level: level,
+            baselineOffset: 16,
+            wavelengthFactor: 1.4,
+            bobbingStrength: 12,
+            bobbingSpeed: 1.1
+        )
     }
 
+
+    // ---------------------------------------------------
+    // MARK: WAVE SHAPE — Now with vertical bobbing
+    // ---------------------------------------------------
     private func animateWave(layer: CAShapeLayer,
                              phase: CGFloat,
                              baseAmplitude: CGFloat,
-                             level: CGFloat) {
+                             level: CGFloat,
+                             baselineOffset: CGFloat,
+                             wavelengthFactor: CGFloat,
+                             bobbingStrength: CGFloat,
+                             bobbingSpeed: CGFloat) {
 
-        guard bounds.width > 0 else { return }
+        guard bounds.width > 0, bounds.height > 0 else { return }
 
         let width = bounds.width
         let height = bounds.height
@@ -301,25 +322,23 @@ class WaveView: UIView {
         let path = UIBezierPath()
         let clamped = max(0, min(level, 1))
 
-        // Floating vertical bob (water rising/falling gently)
-        let bobbing = sin(phase * 0.6) * 6
+        // 🔥 NEW: smooth vertical flow like a real wave
+        let verticalBob = sin(phase * bobbingSpeed) * bobbingStrength
 
-        let baseline = height * clamped + bobbing
+        // dynamic water level
+        let baseline = height * clamped + baselineOffset + verticalBob
 
-        // amplitude slightly changes over time → natural turbulence
-        let dynamicAmp = baseAmplitude + sin(phase * 0.4) * 8
-
-        // wide wavelength → only one crest visible
-        let wavelength = width * 1.7
+        let amplitude = baseAmplitude
+        let wavelength = width * wavelengthFactor
+        let k = (2 * .pi) / wavelength
 
         path.move(to: CGPoint(x: 0, y: height))
         path.addLine(to: CGPoint(x: 0, y: height - baseline))
 
+        // Static SHAPE + sideways flow + NEW vertical bobbing
         var x: CGFloat = 0
         while x <= width {
-            let y = (height - baseline)
-                + sin((2 * .pi / wavelength) * x + phase) * dynamicAmp
-
+            let y = (height - baseline) + sin(k * x + phase) * amplitude
             path.addLine(to: CGPoint(x: x, y: y))
             x += 4
         }
@@ -339,52 +358,7 @@ class WaveView: UIView {
 
 
 
-// MARK: - Placeholder ViewAll VC
 
-class PreviousLogsViewController: UIViewController {
-    
-    private let backButton = UIButton(type: .system)
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        title = ""  // We will use a custom title
-        
-        setupHeader()
-    }
-    
-    private func setupHeader() {
-        // Back button
-        backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        backButton.tintColor = UIColor(hex: 0x152B3C)
-        backButton.translatesAutoresizingMaskIntoConstraints = false
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        
-        // Title label
-        let titleLabel = UILabel()
-        titleLabel.text = "All Logs"
-        titleLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
-        titleLabel.textColor = UIColor(hex: 0x152B3C)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        view.addSubview(backButton)
-        view.addSubview(titleLabel)
-        
-        NSLayoutConstraint.activate([
-            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            backButton.widthAnchor.constraint(equalToConstant: 28),
-            backButton.heightAnchor.constraint(equalToConstant: 28),
-            
-            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor)
-        ])
-    }
-    
-    @objc private func backTapped() {
-        navigationController?.popViewController(animated: true)
-    }
-}
 
 
 // MARK: - Main View Controller
@@ -472,7 +446,7 @@ class HydrationStatusViewController: UIViewController {
         backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
         backButton.tintColor = UIColor(hex: 0x152B3C)
         backButton.translatesAutoresizingMaskIntoConstraints = false
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        backButton.addTarget(self, action: #selector(backButtonTapped), for: .touchUpInside)
         
         titleLabel.text = "Hydration Status"
         titleLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
@@ -722,4 +696,9 @@ class HydrationStatusViewController: UIViewController {
         let vc = PreviousLogsViewController()
         navigationController?.pushViewController(vc, animated: true)
     }
+    
+    @objc private func backButtonTapped() {
+        navigationController?.popViewController(animated: true)
+    }
+
 }
