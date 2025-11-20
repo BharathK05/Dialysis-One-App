@@ -22,9 +22,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let user = Auth.auth().currentUser
 
-        // USER LOGGED IN & VERIFIED
+        // USER LOGGED IN
         if let u = user, u.isEmailVerified {
-            window?.rootViewController = MainTabBarController()
+
+            let onboardingKey = "onboardingCompleted_\(u.uid)"
+            let onboardingDone = UserDefaults.standard.bool(forKey: onboardingKey)
+
+            if onboardingDone {
+                // Go to home
+                window?.rootViewController = MainTabBarController()
+            } else {
+                // Force onboarding until it is completed
+                let onboardingVC = OnboardingViewController(
+                    nibName: "OnboardingViewController",
+                    bundle: nil
+                )
+                let nav = UINavigationController(rootViewController: onboardingVC)
+                nav.setNavigationBarHidden(true, animated: false)
+                window?.rootViewController = nav
+            }
         }
         // USER NOT LOGGED IN
         else {
@@ -36,6 +52,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window?.makeKeyAndVisible()
     }
+
 
 
 

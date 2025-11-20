@@ -117,7 +117,7 @@ class SignUpViewController: UIViewController {
                 
                 // You can save fullName to UserDefaults or a separate database later
                 UserDefaults.standard.set(fullName, forKey: "userFullName")
-                
+                UserDefaults.standard.set(true, forKey: "isFirstLogin_\(user.uid)")
                 self.showSuccessAlert()
                 
             case .failure(let error):

@@ -44,6 +44,7 @@ final class ReliefGuideViewController: UIViewController, UITableViewDataSource, 
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        AppTourManager.shared.register(view: tableView, for: "relief.table")
 
         // TABLE VIEW SETUP
         tableView.dataSource = self
@@ -61,6 +62,13 @@ final class ReliefGuideViewController: UIViewController, UITableViewDataSource, 
 
         tableView.reloadData()
     }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        AppTourManager.shared.register(view: tableView, for: "relief.table")
+    }
+
 
     // MARK: - Table View DataSource
 
