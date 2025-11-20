@@ -50,9 +50,16 @@ class MainTabBarController: UITabBarController {
     }
     
     func customizeTabBar() {
-        // Match your design colors
-        tabBar.tintColor = UIColor(red: 0.3, green: 0.7, blue: 0.5, alpha: 1.0) // Green
-        tabBar.unselectedItemTintColor = .systemGray
-        tabBar.backgroundColor = .white
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()   // ← THIS makes it transparent
+        appearance.backgroundColor = .clear               // No color
+        appearance.shadowColor = .clear                   // No top border line
+
+        tabBar.standardAppearance = appearance
+        tabBar.scrollEdgeAppearance = appearance
+
+        tabBar.tintColor = UIColor(red: 0.3, green: 0.7, blue: 0.5, alpha: 1.0) // Selected
+        tabBar.unselectedItemTintColor = .systemGray     // Unselected
     }
+
 }
