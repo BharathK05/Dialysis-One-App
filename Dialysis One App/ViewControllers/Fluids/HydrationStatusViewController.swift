@@ -479,6 +479,10 @@ class HydrationStatusViewController: UIViewController {
         ])
     }
     
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
+    }
+    
     private func setupProgress() {
         progressView.translatesAutoresizingMaskIntoConstraints = false
         
