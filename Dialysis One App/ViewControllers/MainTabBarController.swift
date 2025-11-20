@@ -21,11 +21,11 @@ class MainTabBarController: UITabBarController {
         let homeVC = HomeDashboardViewController()
         let homeNav = UINavigationController(rootViewController: homeVC)
         
-        let healthandvitalsVC = HealthAndVitalsViewController(nibName: "HealthAndVitalsViewController", bundle: nil)
+        let healthandvitalsVC = HealthAndVitalsViewController()
         let vitalsNav = UINavigationController(rootViewController: healthandvitalsVC)
         
-        let storyboard = UIStoryboard(name: "ReliefGuideViewController", bundle: nil)
-        let reliefguideVC = storyboard.instantiateViewController(withIdentifier: "ReliefGuideViewController")
+        let reliefguideVC = ReliefGuideViewController(nibName: "ReliefGuideViewController", bundle: nil)
+        let reliefNav = UINavigationController(rootViewController: reliefguideVC)
         
         // Set tab bar items ON THE NAVIGATION CONTROLLERS
         homeNav.tabBarItem = UITabBarItem(
@@ -47,7 +47,7 @@ class MainTabBarController: UITabBarController {
         )
         
         // Add NAVIGATION CONTROLLERS to tab bar
-        viewControllers = [homeNav, vitalsNav, reliefguideVC]
+        viewControllers = [homeNav, vitalsNav, reliefNav]
     }
     
     func customizeTabBar() {
