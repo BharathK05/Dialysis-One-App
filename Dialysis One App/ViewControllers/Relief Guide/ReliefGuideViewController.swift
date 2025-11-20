@@ -12,12 +12,11 @@ final class ReliefGuideViewController: UIViewController, UITableViewDataSource, 
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var searchTextField: UISearchTextField!
     // Removed separate symptoms string list; using symptomDetail for source of truth
-    
+
     struct CureItem {
         let text: String
         let isGood: Bool   // true = ✅, false = ❌
     }
-
 
     // Show these as headings in the list
     let symptomTitles = [
@@ -41,25 +40,29 @@ final class ReliefGuideViewController: UIViewController, UITableViewDataSource, 
         ]
     )
 
+    // MARK: - Lifecycle
 
-    
     override func viewDidLoad() {
-            super.viewDidLoad()
+        super.viewDidLoad()
 
-            // Remove default separators
-            tableView.separatorStyle = .none
-            tableView.backgroundColor = .clear
+        // TABLE VIEW SETUP
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.separatorStyle = .none
+        tableView.backgroundColor = .clear
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 112
 
-            // Allow auto height for dynamic subtitle wrapping
-            tableView.rowHeight = UITableView.automaticDimension
-            tableView.estimatedRowHeight = 112
+        // REGISTER THE CELL XIB
+        // Make sure the XIB file is named "SymptomTableViewCell.xib"
+        // and inside that XIB the cell's Reuse Identifier is "SymptomCell"
+        let nib = UINib(nibName: "SymptomTableViewCell", bundle: nil)
+        tableView.register(nib, forCellReuseIdentifier: "SymptomCell")
 
-            // Register cell (if storyboard prototype cell has Identifier)
-            tableView.dataSource = self
-            tableView.delegate = self
-        }
+        tableView.reloadData()
+    }
 
-        // MARK: - Table View DataSource
+    // MARK: - Table View DataSource
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         symptomTitles.count
@@ -73,22 +76,24 @@ final class ReliefGuideViewController: UIViewController, UITableViewDataSource, 
         let title = symptomTitles[indexPath.row]
         cell.titleLabel.text = title
         cell.subtitleLabel.text = baseDetail.reason   // same short description for all
-        // (icon/tint styling you already did)
 
+        // transparent background so gradient shows through
         cell.backgroundColor = .clear
         cell.contentView.backgroundColor = .clear
+
         return cell
     }
 
-
-        // MARK: - Optional Delegate
+    // MARK: - Table View Delegate
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
 
-        guard let vc = storyboard?.instantiateViewController(
-            withIdentifier: "SymptomDetailVC"
-        ) as? SymptomDetailViewController else { return }
+        // Create detail VC from its XIB instead of storyboard
+        let detailVC = SymptomDetailViewController(
+            nibName: "SymptomDetailViewController",
+            bundle: nil
+        )
 
         let selectedTitle = symptomTitles[indexPath.row]
 
@@ -99,10 +104,7 @@ final class ReliefGuideViewController: UIViewController, UITableViewDataSource, 
             cures: baseDetail.cures
         )
 
-        vc.symptom = detail
-        navigationController?.pushViewController(vc, animated: true)
+        detailVC.symptom = detail
+        navigationController?.pushViewController(detailVC, animated: true)
     }
-
-
-
 }
