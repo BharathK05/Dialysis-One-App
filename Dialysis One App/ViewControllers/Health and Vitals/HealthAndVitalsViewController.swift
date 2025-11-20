@@ -8,7 +8,7 @@ import HealthKit
 import UIKit
 
 class HealthAndVitalsViewController: UIViewController {
-    
+
     private var isConnected = false
 
     private let scroll = UIScrollView()
@@ -21,7 +21,7 @@ class HealthAndVitalsViewController: UIViewController {
     // Vitals
     private let vitalsTitle = UILabel()
     private let vitalsContainer = UIView()
-    private let watchCard = UIView()
+    @objc var watchCard = UIView()
     private let connectButton = UIButton(type: .system)
 
     // BPM & SpO2 cards
@@ -36,7 +36,7 @@ class HealthAndVitalsViewController: UIViewController {
     // Reports
     private let reportsTitle = UILabel()
     private let addReportButton = UIButton(type: .system)
-    private let reportsStack = UIStackView()
+    @objc var reportsStack = UIStackView()
 
     // Data
     private var reports: [BloodReport] = []
@@ -57,10 +57,20 @@ class HealthAndVitalsViewController: UIViewController {
         scroll.contentInsetAdjustmentBehavior = .never
         addTopGradientBackground()
         buildUI()
+        AppTourManager.shared.register(view: watchCard, for: "health.watch")
+        AppTourManager.shared.register(view: reportsStack, for: "health.reports")
         updateWatchUI()
         loadReports()
         setupHealthKit()
     }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        AppTourManager.shared.register(view: watchCard, for: "health.watch")
+        AppTourManager.shared.register(view: reportsStack, for: "health.reports")
+    }
+
     
     private func addTopGradientBackground() {
         let gradient = CAGradientLayer()

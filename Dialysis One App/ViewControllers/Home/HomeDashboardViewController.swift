@@ -5,6 +5,8 @@ import Photos
 
 class HomeDashboardViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate  {
     
+    private var didRunTour = false
+    
     // MARK: - Properties
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -21,6 +23,11 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     private var summaryLabel: UILabel!
     
     // MARK: - Dynamic Data Properties
+    
+    private var uid: String {
+        return FirebaseAuthManager.shared.getUserID() ?? "guest"
+    }
+
     // Water tracking
     private var waterConsumed: Int = 150 {
         didSet { updateWaterCard() }
@@ -80,44 +87,85 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        loadUserValues()
         addTopGradientBackground()
         setupUI()
     }
     
+    
+    
     // MARK: - Public Update Methods
+    private func loadUserValues() {
+        // Default values for NEW users
+        waterConsumed = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
+        waterGoal = UserDataManager.shared.loadInt("waterGoal", uid: uid, defaultValue: 250)
+
+        dosesConsumed = UserDataManager.shared.loadInt("dosesConsumed", uid: uid, defaultValue: 0)
+        dosesGoal = UserDataManager.shared.loadInt("dosesGoal", uid: uid, defaultValue: 3)
+
+        potassiumConsumed = UserDataManager.shared.loadInt("potassiumConsumed", uid: uid, defaultValue: 0)
+        potassiumGoal = UserDataManager.shared.loadInt("potassiumGoal", uid: uid, defaultValue: 90)
+
+        sodiumConsumed = UserDataManager.shared.loadInt("sodiumConsumed", uid: uid, defaultValue: 0)
+        sodiumGoal = UserDataManager.shared.loadInt("sodiumGoal", uid: uid, defaultValue: 70)
+
+        proteinConsumed = UserDataManager.shared.loadInt("proteinConsumed", uid: uid, defaultValue: 0)
+        proteinGoal = UserDataManager.shared.loadInt("proteinGoal", uid: uid, defaultValue: 110)
+
+        currentWeight = UserDataManager.shared.loadDouble("weight", uid: uid, defaultValue: 0)
+    }
+
     func updateWater(consumed: Int, goal: Int? = nil) {
         waterConsumed = consumed
+        UserDataManager.shared.save("waterConsumed", value: consumed, uid: uid)
+
         if let newGoal = goal {
             waterGoal = newGoal
+            UserDataManager.shared.save("waterGoal", value: newGoal, uid: uid)
         }
+
         updateWaterCard()
     }
+
     
     func updateMedication(consumed: Int, goal: Int? = nil) {
         dosesConsumed = consumed
+        UserDataManager.shared.save("dosesConsumed", value: consumed, uid: uid)
+
         if let newGoal = goal {
             dosesGoal = newGoal
+            UserDataManager.shared.save("dosesGoal", value: newGoal, uid: uid)
         }
+
         updateMedicationCard()
     }
+
     
     func updateNutrients(potassium: Int? = nil, sodium: Int? = nil, protein: Int? = nil) {
+        
         if let p = potassium {
             potassiumConsumed = p
+            UserDataManager.shared.save("potassiumConsumed", value: p, uid: uid)
         }
         if let s = sodium {
             sodiumConsumed = s
+            UserDataManager.shared.save("sodiumConsumed", value: s, uid: uid)
         }
         if let pr = protein {
             proteinConsumed = pr
+            UserDataManager.shared.save("proteinConsumed", value: pr, uid: uid)
         }
+
         updateNutrientCard()
     }
+
     
     func updateWeight(_ weight: Double) {
         currentWeight = weight
+        UserDataManager.shared.save("weight", value: weight, uid: uid)
         updateWeightCard()
     }
+
     
     // MARK: - Private Update Methods
     private func updateWaterCard() {
@@ -253,6 +301,74 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         present(sheetVC, animated: true)
     }
+    
+    private func showAppTourIfNeeded() {
+        let uid = self.uid
+        guard AppTourManager.shared.shouldShowTour(uid: uid) else { return }
+
+        let steps: [AppTourManager.Step] = [
+
+            // HOME TAB
+            .init(viewID: "home.diet", tabIndex: 0,
+                  message: "Scan or search foods to log meals."),
+
+            .init(viewID: "home.water", tabIndex: 0,
+                  message: "Track your hydration every day."),
+
+            .init(viewID: "home.pill", tabIndex: 0,
+                  message: "Add your medication doses."),
+
+            .init(viewID: "home.summary", tabIndex: 0,
+                  message: "Get today's nutrient breakdown."),
+
+            .init(viewID: "home.weight", tabIndex: 0,
+                  message: "Track and monitor your weight easily."),
+
+            // HEALTH TAB
+            .init(viewID: "health.watch", tabIndex: 1,
+                  message: "Connect to Apple Watch for vitals monitoring."),
+
+            .init(viewID: "health.reports", tabIndex: 1,
+                  message: "Upload medical reports and keep them organized."),
+
+            // RELIEF TAB
+            .init(viewID: "relief.table", tabIndex: 2,
+                  message: "Find symptoms and guided relief steps.")
+        ]
+
+
+
+        // show tour
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            AppTourManager.shared.showTour(
+                steps: steps,
+                in: self.tabBarController ?? self,
+                uid: uid
+            )
+        }
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        // Register tour views once layout is ready
+            AppTourManager.shared.register(view: dietButton, for: "home.diet")
+            AppTourManager.shared.register(view: waterButton, for: "home.water")
+            AppTourManager.shared.register(view: pillButton, for: "home.pill")
+            AppTourManager.shared.register(view: summaryLabel, for: "home.summary")
+            if let weightValueLabel = weightValueLabel {
+                AppTourManager.shared.register(view: weightValueLabel, for: "home.weight")
+            }
+
+        if !didRunTour {
+            didRunTour = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.showAppTourIfNeeded()
+            }
+        }
+    }
+
+
     
     private func setupQuickAddSection() {
         let label = UILabel()
