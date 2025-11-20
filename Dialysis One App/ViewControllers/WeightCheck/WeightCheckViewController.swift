@@ -36,7 +36,7 @@ class WeightCheckViewController: UIViewController {
     private let weightLabel = UILabel()
     private let weightTextField = UITextField()
     private let bmiLabel = UILabel()
-    private let bmiValueLabel = UILabel()
+    private let bmiTextField = UITextField()
     private let saveButton = UIButton()
     
     // Warning Banner
@@ -51,8 +51,6 @@ class WeightCheckViewController: UIViewController {
     private let targetWeightValueLabel = UILabel()
     private let weightDifferenceLabel = UILabel()
     private let weightDifferenceValueLabel = UILabel()
-    private let dryWeightDifferenceLabel = UILabel()
-    private let dryWeightDifferenceValueLabel = UILabel()
     
     // Graph
     private let graphView = WeightGraphView()
@@ -61,7 +59,7 @@ class WeightCheckViewController: UIViewController {
     private var weekDays: [DayData] = []
     private var selectedDate: Date = Date()
     private var weightEntries: [Date: WeightEntry] = [:]
-    private let userHeight: Double = 170.0 // cm - Sample height
+    private let userHeight: Double = 170.0 // cm
     private let targetWeight: Double = 64.0
     private var dryWeight: Double = 64.0
     
@@ -100,6 +98,7 @@ class WeightCheckViewController: UIViewController {
     private func setupScrollView() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.contentInsetAdjustmentBehavior = .never
         
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -171,6 +170,14 @@ class WeightCheckViewController: UIViewController {
         weightInputCardView.layer.shadowOffset = CGSize(width: 0, height: 2)
         weightInputCardView.layer.shadowRadius = 8
         
+        // Weight input container
+        let weightInputContainer = UIView()
+        weightInputContainer.translatesAutoresizingMaskIntoConstraints = false
+        weightInputContainer.backgroundColor = UIColor(red: 0.68, green: 0.90, blue: 0.68, alpha: 0.08)
+        weightInputContainer.layer.cornerRadius = 10
+        weightInputContainer.layer.borderWidth = 1
+        weightInputContainer.layer.borderColor = UIColor(red: 0.68, green: 0.90, blue: 0.68, alpha: 0.2).cgColor
+        
         weightLabel.translatesAutoresizingMaskIntoConstraints = false
         weightLabel.text = "Weight"
         weightLabel.font = .systemFont(ofSize: 15, weight: .medium)
@@ -186,88 +193,90 @@ class WeightCheckViewController: UIViewController {
         weightTextField.borderStyle = .none
         weightTextField.addTarget(self, action: #selector(weightChanged), for: .editingChanged)
         
-        // Add a subtle container for input area
-        let inputContainer = UIView()
-        inputContainer.translatesAutoresizingMaskIntoConstraints = false
-        inputContainer.backgroundColor = UIColor(red: 0.68, green: 0.90, blue: 0.68, alpha: 0.08)
-        inputContainer.layer.cornerRadius = 10
-        inputContainer.layer.borderWidth = 1
-        inputContainer.layer.borderColor = UIColor(red: 0.68, green: 0.90, blue: 0.68, alpha: 0.2).cgColor
-        
         let kgLabel = UILabel()
         kgLabel.text = " kg"
         kgLabel.font = .systemFont(ofSize: 17, weight: .regular)
         kgLabel.textColor = .secondaryLabel
         kgLabel.sizeToFit()
-        
         weightTextField.rightView = kgLabel
         weightTextField.rightViewMode = .always
+        
+        // BMI input container
+        let bmiInputContainer = UIView()
+        bmiInputContainer.translatesAutoresizingMaskIntoConstraints = false
+        bmiInputContainer.backgroundColor = UIColor(red: 0.68, green: 0.90, blue: 0.68, alpha: 0.08)
+        bmiInputContainer.layer.cornerRadius = 10
+        bmiInputContainer.layer.borderWidth = 1
+        bmiInputContainer.layer.borderColor = UIColor(red: 0.68, green: 0.90, blue: 0.68, alpha: 0.2).cgColor
         
         bmiLabel.translatesAutoresizingMaskIntoConstraints = false
         bmiLabel.text = "BMI"
         bmiLabel.font = .systemFont(ofSize: 15, weight: .medium)
         bmiLabel.textColor = .secondaryLabel
         
-        bmiValueLabel.translatesAutoresizingMaskIntoConstraints = false
-        bmiValueLabel.text = "-"
-        bmiValueLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        bmiValueLabel.textAlignment = .right
-        bmiValueLabel.textColor = .label
+        bmiTextField.translatesAutoresizingMaskIntoConstraints = false
+        bmiTextField.font = .systemFont(ofSize: 17, weight: .semibold)
+        bmiTextField.textAlignment = .right
+        bmiTextField.text = "-"
+        bmiTextField.textColor = .label
+        bmiTextField.isUserInteractionEnabled = false
+        bmiTextField.borderStyle = .none
         
+        // Save button
         saveButton.translatesAutoresizingMaskIntoConstraints = false
-        saveButton.setTitle("Save Weight", for: .normal)
+        saveButton.setTitle("Save", for: .normal)
         saveButton.backgroundColor = UIColor(red: 0.4, green: 0.7, blue: 0.4, alpha: 1.0)
         saveButton.setTitleColor(.white, for: .normal)
         saveButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
         saveButton.layer.cornerRadius = 12
         saveButton.addTarget(self, action: #selector(saveWeight), for: .touchUpInside)
         
-        let separator = UIView()
-        separator.translatesAutoresizingMaskIntoConstraints = false
-        separator.backgroundColor = UIColor.separator
+        // Add subviews
+        weightInputContainer.addSubview(weightLabel)
+        weightInputContainer.addSubview(weightTextField)
         
-        weightInputCardView.addSubview(inputContainer)
+        bmiInputContainer.addSubview(bmiLabel)
+        bmiInputContainer.addSubview(bmiTextField)
+        
+        weightInputCardView.addSubview(weightInputContainer)
+        weightInputCardView.addSubview(bmiInputContainer)
         weightInputCardView.addSubview(saveButton)
-
-        inputContainer.addSubview(weightLabel)
-        inputContainer.addSubview(weightTextField)
-        weightInputCardView.addSubview(separator)
-        weightInputCardView.addSubview(bmiLabel)
-        weightInputCardView.addSubview(bmiValueLabel)
         contentView.addSubview(weightInputCardView)
         
+        // Constraints
         NSLayoutConstraint.activate([
-            inputContainer.topAnchor.constraint(equalTo: weightInputCardView.topAnchor, constant: 16),
-            inputContainer.leadingAnchor.constraint(equalTo: weightInputCardView.leadingAnchor, constant: 16),
-            inputContainer.trailingAnchor.constraint(equalTo: weightInputCardView.trailingAnchor, constant: -16),
-            inputContainer.heightAnchor.constraint(equalToConstant: 52),
+            // Weight input container
+            weightInputContainer.topAnchor.constraint(equalTo: weightInputCardView.topAnchor, constant: 16),
+            weightInputContainer.leadingAnchor.constraint(equalTo: weightInputCardView.leadingAnchor, constant: 16),
+            weightInputContainer.trailingAnchor.constraint(equalTo: weightInputCardView.trailingAnchor, constant: -16),
+            weightInputContainer.heightAnchor.constraint(equalToConstant: 52),
             
-            weightLabel.leadingAnchor.constraint(equalTo: inputContainer.leadingAnchor, constant: 14),
-            weightLabel.centerYAnchor.constraint(equalTo: inputContainer.centerYAnchor),
+            weightLabel.leadingAnchor.constraint(equalTo: weightInputContainer.leadingAnchor, constant: 14),
+            weightLabel.centerYAnchor.constraint(equalTo: weightInputContainer.centerYAnchor),
             
-            weightTextField.trailingAnchor.constraint(equalTo: inputContainer.trailingAnchor, constant: -14),
-            weightTextField.centerYAnchor.constraint(equalTo: inputContainer.centerYAnchor),
+            weightTextField.trailingAnchor.constraint(equalTo: weightInputContainer.trailingAnchor, constant: -14),
+            weightTextField.centerYAnchor.constraint(equalTo: weightInputContainer.centerYAnchor),
             weightTextField.leadingAnchor.constraint(equalTo: weightLabel.trailingAnchor, constant: 16),
             
-            saveButton.topAnchor.constraint(equalTo: bmiLabel.bottomAnchor, constant: 20),
+            // BMI input container
+            bmiInputContainer.topAnchor.constraint(equalTo: weightInputContainer.bottomAnchor, constant: 12),
+            bmiInputContainer.leadingAnchor.constraint(equalTo: weightInputCardView.leadingAnchor, constant: 16),
+            bmiInputContainer.trailingAnchor.constraint(equalTo: weightInputCardView.trailingAnchor, constant: -16),
+            bmiInputContainer.heightAnchor.constraint(equalToConstant: 52),
+            
+            bmiLabel.leadingAnchor.constraint(equalTo: bmiInputContainer.leadingAnchor, constant: 14),
+            bmiLabel.centerYAnchor.constraint(equalTo: bmiInputContainer.centerYAnchor),
+            
+            bmiTextField.trailingAnchor.constraint(equalTo: bmiInputContainer.trailingAnchor, constant: -14),
+            bmiTextField.centerYAnchor.constraint(equalTo: bmiInputContainer.centerYAnchor),
+            bmiTextField.leadingAnchor.constraint(equalTo: bmiLabel.trailingAnchor, constant: 16),
+            
+            // Save button
+            saveButton.topAnchor.constraint(equalTo: bmiInputContainer.bottomAnchor, constant: 16),
             saveButton.leadingAnchor.constraint(equalTo: weightInputCardView.leadingAnchor, constant: 16),
             saveButton.trailingAnchor.constraint(equalTo: weightInputCardView.trailingAnchor, constant: -16),
             saveButton.heightAnchor.constraint(equalToConstant: 50),
-            saveButton.bottomAnchor.constraint(equalTo: weightInputCardView.bottomAnchor, constant: -16),
-            
-            separator.topAnchor.constraint(equalTo: inputContainer.bottomAnchor, constant: 16),
-            separator.leadingAnchor.constraint(equalTo: weightInputCardView.leadingAnchor, constant: 16),
-            separator.trailingAnchor.constraint(equalTo: weightInputCardView.trailingAnchor, constant: -16),
-            separator.heightAnchor.constraint(equalToConstant: 0.5),
-            
-            bmiLabel.topAnchor.constraint(equalTo: separator.bottomAnchor, constant: 16),
-            bmiLabel.leadingAnchor.constraint(equalTo: weightInputCardView.leadingAnchor, constant: 20),
-            bmiLabel.bottomAnchor.constraint(equalTo: weightInputCardView.bottomAnchor, constant: -20),
-            
-            bmiValueLabel.centerYAnchor.constraint(equalTo: bmiLabel.centerYAnchor),
-            bmiValueLabel.trailingAnchor.constraint(equalTo: weightInputCardView.trailingAnchor, constant: -20)
-            
-            
+            saveButton.bottomAnchor.constraint(equalTo: weightInputCardView.bottomAnchor, constant: -16)
         ])
     }
     
@@ -307,7 +316,7 @@ class WeightCheckViewController: UIViewController {
         summaryTitleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         
         targetWeightLabel.translatesAutoresizingMaskIntoConstraints = false
-        targetWeightLabel.text = "Target Weight"
+        targetWeightLabel.text = "Target"
         targetWeightLabel.font = .systemFont(ofSize: 15, weight: .medium)
         targetWeightLabel.textColor = .secondaryLabel
         
@@ -406,12 +415,11 @@ class WeightCheckViewController: UIViewController {
             previousWeightValueLabel.centerYAnchor.constraint(equalTo: previousWeightLabel.centerYAnchor),
             previousWeightValueLabel.trailingAnchor.constraint(equalTo: dateCardView.trailingAnchor, constant: -20),
             
-            weightInputCardView.topAnchor.constraint(equalTo: dateCardView.bottomAnchor, constant: 20),
+            weightInputCardView.topAnchor.constraint(equalTo: dateCardView.bottomAnchor, constant: 16),
             weightInputCardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             weightInputCardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            
-            warningView.topAnchor.constraint(equalTo: weightInputCardView.bottomAnchor, constant: 20),
+            warningView.topAnchor.constraint(equalTo: weightInputCardView.bottomAnchor, constant: 16),
             warningView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             warningView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
@@ -423,28 +431,26 @@ class WeightCheckViewController: UIViewController {
             warningLabel.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
             warningLabel.bottomAnchor.constraint(equalTo: warningView.bottomAnchor, constant: -16),
             
-            summaryCardView.topAnchor.constraint(equalTo: warningView.bottomAnchor, constant: 20),
+            summaryCardView.topAnchor.constraint(equalTo: warningView.bottomAnchor, constant: 16),
             summaryCardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             summaryCardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            graphView.topAnchor.constraint(equalTo: summaryCardView.bottomAnchor, constant: 20),
+            graphView.topAnchor.constraint(equalTo: summaryCardView.bottomAnchor, constant: 16),
             graphView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             graphView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             graphView.heightAnchor.constraint(equalToConstant: 280),
-            graphView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
+            graphView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -32)
         ])
     }
     
     // MARK: - Data Setup
     private func setupData() {
-        // Generate week data for the past month
         let calendar = Calendar.current
         let today = Date()
         
-        // Generate sample data for past 30 days
         for i in 0..<30 {
             if let date = calendar.date(byAdding: .day, value: -i, to: today) {
-                let hasEntry = i % 3 != 0 // Some days have entries
+                let hasEntry = i % 3 != 0
                 let weight = hasEntry ? 65.0 + Double.random(in: -2...3) : nil
                 weekDays.insert(DayData(date: date, hasEntry: hasEntry, weight: weight), at: 0)
                 
@@ -463,7 +469,6 @@ class WeightCheckViewController: UIViewController {
     private func setupWeekDayButtons() {
         weekStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
-        // Show last 7 days
         let visibleDays = Array(weekDays.suffix(7))
         
         for dayData in visibleDays {
@@ -538,58 +543,51 @@ class WeightCheckViewController: UIViewController {
     @objc private func weightChanged() {
         guard let text = weightTextField.text,
               let weight = Double(text) else {
-            bmiValueLabel.text = "-"
+            bmiTextField.text = "-"
             return
         }
         
         let bmi = calculateBMI(weight: weight)
-        bmiValueLabel.text = String(format: "%.1f", bmi)
+        bmiTextField.text = String(format: "%.1f", bmi)
         
         updateWarnings(weight: weight, bmi: bmi)
         updateSummary(weight: weight)
     }
+    
     @objc private func saveWeight() {
         guard let text = weightTextField.text,
               let weight = Double(text) else {
-            // Show alert - invalid input
             let alert = UIAlertController(title: "Invalid Weight", message: "Please enter a valid weight value.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
             return
         }
         
-        // Calculate BMI
         let bmi = calculateBMI(weight: weight)
         
-        // Create new entry
         let entry = WeightEntry(
             date: selectedDate,
             weight: weight,
             bmi: bmi,
-            isPreDialysis: true  // You can add a toggle for this if needed
+            isPreDialysis: true
         )
         
-        // Save to weightEntries
         weightEntries[selectedDate] = entry
         
-        // Update the week days data
         if let index = weekDays.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }) {
             weekDays[index].hasEntry = true
             weekDays[index].weight = weight
         }
         
-        // Refresh UI
         setupWeekDayButtons()
         updateGraphData()
         
-        // Show success feedback
         let alert = UIAlertController(title: "Saved", message: "Weight recorded successfully!", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
         
-        // Clear the text field
         weightTextField.text = ""
-        bmiValueLabel.text = "-"
+        bmiTextField.text = "-"
     }
     
     // MARK: - Calculations
@@ -601,14 +599,12 @@ class WeightCheckViewController: UIViewController {
     private func updateWarnings(weight: Double, bmi: Double) {
         var warnings: [String] = []
         
-        // BMI check (normal range 18.5 - 24.9)
         if bmi < 18.5 {
             warnings.append("BMI is below normal range. Consider consulting your care team.")
         } else if bmi > 24.9 {
             warnings.append("BMI exceeds normal range. Monitor your weight closely.")
         }
         
-        // Weight gain check
         if let previousWeight = getPreviousWeight() {
             let difference = weight - previousWeight
             if difference > 2.0 {
@@ -625,7 +621,6 @@ class WeightCheckViewController: UIViewController {
     }
     
     private func updateSummary(weight: Double) {
-        // Weight difference from target
         let difference = weight - targetWeight
         weightDifferenceValueLabel.text = String(format: "%.1fkg", abs(difference))
         
@@ -647,7 +642,6 @@ class WeightCheckViewController: UIViewController {
             return nil
         }
         
-        // Find the most recent weight entry before today
         let sortedDates = weightEntries.keys.sorted()
         for date in sortedDates.reversed() {
             if date < selectedDate, let entry = weightEntries[date] {
@@ -672,7 +666,6 @@ class WeightCheckViewController: UIViewController {
         var preDialysisData: [(Date, Double)] = []
         var postDialysisData: [(Date, Double)] = []
         
-        // Get last 7 days of data
         let sortedDates = weightEntries.keys.sorted().suffix(7)
         
         for date in sortedDates {
@@ -719,7 +712,7 @@ class WeightGraphView: UIView {
         layer.shadowRadius = 8
         
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.text = "Weight Trend"
+        titleLabel.text = "Trend"
         titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         
         dryWeightLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -799,7 +792,6 @@ class WeightGraphView: UIView {
         
         let graphRect = CGRect(x: 40, y: 80, width: rect.width - 60, height: rect.height - 100)
         
-        // Find min and max values
         var allWeights: [Double] = []
         allWeights.append(contentsOf: preDialysisData.map { $0.1 })
         allWeights.append(contentsOf: postDialysisData.map { $0.1 })
@@ -813,16 +805,10 @@ class WeightGraphView: UIView {
         let maxY = maxWeight + padding
         let rangeY = maxY - minY
         
-        // Draw Y-axis labels
         drawYAxisLabels(in: graphRect, minY: minY, maxY: maxY)
-        
-        // Draw X-axis labels (days)
         drawXAxisLabels(in: graphRect)
-        
-        // Draw grid lines
         drawGridLines(in: graphRect)
         
-        // Draw lines
         if preDialysisData.count > 1 {
             drawLine(data: preDialysisData, in: graphRect, minY: minY, rangeY: rangeY, color: .systemBlue)
         }
@@ -831,7 +817,6 @@ class WeightGraphView: UIView {
             drawLine(data: postDialysisData, in: graphRect, minY: minY, rangeY: rangeY, color: .systemGreen)
         }
         
-        // Draw data points
         drawPoints(data: preDialysisData, in: graphRect, minY: minY, rangeY: rangeY, color: .systemBlue)
         drawPoints(data: postDialysisData, in: graphRect, minY: minY, rangeY: rangeY, color: .systemGreen)
     }
@@ -874,7 +859,6 @@ class WeightGraphView: UIView {
         context.setStrokeColor(UIColor(white: 0.9, alpha: 1.0).cgColor)
         context.setLineWidth(0.5)
         
-        // Horizontal lines
         for i in 0...2 {
             let y = rect.minY + rect.height * CGFloat(i) / 2
             context.move(to: CGPoint(x: rect.minX, y: y))
