@@ -322,7 +322,7 @@ class WaveView: UIView {
         let path = UIBezierPath()
         let clamped = max(0, min(level, 1))
 
-        // 🔥 NEW: smooth vertical flow like a real wave
+        // NEW: smooth vertical flow like a real wave
         let verticalBob = sin(phase * bobbingSpeed) * bobbingStrength
 
         // dynamic water level
@@ -404,6 +404,17 @@ class HydrationStatusViewController: UIViewController {
         setupWaveView()
         syncProgressToWave()
     }
+    
+    override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            navigationController?.setNavigationBarHidden(true, animated: false)
+        }
+
+        // (optional but recommended)
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            navigationController?.setNavigationBarHidden(false, animated: false)
+        }
     
     private func syncProgressToWave() {
         let ratio = consumedAmount / goalAmount  // 75/250 = 0.3
