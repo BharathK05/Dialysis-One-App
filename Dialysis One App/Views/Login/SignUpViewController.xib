@@ -110,6 +110,7 @@
                     <state key="normal" title="Button"/>
                     <buttonConfiguration key="configuration" style="plain" title="Sign In">
                         <fontDescription key="titleFontDescription" type="system" weight="semibold" pointSize="14"/>
+                        <color key="baseForegroundColor" red="0.0" green="0.45882352939999999" blue="0.89019607840000003" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                     </buttonConfiguration>
                     <connections>
                         <action selector="signInButtonTapped:" destination="-1" eventType="touchUpInside" id="UQE-Ya-E1e"/>

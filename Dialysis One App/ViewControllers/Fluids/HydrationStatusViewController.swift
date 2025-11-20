@@ -342,24 +342,50 @@ class WaveView: UIView {
 // MARK: - Placeholder ViewAll VC
 
 class PreviousLogsViewController: UIViewController {
+    
+    private let backButton = UIButton(type: .system)
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        title = "All Logs"
+        title = ""  // We will use a custom title
         
-        let label = UILabel()
-        label.text = "Previous Logs Screen"
-        label.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
-        label.textColor = UIColor(hex: 0x152B3C)
-        label.translatesAutoresizingMaskIntoConstraints = false
+        setupHeader()
+    }
+    
+    private func setupHeader() {
+        // Back button
+        backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        backButton.tintColor = UIColor(hex: 0x152B3C)
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         
-        view.addSubview(label)
+        // Title label
+        let titleLabel = UILabel()
+        titleLabel.text = "All Logs"
+        titleLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
+        titleLabel.textColor = UIColor(hex: 0x152B3C)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        view.addSubview(backButton)
+        view.addSubview(titleLabel)
+        
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            backButton.widthAnchor.constraint(equalToConstant: 28),
+            backButton.heightAnchor.constraint(equalToConstant: 28),
+            
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor)
         ])
     }
+    
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
+    }
 }
+
 
 // MARK: - Main View Controller
 
@@ -446,6 +472,7 @@ class HydrationStatusViewController: UIViewController {
         backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
         backButton.tintColor = UIColor(hex: 0x152B3C)
         backButton.translatesAutoresizingMaskIntoConstraints = false
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         
         titleLabel.text = "Hydration Status"
         titleLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
@@ -476,6 +503,10 @@ class HydrationStatusViewController: UIViewController {
             dateButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             dateButton.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16)
         ])
+    }
+    
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
     }
     
     private func setupProgress() {
