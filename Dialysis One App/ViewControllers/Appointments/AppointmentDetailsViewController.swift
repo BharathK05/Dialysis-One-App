@@ -7,23 +7,31 @@
 
 import UIKit
 
-class AppointmentDetailsViewController: UIViewController {
+final class AppointmentDetailsViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Do any additional setup after loading the view.
+        view.backgroundColor = .systemBackground
+        title = "Appointment"
+
+        setupNavigationBar()
     }
-    
 
-    /*
-    // MARK: - Navigation
+    private func setupNavigationBar() {
+        navigationController?.setNavigationBarHidden(false, animated: false)
 
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+        // Back button
+        let backButton = UIBarButtonItem(
+            title: "Back",
+            style: .plain,
+            target: self,
+            action: #selector(backTapped)
+        )
+        navigationItem.leftBarButtonItem = backButton
     }
-    */
 
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
+    }
 }

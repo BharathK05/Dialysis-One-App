@@ -80,6 +80,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        addTopGradientBackground()
         setupUI()
     }
     
@@ -574,50 +575,77 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     }
     
     private func setupSummarySection() {
+
+        // SUMMARY TITLE
         summaryLabel = UILabel()
         summaryLabel.text = "Summary"
         summaryLabel.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
         summaryLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(summaryLabel)
-        
+
         summaryTopConstraint = summaryLabel.topAnchor.constraint(equalTo: dietButton.bottomAnchor, constant: 16)
-        
-        // Nutrient Balance Card
+
+        // --- NUTRIENT CARD (Compact & Polished) ---
         let nutrientCard = createNutrientBalanceCard()
+        nutrientCard.translatesAutoresizingMaskIntoConstraints = false
+        nutrientCard.isUserInteractionEnabled = true
+        nutrientCard.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(openNutrientBalance)))
         contentView.addSubview(nutrientCard)
-        
-        // Water and Dose Cards Container
+
+        NSLayoutConstraint.activate([
+            summaryTopConstraint,
+            summaryLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+
+            nutrientCard.topAnchor.constraint(equalTo: summaryLabel.bottomAnchor, constant: 14),
+            nutrientCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            nutrientCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            nutrientCard.heightAnchor.constraint(equalToConstant: 110) // reduced height
+        ])
+
+        // --- WATER & MEDICATION CARDS ---
         let cardsStack = UIStackView()
         cardsStack.axis = .horizontal
         cardsStack.spacing = 12
         cardsStack.distribution = .fillEqually
         cardsStack.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(cardsStack)
-        
+
         let waterProgress = CGFloat(waterConsumed) / CGFloat(waterGoal)
-        let waterCard = createProgressCard(value: "\(waterConsumed)", total: "out of\n\(waterGoal) ml", color: UIColor.systemBlue, progress: waterProgress, type: .water)
-        
+        let waterCard = createProgressCard(
+            value: "\(waterConsumed)",
+            total: "out of\n\(waterGoal) ml",
+            color: UIColor.systemBlue,
+            progress: waterProgress,
+            type: .water
+        )
+
         let medicationProgress = CGFloat(dosesConsumed) / CGFloat(dosesGoal)
-        let doseCard = createProgressCard(value: "\(dosesConsumed)", total: "out of\n\(dosesGoal) doses", color: UIColor.systemGreen, progress: medicationProgress, type: .medication)
-        
+        let doseCard = createProgressCard(
+            value: "\(dosesConsumed)",
+            total: "out of\n\(dosesGoal) doses",
+            color: UIColor.systemGreen,
+            progress: medicationProgress,
+            type: .medication
+        )
+
         cardsStack.addArrangedSubview(waterCard)
         cardsStack.addArrangedSubview(doseCard)
-        
+
         NSLayoutConstraint.activate([
-            summaryTopConstraint,
-            summaryLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            
-            nutrientCard.topAnchor.constraint(equalTo: summaryLabel.bottomAnchor, constant: 16),
-            nutrientCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            nutrientCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            nutrientCard.heightAnchor.constraint(equalToConstant: 140),
-            
-            cardsStack.topAnchor.constraint(equalTo: nutrientCard.bottomAnchor, constant: 12),
+            cardsStack.topAnchor.constraint(equalTo: nutrientCard.bottomAnchor, constant: 16),
             cardsStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             cardsStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
             cardsStack.heightAnchor.constraint(equalToConstant: 150)
         ])
     }
+
+    
+    @objc private func openNutrientBalance() {
+        let vc = NutrientBalanceViewController()
+        vc.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
     
     private func createNutrientBalanceCard() -> UIView {
         let container = UIView()
@@ -638,19 +666,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             blurView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             blurView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
-        
-        let iconConfig = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
-        let iconView = UIImageView(image: UIImage(systemName: "fork.knife", withConfiguration: iconConfig))
-        iconView.tintColor = .systemOrange
-        iconView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(iconView)
-        
-        let titleLabel = UILabel()
-        titleLabel.text = "Nutrient Balance"
-        titleLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        titleLabel.textColor = .systemOrange
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(titleLabel)
         
         let stack = UIStackView()
         stack.axis = .horizontal
@@ -673,18 +688,10 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         stack.addArrangedSubview(proteinItem)
         
         NSLayoutConstraint.activate([
-            iconView.topAnchor.constraint(equalTo: container.topAnchor, constant: 16),
-            iconView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
-            iconView.widthAnchor.constraint(equalToConstant: 16),
-            iconView.heightAnchor.constraint(equalToConstant: 16),
-            
-            titleLabel.centerYAnchor.constraint(equalTo: iconView.centerYAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 6),
-            
-            stack.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
             stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
-            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -18)
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -24)
         ])
         
         return container
@@ -832,8 +839,48 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             totalLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor)
         ])
         
+        if type == .water {
+            let tap = UITapGestureRecognizer(target: self, action: #selector(openHydrationStatus))
+            container.addGestureRecognizer(tap)
+            container.isUserInteractionEnabled = true
+        }
+        
         return container
     }
+    
+    @objc private func openHydrationStatus() {
+        let hydrationVC = HydrationStatusViewController()
+        hydrationVC.hidesBottomBarWhenPushed = true
+
+        navigationController?.pushViewController(hydrationVC, animated: true)
+    }
+    
+    private func addTopGradientBackground() {
+        let gradient = CAGradientLayer()
+
+            // COLORS MATCHING RELIEF GUIDE LOOK
+            let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)   // soft mint
+            let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1) // light teal
+
+            gradient.colors = [
+                topColor.cgColor,
+                bottomColor.cgColor
+            ]
+
+            // Same blending behavior as GradientView.swift
+            gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
+            gradient.endPoint   = CGPoint(x: 0.5, y: 1.0)
+
+            // Match the Relief Guide: bottom color dominates ~70%
+            gradient.locations = [0.0, 0.7]
+
+            gradient.type = .axial
+            gradient.frame = view.bounds
+            gradient.zPosition = -1
+
+            view.layer.insertSublayer(gradient, at: 0)
+    }
+
     
     private func setupWeightSection() {
         let weightCard = UIView()
@@ -891,7 +938,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             weightCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             weightCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
             weightCard.heightAnchor.constraint(equalToConstant: 65),
-            weightCard.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
             
             iconView.leadingAnchor.constraint(equalTo: weightCard.leadingAnchor, constant: 16),
             iconView.centerYAnchor.constraint(equalTo: weightCard.centerYAnchor),
@@ -909,6 +955,101 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             chevronImageView.widthAnchor.constraint(equalToConstant: 14),
             chevronImageView.heightAnchor.constraint(equalToConstant: 14)
         ])
+        
+        // --- UPCOMING APPOINTMENTS TITLE ---
+        let upcomingTitle = UILabel()
+        upcomingTitle.text = "Upcoming Appointments"
+        upcomingTitle.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        upcomingTitle.textColor = UIColor(hex: 0x152B3C)
+        upcomingTitle.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(upcomingTitle)
+
+        // --- APPOINTMENT CARD ---
+        let appointmentCard = UIView()
+        appointmentCard.backgroundColor = UIColor.white.withAlphaComponent(0.5)
+        appointmentCard.layer.cornerRadius = 20
+        appointmentCard.translatesAutoresizingMaskIntoConstraints = false
+        appointmentCard.isUserInteractionEnabled = true
+        contentView.addSubview(appointmentCard)
+
+        // Blur
+        let blurEffect2 = UIBlurEffect(style: .light)
+        let blurView2 = UIVisualEffectView(effect: blurEffect2)
+        blurView2.translatesAutoresizingMaskIntoConstraints = false
+        blurView2.layer.cornerRadius = 20
+        blurView2.clipsToBounds = true
+        appointmentCard.insertSubview(blurView2, at: 0)
+
+        // Icon
+        let clockIcon = UIImageView(image: UIImage(systemName: "clock"))
+        clockIcon.tintColor = .systemGreen
+        clockIcon.translatesAutoresizingMaskIntoConstraints = false
+
+        // Labels
+        let hospitalLabel = UILabel()
+        hospitalLabel.text = "SRM Medical Hospital"
+        hospitalLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        hospitalLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let dateLabel = UILabel()
+        dateLabel.text = "10 October 2025"
+        dateLabel.font = UIFont.systemFont(ofSize: 14)
+        dateLabel.textColor = .darkGray
+        dateLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let timeLabel = UILabel()
+        timeLabel.text = "12:00 PM"
+        timeLabel.font = UIFont.systemFont(ofSize: 14)
+        timeLabel.textColor = .darkGray
+        timeLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = .gray
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+
+        appointmentCard.addSubview(clockIcon)
+        appointmentCard.addSubview(hospitalLabel)
+        appointmentCard.addSubview(dateLabel)
+        appointmentCard.addSubview(timeLabel)
+        appointmentCard.addSubview(chevron)
+
+        // LAYOUT CONSTRAINTS
+        NSLayoutConstraint.activate([
+            upcomingTitle.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            upcomingTitle.topAnchor.constraint(equalTo: weightCard.bottomAnchor, constant: 32),
+
+            appointmentCard.topAnchor.constraint(equalTo: upcomingTitle.bottomAnchor, constant: 14),
+            appointmentCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            appointmentCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            appointmentCard.heightAnchor.constraint(equalToConstant: 110),
+            appointmentCard.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
+
+            blurView2.topAnchor.constraint(equalTo: appointmentCard.topAnchor),
+            blurView2.bottomAnchor.constraint(equalTo: appointmentCard.bottomAnchor),
+            blurView2.leadingAnchor.constraint(equalTo: appointmentCard.leadingAnchor),
+            blurView2.trailingAnchor.constraint(equalTo: appointmentCard.trailingAnchor),
+
+            clockIcon.leadingAnchor.constraint(equalTo: appointmentCard.leadingAnchor, constant: 16),
+            clockIcon.centerYAnchor.constraint(equalTo: appointmentCard.centerYAnchor),
+            clockIcon.widthAnchor.constraint(equalToConstant: 32),
+            clockIcon.heightAnchor.constraint(equalToConstant: 32),
+
+            hospitalLabel.leadingAnchor.constraint(equalTo: clockIcon.trailingAnchor, constant: 16),
+            hospitalLabel.topAnchor.constraint(equalTo: appointmentCard.topAnchor, constant: 18),
+
+            dateLabel.leadingAnchor.constraint(equalTo: hospitalLabel.leadingAnchor),
+            dateLabel.topAnchor.constraint(equalTo: hospitalLabel.bottomAnchor, constant: 6),
+
+            timeLabel.leadingAnchor.constraint(equalTo: hospitalLabel.leadingAnchor),
+            timeLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 4),
+
+            chevron.trailingAnchor.constraint(equalTo: appointmentCard.trailingAnchor, constant: -16),
+            chevron.centerYAnchor.constraint(equalTo: appointmentCard.centerYAnchor)
+        ])
+
+        let tap2 = UITapGestureRecognizer(target: self, action: #selector(openAppointmentDetails))
+        appointmentCard.addGestureRecognizer(tap2)
+
         
         // ADD TAP GESTURE HERE - AFTER ALL CONSTRAINTS
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(weightCardTapped))
@@ -944,6 +1085,13 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
         }
+    
+    @objc private func openAppointmentDetails() {
+        let vc = AppointmentDetailsViewController()
+        vc.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
 
 }
 
