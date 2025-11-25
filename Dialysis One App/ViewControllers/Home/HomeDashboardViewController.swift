@@ -2,8 +2,7 @@ import UIKit
 import AVFoundation
 import Photos
 
-
-class HomeDashboardViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate  {
+class HomeDashboardViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIGestureRecognizerDelegate {
     
     private var didRunTour = false
     
@@ -21,6 +20,14 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     private var searchButton: UIButton!
     private var summaryTopConstraint: NSLayoutConstraint!
     private var summaryLabel: UILabel!
+    
+    // Medication Adherence
+    private var medicationPopup: MedicationPopupView?
+    private var medicationPopupWidthConstraint: NSLayoutConstraint?
+    private var medicationPopupHeightConstraint: NSLayoutConstraint?
+    private var isMedicationPopupExpanded = false
+    private var medicationTotalLabel: UILabel?
+    private let medicationStore = MedicationStore.shared
     
     // MARK: - Dynamic Data Properties
     
@@ -67,8 +74,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     private var waterProgressView: SemiCircularProgressView?
     
     private var medicationValueLabel: UILabel?
-    private var medicationTotalLabel: UILabel?
-    private var medicationProgressView: SemiCircularProgressView?
+    private var medicationProgressView: UIView? // Changed from SemiCircularProgressView
     
     private var potassiumValueLabel: UILabel?
     private var potassiumProgressFill: UIView?
@@ -90,6 +96,16 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         loadUserValues()
         addTopGradientBackground()
         setupUI()
+        
+        updateSegmentedMedicationCard()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        updateSegmentedMedicationCard()
+        
+        // Keep it fresh every time the screen appears
+       // updateSegmentedMedicationCard()
     }
     
     
@@ -126,7 +142,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         updateWaterCard()
     }
-
     
     func updateMedication(consumed: Int, goal: Int? = nil) {
         dosesConsumed = consumed
@@ -139,10 +154,8 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         updateMedicationCard()
     }
-
     
     func updateNutrients(potassium: Int? = nil, sodium: Int? = nil, protein: Int? = nil) {
-        
         if let p = potassium {
             potassiumConsumed = p
             UserDataManager.shared.save("potassiumConsumed", value: p, uid: uid)
@@ -158,14 +171,76 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         updateNutrientCard()
     }
-
     
     func updateWeight(_ weight: Double) {
         currentWeight = weight
         UserDataManager.shared.save("weight", value: weight, uid: uid)
         updateWeightCard()
     }
+    
+    // MARK: - App Tour
+    private func showAppTourIfNeeded() {
+        let uid = self.uid
+        guard AppTourManager.shared.shouldShowTour(uid: uid) else { return }
 
+        let steps: [AppTourManager.Step] = [
+            // HOME TAB
+            .init(viewID: "home.diet", tabIndex: 0,
+                  message: "Scan or search foods to log meals."),
+
+            .init(viewID: "home.water", tabIndex: 0,
+                  message: "Track your hydration every day."),
+
+            .init(viewID: "home.pill", tabIndex: 0,
+                  message: "Add your medication doses."),
+
+            .init(viewID: "home.summary", tabIndex: 0,
+                  message: "Get today's nutrient breakdown."),
+
+            .init(viewID: "home.weight", tabIndex: 0,
+                  message: "Track and monitor your weight easily."),
+
+            // HEALTH TAB
+            .init(viewID: "health.watch", tabIndex: 1,
+                  message: "Connect to Apple Watch for vitals monitoring."),
+
+            .init(viewID: "health.reports", tabIndex: 1,
+                  message: "Upload medical reports and keep them organized."),
+
+            // RELIEF TAB
+            .init(viewID: "relief.table", tabIndex: 2,
+                  message: "Find symptoms and guided relief steps.")
+        ]
+
+        // Show tour
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            AppTourManager.shared.showTour(
+                steps: steps,
+                in: self.tabBarController ?? self,
+                uid: uid
+            )
+        }
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        // Register tour views once layout is ready
+        AppTourManager.shared.register(view: dietButton, for: "home.diet")
+        AppTourManager.shared.register(view: waterButton, for: "home.water")
+        AppTourManager.shared.register(view: pillButton, for: "home.pill")
+        AppTourManager.shared.register(view: summaryLabel, for: "home.summary")
+        if let weightValueLabel = weightValueLabel {
+            AppTourManager.shared.register(view: weightValueLabel, for: "home.weight")
+        }
+
+        if !didRunTour {
+            didRunTour = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.showAppTourIfNeeded()
+            }
+        }
+    }
     
     // MARK: - Private Update Methods
     private func updateWaterCard() {
@@ -176,10 +251,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     }
     
     private func updateMedicationCard() {
-        medicationValueLabel?.text = "\(dosesConsumed)"
-        medicationTotalLabel?.text = "out of\n\(dosesGoal) doses"
-        let progress = CGFloat(dosesConsumed) / CGFloat(dosesGoal)
-        medicationProgressView?.progress = min(progress, 1.0)
+        updateSegmentedMedicationCard()
     }
     
     private func updateNutrientCard() {
@@ -268,7 +340,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(titleLabel)
         
-        // Profile button with SF Symbol
         let profileButton = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
         profileButton.setImage(UIImage(systemName: "person.circle.fill", withConfiguration: config), for: .normal)
@@ -302,74 +373,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         present(sheetVC, animated: true)
     }
     
-    private func showAppTourIfNeeded() {
-        let uid = self.uid
-        guard AppTourManager.shared.shouldShowTour(uid: uid) else { return }
-
-        let steps: [AppTourManager.Step] = [
-
-            // HOME TAB
-            .init(viewID: "home.diet", tabIndex: 0,
-                  message: "Scan or search foods to log meals."),
-
-            .init(viewID: "home.water", tabIndex: 0,
-                  message: "Track your hydration every day."),
-
-            .init(viewID: "home.pill", tabIndex: 0,
-                  message: "Add your medication doses."),
-
-            .init(viewID: "home.summary", tabIndex: 0,
-                  message: "Get today's nutrient breakdown."),
-
-            .init(viewID: "home.weight", tabIndex: 0,
-                  message: "Track and monitor your weight easily."),
-
-            // HEALTH TAB
-            .init(viewID: "health.watch", tabIndex: 1,
-                  message: "Connect to Apple Watch for vitals monitoring."),
-
-            .init(viewID: "health.reports", tabIndex: 1,
-                  message: "Upload medical reports and keep them organized."),
-
-            // RELIEF TAB
-            .init(viewID: "relief.table", tabIndex: 2,
-                  message: "Find symptoms and guided relief steps.")
-        ]
-
-
-
-        // show tour
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-            AppTourManager.shared.showTour(
-                steps: steps,
-                in: self.tabBarController ?? self,
-                uid: uid
-            )
-        }
-    }
-    
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        
-        // Register tour views once layout is ready
-            AppTourManager.shared.register(view: dietButton, for: "home.diet")
-            AppTourManager.shared.register(view: waterButton, for: "home.water")
-            AppTourManager.shared.register(view: pillButton, for: "home.pill")
-            AppTourManager.shared.register(view: summaryLabel, for: "home.summary")
-            if let weightValueLabel = weightValueLabel {
-                AppTourManager.shared.register(view: weightValueLabel, for: "home.weight")
-            }
-
-        if !didRunTour {
-            didRunTour = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                self.showAppTourIfNeeded()
-            }
-        }
-    }
-
-
-    
     private func setupQuickAddSection() {
         let label = UILabel()
         label.text = "Quick Add"
@@ -384,18 +387,18 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         
         // Diet Button (Expandable)
         dietButton = createExpandableDietButton()
-        // wire camera button action (createExpandableDietButton sets cameraButton)
-        // Already correct in your code - no changes needed here
         cameraButton.addTarget(self, action: #selector(cameraButtonTapped), for: .touchUpInside)
-
         contentView.addSubview(dietButton)
         
         // Water Button
         waterButton = createQuickAddButton(color: UIColor(red: 0.67, green: 0.85, blue: 0.93, alpha: 1.0), iconName: "drop.fill")
         contentView.addSubview(waterButton)
         
-        // Pill Button
+        // Pill Button with tap gesture
         pillButton = createQuickAddButton(color: UIColor(red: 0.55, green: 0.89, blue: 0.70, alpha: 1.0), iconName: "pills.fill")
+        pillButton.isUserInteractionEnabled = true
+        let pillTapGesture = UITapGestureRecognizer(target: self, action: #selector(pillButtonTapped))
+        pillButton.addGestureRecognizer(pillTapGesture)
         contentView.addSubview(pillButton)
         
         dietButtonWidthConstraint = dietButton.widthAnchor.constraint(equalToConstant: 110)
@@ -425,7 +428,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         container.translatesAutoresizingMaskIntoConstraints = false
         container.clipsToBounds = true
         
-        // Fork and knife icon
         let iconConfig = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
         let iconView = UIImageView(image: UIImage(systemName: "fork.knife", withConfiguration: iconConfig))
         iconView.tintColor = .black
@@ -434,7 +436,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         iconView.contentMode = .scaleAspectFit
         container.addSubview(iconView)
         
-        // Camera Button (Hidden initially)
         cameraButton = UIButton(type: .system)
         let cameraConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
         cameraButton.setImage(UIImage(systemName: "camera.fill", withConfiguration: cameraConfig), for: .normal)
@@ -447,7 +448,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         cameraButton.transform = CGAffineTransform(scaleX: 0.1, y: 0.1)
         container.addSubview(cameraButton)
         
-        // Search Button (Hidden initially)
         searchButton = UIButton(type: .system)
         let searchConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
         searchButton.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: searchConfig), for: .normal)
@@ -487,17 +487,14 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         isExpanded.toggle()
         
         if isExpanded {
-            // Expand animation
             dietButtonWidthConstraint.constant = 340
             summaryTopConstraint.constant = 40
             
-            // Hide other buttons
             UIView.animate(withDuration: 0.15, animations: {
                 self.waterButton.alpha = 0
                 self.pillButton.alpha = 0
             })
             
-            // Main expansion with bounce
             UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.8, options: .curveEaseOut, animations: {
                 self.view.layoutIfNeeded()
                 
@@ -511,7 +508,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
                 }
                 
             }, completion: { _ in
-                // Pop in the buttons with stagger
                 UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.5, options: .curveEaseOut, animations: {
                     self.cameraButton.alpha = 1
                     self.cameraButton.transform = .identity
@@ -524,11 +520,9 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             })
             
         } else {
-            // Collapse animation
             dietButtonWidthConstraint.constant = 110
             summaryTopConstraint.constant = 16
             
-            // Hide buttons first
             UIView.animate(withDuration: 0.15, animations: {
                 self.cameraButton.alpha = 0
                 self.searchButton.alpha = 0
@@ -536,7 +530,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
                 self.searchButton.transform = CGAffineTransform(scaleX: 0.1, y: 0.1)
             })
             
-            // Main collapse
             UIView.animate(withDuration: 0.3, delay: 0.1, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseInOut, animations: {
                 self.view.layoutIfNeeded()
                 
@@ -550,7 +543,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
                 }
                 
             }, completion: { _ in
-                // Show other buttons
                 UIView.animate(withDuration: 0.2, animations: {
                     self.waterButton.alpha = 1
                     self.pillButton.alpha = 1
@@ -558,9 +550,115 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             })
         }
     }
-    // MARK: - Camera / Photo picking
+    
+    // MARK: - Medication Popup
+    @objc private func pillButtonTapped() {
+        isMedicationPopupExpanded.toggle()
+        
+        if isMedicationPopupExpanded {
+            showMedicationPopup()
+        } else {
+            hideMedicationPopup()
+        }
+    }
 
-    // inside HomeDashboardViewController, where you present CameraCaptureViewController
+    private func showMedicationPopup() {
+        if medicationPopup == nil {
+            let popup = MedicationPopupView()
+            popup.translatesAutoresizingMaskIntoConstraints = false
+            popup.alpha = 0
+            popup.layer.cornerRadius = 14
+            popup.clipsToBounds = true
+            popup.delegate = self
+
+            let popupTap = UITapGestureRecognizer(target: self, action: #selector(pillButtonTapped))
+            popupTap.cancelsTouchesInView = false
+            popupTap.numberOfTapsRequired = 1
+            popupTap.delegate = self
+            popup.addGestureRecognizer(popupTap)
+
+            contentView.addSubview(popup)
+
+            medicationPopupWidthConstraint = popup.widthAnchor.constraint(equalToConstant: 110)
+            medicationPopupHeightConstraint = popup.heightAnchor.constraint(equalToConstant: 60)
+
+            NSLayoutConstraint.activate([
+                popup.topAnchor.constraint(equalTo: pillButton.topAnchor),
+                popup.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+                medicationPopupWidthConstraint!,
+                medicationPopupHeightConstraint!
+            ])
+
+            medicationPopup = popup
+            view.layoutIfNeeded()
+        }
+
+        let targetWidth: CGFloat = min(view.bounds.width - 48, 340)
+        let targetHeight = CGFloat(medicationPopup?.requiredHeight ?? 200)
+
+        medicationPopupWidthConstraint?.constant = targetWidth
+        medicationPopupHeightConstraint?.constant = targetHeight
+        summaryTopConstraint.constant = targetHeight + 32
+
+        UIView.animate(withDuration: 0.15) {
+            self.dietButton.alpha = 0
+            self.waterButton.alpha = 0
+            self.pillButton.alpha = 0
+        }
+
+        UIView.animate(
+            withDuration: MedicationDesignTokens.Animation.expansionDuration,
+            delay: 0,
+            usingSpringWithDamping: MedicationDesignTokens.Animation.expansionDamping,
+            initialSpringVelocity: 0.5,
+            options: .curveEaseOut
+        ) {
+            self.medicationPopup?.alpha = 1
+            self.view.layoutIfNeeded()
+        }
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        var touchedView = touch.view
+        while let v = touchedView {
+            if v is UIControl { return false }
+            touchedView = v.superview
+        }
+        return true
+    }
+
+    private func hideMedicationPopup() {
+        medicationPopupWidthConstraint?.constant = 110
+        medicationPopupHeightConstraint?.constant = 60
+        summaryTopConstraint.constant = 16
+        
+        UIView.animate(
+            withDuration: 0.25,
+            delay: 0,
+            usingSpringWithDamping: 0.8,
+            initialSpringVelocity: 0.5,
+            options: .curveEaseInOut
+        ) {
+            self.medicationPopup?.alpha = 0
+            self.view.layoutIfNeeded()
+        } completion: { _ in
+            self.medicationPopup?.removeFromSuperview()
+            self.medicationPopup = nil
+            
+            UIView.animate(withDuration: 0.2) {
+                self.dietButton.alpha = 1
+                self.waterButton.alpha = 1
+                self.pillButton.alpha = 1
+            }
+        }
+    }
+    
+    @objc private func medicationCardTapped() {
+        let adherenceVC = MedicationAdherenceViewController()
+        navigationController?.pushViewController(adherenceVC, animated: true)
+    }
+    
+    // MARK: - Camera
     @objc func cameraButtonTapped() {
         let cameraVC = CameraCaptureViewController()
         cameraVC.delegate = self
@@ -568,18 +666,10 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         present(cameraVC, animated: true)
     }
     
-    
     @objc private func weightCardTapped() {
-        print("Weight card tapped!") // Add this to test
         let weightCheckVC = WeightCheckViewController()
         navigationController?.pushViewController(weightCheckVC, animated: true)
     }
-
-  
-    
-
-
-
 
     private func requestCameraAccessAndPresentPicker() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -634,12 +724,12 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         let picker = UIImagePickerController()
         picker.delegate = self
         picker.sourceType = source
-        picker.allowsEditing = true // gives a basic crop; change to false if you prefer
+        picker.allowsEditing = true
         DispatchQueue.main.async {
             self.present(picker, animated: true)
         }
     }
-    // UIImagePickerControllerDelegate
+    
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true, completion: nil)
     }
@@ -647,16 +737,11 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         picker.dismiss(animated: true) { [weak self] in
             guard let self = self else { return }
-            // prefer edited image when allowsEditing = true
             let image = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
             guard let chosen = image else { return }
-            // present preview controller
             let preview = PreviewViewController(image: chosen) { acceptedImage in
-                // User accepted — save to temp and notify next step (model)
                 if let savedURL = self.saveImageToTemp(acceptedImage) {
                     print("Saved image to temp:", savedURL.path)
-                    // TODO: call your analysis pipeline with savedURL or acceptedImage
-                    // e.g., self.analyzeImage(at: savedURL) or self.analyzeImage(acceptedImage)
                 }
             }
             let nav = UINavigationController(rootViewController: preview)
@@ -664,8 +749,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             self.present(nav, animated: true)
         }
     }
-
-
     
     private func createQuickAddButton(color: UIColor, iconName: String) -> UIView {
         let container = UIView()
@@ -691,8 +774,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     }
     
     private func setupSummarySection() {
-
-        // SUMMARY TITLE
         summaryLabel = UILabel()
         summaryLabel.text = "Summary"
         summaryLabel.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
@@ -701,7 +782,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         summaryTopConstraint = summaryLabel.topAnchor.constraint(equalTo: dietButton.bottomAnchor, constant: 16)
 
-        // --- NUTRIENT CARD (Compact & Polished) ---
+        // Nutrient Card (with tap to open NutrientBalanceViewController)
         let nutrientCard = createNutrientBalanceCard()
         nutrientCard.translatesAutoresizingMaskIntoConstraints = false
         nutrientCard.isUserInteractionEnabled = true
@@ -715,10 +796,10 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             nutrientCard.topAnchor.constraint(equalTo: summaryLabel.bottomAnchor, constant: 14),
             nutrientCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             nutrientCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            nutrientCard.heightAnchor.constraint(equalToConstant: 110) // reduced height
+            nutrientCard.heightAnchor.constraint(equalToConstant: 110)
         ])
 
-        // --- WATER & MEDICATION CARDS ---
+        // Water & Medication Cards
         let cardsStack = UIStackView()
         cardsStack.axis = .horizontal
         cardsStack.spacing = 12
@@ -735,14 +816,12 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             type: .water
         )
 
-        let medicationProgress = CGFloat(dosesConsumed) / CGFloat(dosesGoal)
-        let doseCard = createProgressCard(
-            value: "\(dosesConsumed)",
-            total: "out of\n\(dosesGoal) doses",
-            color: UIColor.systemGreen,
-            progress: medicationProgress,
-            type: .medication
-        )
+        let doseCard = createSegmentedMedicationCard()
+        
+        // Add tap gesture to medication card
+        let medicationTapGesture = UITapGestureRecognizer(target: self, action: #selector(medicationCardTapped))
+        doseCard.addGestureRecognizer(medicationTapGesture)
+        doseCard.isUserInteractionEnabled = true
 
         cardsStack.addArrangedSubview(waterCard)
         cardsStack.addArrangedSubview(doseCard)
@@ -754,14 +833,12 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             cardsStack.heightAnchor.constraint(equalToConstant: 150)
         ])
     }
-
     
     @objc private func openNutrientBalance() {
         let vc = NutrientBalanceViewController()
         vc.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(vc, animated: true)
     }
-
     
     private func createNutrientBalanceCard() -> UIView {
         let container = UIView()
@@ -844,7 +921,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(valueLabel)
         
-        // Store references based on type
         switch type {
         case .potassium:
             potassiumValueLabel = valueLabel
@@ -906,7 +982,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             blurView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         
-        // Create semi-circular progress view
         let circularProgress = SemiCircularProgressView(frame: CGRect(x: 0, y: 0, width: 110, height: 70))
         circularProgress.progress = progress
         circularProgress.trackColor = color.withAlphaComponent(0.2)
@@ -930,16 +1005,13 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         totalLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(totalLabel)
         
-        // Store references based on type
         switch type {
         case .water:
             waterValueLabel = valueLabel
             waterTotalLabel = totalLabel
             waterProgressView = circularProgress
         case .medication:
-            medicationValueLabel = valueLabel
-            medicationTotalLabel = totalLabel
-            medicationProgressView = circularProgress
+            break
         }
         
         NSLayoutConstraint.activate([
@@ -955,12 +1027,12 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             totalLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor)
         ])
         
+        // Add tap gesture for water card to open HydrationStatusViewController
         if type == .water {
             container.isUserInteractionEnabled = true
             let tap = UITapGestureRecognizer(target: self, action: #selector(openHydrationStatus))
             container.addGestureRecognizer(tap)
             
-            // Disable interaction on child views
             blurView.isUserInteractionEnabled = false
             circularProgress.isUserInteractionEnabled = false
             valueLabel.isUserInteractionEnabled = false
@@ -969,40 +1041,269 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         return container
     }
+    class SegmentedMedicationProgressView: UIView {
+        
+        private var morningProgress: CGFloat = 0
+        private var afternoonProgress: CGFloat = 0
+        private var nightProgress: CGFloat = 0
+        
+        private let lineWidth: CGFloat = 10
+        private let trackColor = UIColor.lightGray.withAlphaComponent(0.2)
+        
+        func setProgress(morning: CGFloat, afternoon: CGFloat, night: CGFloat) {
+            self.morningProgress = min(max(morning, 0), 1.0)
+            self.afternoonProgress = min(max(afternoon, 0), 1.0)
+            self.nightProgress = min(max(night, 0), 1.0)
+            setNeedsDisplay()
+        }
+        
+        override func draw(_ rect: CGRect) {
+            UIColor.clear.setFill()
+            UIRectFill(rect)
+            
+            let center = CGPoint(x: bounds.midX, y: bounds.maxY - 5)
+            let radius = (bounds.width / 2) - (lineWidth / 2) - 3 // Extra padding
+            
+            let startAngle = CGFloat.pi
+            let endAngle: CGFloat = 0
+            
+            // Draw track (background arc)
+            let trackPath = UIBezierPath(arcCenter: center,
+                                          radius: radius,
+                                          startAngle: startAngle,
+                                          endAngle: endAngle,
+                                          clockwise: true)
+            trackPath.lineWidth = lineWidth
+            trackPath.lineCapStyle = .butt
+            trackColor.setStroke()
+            trackPath.stroke()
+            
+            // Calculate angles for 3 segments with small gaps
+            let totalAngle = CGFloat.pi
+            let gapAngle: CGFloat = 0.02 // Small gap between segments
+            let segmentAngle = (totalAngle - (gapAngle * 2)) / 3
+            
+            // Morning segment (left third) - Green with LOWER OPACITY
+            if morningProgress > 0 {
+                let morningStart = startAngle
+                let morningEnd = morningStart + (segmentAngle * morningProgress)
+                let morningPath = UIBezierPath(arcCenter: center,
+                                               radius: radius,
+                                               startAngle: morningStart,
+                                               endAngle: morningEnd,
+                                               clockwise: true)
+                morningPath.lineWidth = lineWidth
+                morningPath.lineCapStyle = .butt
+                UIColor.systemGreen.withAlphaComponent(0.6).setStroke() // 60% opacity
+                morningPath.stroke()
+            }
+            
+            // Afternoon segment (middle third) - Blue with LOWER OPACITY
+            if afternoonProgress > 0 {
+                let afternoonStart = startAngle + segmentAngle + gapAngle
+                let afternoonEnd = afternoonStart + (segmentAngle * afternoonProgress)
+                let afternoonPath = UIBezierPath(arcCenter: center,
+                                                 radius: radius,
+                                                 startAngle: afternoonStart,
+                                                 endAngle: afternoonEnd,
+                                                 clockwise: true)
+                afternoonPath.lineWidth = lineWidth
+                afternoonPath.lineCapStyle = .butt
+                UIColor.systemBlue.withAlphaComponent(0.6).setStroke() // 60% opacity
+                afternoonPath.stroke()
+            }
+            
+            // Night segment (right third) - Indigo with LOWER OPACITY
+            if nightProgress > 0 {
+                let nightStart = startAngle + (segmentAngle * 2) + (gapAngle * 2)
+                let nightEnd = nightStart + (segmentAngle * nightProgress)
+                let nightPath = UIBezierPath(arcCenter: center,
+                                             radius: radius,
+                                             startAngle: nightStart,
+                                             endAngle: nightEnd,
+                                             clockwise: true)
+                nightPath.lineWidth = lineWidth
+                nightPath.lineCapStyle = .butt
+                UIColor.systemIndigo.withAlphaComponent(0.6).setStroke() // 60% opacity
+                nightPath.stroke()
+            }
+            
+            // Draw separator lines between segments (very subtle)
+            let separatorColor = UIColor.white.withAlphaComponent(0.5)
+            let separatorWidth: CGFloat = 1.5
+            
+            // Separator 1 (between morning and afternoon)
+            let sep1Angle = startAngle + segmentAngle + (gapAngle / 2)
+            let sep1Start = CGPoint(
+                x: center.x + (radius - lineWidth/2 - 1) * cos(sep1Angle),
+                y: center.y + (radius - lineWidth/2 - 1) * sin(sep1Angle)
+            )
+            let sep1End = CGPoint(
+                x: center.x + (radius + lineWidth/2 + 1) * cos(sep1Angle),
+                y: center.y + (radius + lineWidth/2 + 1) * sin(sep1Angle)
+            )
+            let sep1Path = UIBezierPath()
+            sep1Path.move(to: sep1Start)
+            sep1Path.addLine(to: sep1End)
+            sep1Path.lineWidth = separatorWidth
+            separatorColor.setStroke()
+            sep1Path.stroke()
+            
+            // Separator 2 (between afternoon and night)
+            let sep2Angle = startAngle + (segmentAngle * 2) + gapAngle + (gapAngle / 2)
+            let sep2Start = CGPoint(
+                x: center.x + (radius - lineWidth/2 - 1) * cos(sep2Angle),
+                y: center.y + (radius - lineWidth/2 - 1) * sin(sep2Angle)
+            )
+            let sep2End = CGPoint(
+                x: center.x + (radius + lineWidth/2 + 1) * cos(sep2Angle),
+                y: center.y + (radius + lineWidth/2 + 1) * sin(sep2Angle)
+            )
+            let sep2Path = UIBezierPath()
+            sep2Path.move(to: sep2Start)
+            sep2Path.addLine(to: sep2End)
+            sep2Path.lineWidth = separatorWidth
+            separatorColor.setStroke()
+            sep2Path.stroke()
+        }
+        
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            backgroundColor = .clear
+            isOpaque = false
+        }
+        
+        required init?(coder: NSCoder) {
+            super.init(coder: coder)
+            backgroundColor = .clear
+            isOpaque = false
+        }
+    }
+    
+    private func createSegmentedMedicationCard() -> UIView {
+        let container = UIView()
+        container.backgroundColor = UIColor.white.withAlphaComponent(0.5)
+        container.layer.cornerRadius = 20
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let blurEffect = UIBlurEffect(style: .light)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        blurView.translatesAutoresizingMaskIntoConstraints = false
+        blurView.layer.cornerRadius = 20
+        blurView.clipsToBounds = true
+        container.insertSubview(blurView, at: 0)
+        
+        NSLayoutConstraint.activate([
+            blurView.topAnchor.constraint(equalTo: container.topAnchor),
+            blurView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            blurView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            blurView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        // Segmented progress view - SAME SIZE AS WATER CARD
+        let segmentedProgress = SegmentedMedicationProgressView(frame: CGRect(x: 0, y: 0, width: 110, height: 70))
+        segmentedProgress.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(segmentedProgress)
+        medicationProgressView = segmentedProgress
+        
+        // COUNT LABEL - BOLD, centered in progress circle
+        let countLabel = UILabel()
+        countLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        countLabel.textAlignment = .center
+        countLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(countLabel)
+        medicationValueLabel = countLabel
+        
+        // "out of X doses" label - below progress, regular weight
+        let totalLabel = UILabel()
+        totalLabel.font = UIFont.systemFont(ofSize: 13)
+        totalLabel.textAlignment = .center
+        totalLabel.numberOfLines = 2
+        totalLabel.textColor = .darkGray
+        totalLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(totalLabel)
+        medicationTotalLabel = totalLabel
+        
+        NSLayoutConstraint.activate([
+            segmentedProgress.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            segmentedProgress.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            segmentedProgress.widthAnchor.constraint(equalToConstant: 110),
+            segmentedProgress.heightAnchor.constraint(equalToConstant: 70),
+            
+            // Count label centered in the progress arc
+            countLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            countLabel.bottomAnchor.constraint(equalTo: segmentedProgress.bottomAnchor, constant: 0),
+            
+            // Total label below progress
+            totalLabel.topAnchor.constraint(equalTo: segmentedProgress.bottomAnchor, constant: 8),
+            totalLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            totalLabel.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 8),
+            totalLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -8)
+        ])
+        
+        updateSegmentedMedicationCard()
+        
+        // Add tap gesture
+        container.isUserInteractionEnabled = true
+        let tap = UITapGestureRecognizer(target: self, action: #selector(medicationCardTapped))
+        container.addGestureRecognizer(tap)
+        
+        blurView.isUserInteractionEnabled = false
+        segmentedProgress.isUserInteractionEnabled = false
+        
+        return container
+    }
+
+    private func updateSegmentedMedicationCard() {
+        let store = MedicationStore.shared
+        let today = Date()
+        
+        // Get progress for each time of day
+        let morningProgress = store.takenCount(for: .morning, date: today)
+        let afternoonProgress = store.takenCount(for: .afternoon, date: today)
+        let nightProgress = store.takenCount(for: .night, date: today)
+        
+        // Calculate segment values (0.0 to 1.0)
+        let morningValue: CGFloat = morningProgress.total > 0 ? CGFloat(morningProgress.taken) / CGFloat(morningProgress.total) : 0
+        let afternoonValue: CGFloat = afternoonProgress.total > 0 ? CGFloat(afternoonProgress.taken) / CGFloat(afternoonProgress.total) : 0
+        let nightValue: CGFloat = nightProgress.total > 0 ? CGFloat(nightProgress.taken) / CGFloat(nightProgress.total) : 0
+        
+        // Update the segmented view
+        if let segmentedView = medicationProgressView as? SegmentedMedicationProgressView {
+            segmentedView.setProgress(morning: morningValue, afternoon: afternoonValue, night: nightValue)
+        }
+        
+        // Update count - BOLD NUMBER like water card
+        let totalTaken = morningProgress.taken + afternoonProgress.taken + nightProgress.taken
+        let totalDoses = morningProgress.total + afternoonProgress.total + nightProgress.total
+        medicationValueLabel?.text = "\(totalTaken)"
+        
+        // Update total label
+        medicationTotalLabel?.text = "out of\n\(totalDoses) doses"
+    }
+
     
     @objc private func openHydrationStatus() {
         let hydrationVC = HydrationStatusViewController()
         hydrationVC.hidesBottomBarWhenPushed = true
-
         navigationController?.pushViewController(hydrationVC, animated: true)
     }
     
     private func addTopGradientBackground() {
         let gradient = CAGradientLayer()
+        let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)
+        let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1)
 
-            // COLORS MATCHING RELIEF GUIDE LOOK
-            let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)   // soft mint
-            let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1) // light teal
+        gradient.colors = [topColor.cgColor, bottomColor.cgColor]
+        gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
+        gradient.endPoint = CGPoint(x: 0.5, y: 1.0)
+        gradient.locations = [0.0, 0.7]
+        gradient.type = .axial
+        gradient.frame = view.bounds
+        gradient.zPosition = -1
 
-            gradient.colors = [
-                topColor.cgColor,
-                bottomColor.cgColor
-            ]
-
-            // Same blending behavior as GradientView.swift
-            gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
-            gradient.endPoint   = CGPoint(x: 0.5, y: 1.0)
-
-            // Match the Relief Guide: bottom color dominates ~70%
-            gradient.locations = [0.0, 0.7]
-
-            gradient.type = .axial
-            gradient.frame = view.bounds
-            gradient.zPosition = -1
-
-            view.layer.insertSublayer(gradient, at: 0)
+        view.layer.insertSublayer(gradient, at: 0)
     }
-
     
     private func setupWeightSection() {
         let weightCard = UIView()
@@ -1044,7 +1345,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
         weightCard.addSubview(valueLabel)
         
-        // Store reference to weight label
         weightValueLabel = valueLabel
         
         let chevronConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
@@ -1078,7 +1378,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             chevronImageView.heightAnchor.constraint(equalToConstant: 14)
         ])
         
-        // --- UPCOMING APPOINTMENTS TITLE ---
+        // Upcoming Appointments Section
         let upcomingTitle = UILabel()
         upcomingTitle.text = "Upcoming Appointments"
         upcomingTitle.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
@@ -1086,7 +1386,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         upcomingTitle.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(upcomingTitle)
 
-        // --- APPOINTMENT CARD ---
         let appointmentCard = UIView()
         appointmentCard.backgroundColor = UIColor.white.withAlphaComponent(0.5)
         appointmentCard.layer.cornerRadius = 20
@@ -1094,7 +1393,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         appointmentCard.isUserInteractionEnabled = true
         contentView.addSubview(appointmentCard)
 
-        // Blur
         let blurEffect2 = UIBlurEffect(style: .light)
         let blurView2 = UIVisualEffectView(effect: blurEffect2)
         blurView2.translatesAutoresizingMaskIntoConstraints = false
@@ -1102,12 +1400,10 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         blurView2.clipsToBounds = true
         appointmentCard.insertSubview(blurView2, at: 0)
 
-        // Icon
         let clockIcon = UIImageView(image: UIImage(systemName: "clock"))
         clockIcon.tintColor = .systemGreen
         clockIcon.translatesAutoresizingMaskIntoConstraints = false
 
-        // Labels
         let hospitalLabel = UILabel()
         hospitalLabel.text = "SRM Medical Hospital"
         hospitalLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
@@ -1135,7 +1431,6 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         appointmentCard.addSubview(timeLabel)
         appointmentCard.addSubview(chevron)
 
-        // LAYOUT CONSTRAINTS
         NSLayoutConstraint.activate([
             upcomingTitle.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             upcomingTitle.topAnchor.constraint(equalTo: weightCard.bottomAnchor, constant: 32),
@@ -1171,19 +1466,22 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         let tap2 = UITapGestureRecognizer(target: self, action: #selector(openAppointmentDetails))
         appointmentCard.addGestureRecognizer(tap2)
-
         
-        // ADD TAP GESTURE HERE - AFTER ALL CONSTRAINTS
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(weightCardTapped))
         weightCard.addGestureRecognizer(tapGesture)
         weightCard.isUserInteractionEnabled = true
         
-        // Disable user interaction on child views
         blurView.isUserInteractionEnabled = false
         iconView.isUserInteractionEnabled = false
         titleLabel.isUserInteractionEnabled = false
         valueLabel.isUserInteractionEnabled = false
         chevronImageView.isUserInteractionEnabled = false
+    }
+    
+    @objc private func openAppointmentDetails() {
+        let vc = AppointmentDetailsViewController()
+        vc.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(vc, animated: true)
     }
     
     private func saveImageToTemp(_ image: UIImage) -> URL? {
@@ -1198,23 +1496,16 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             return nil
         }
     }
-    private func showClassificationError(_ error: Error) {
-            let alert = UIAlertController(
-                title: "Classification Failed",
-                message: "Could not identify the food item. Please try again.\n\nError: \(error.localizedDescription)",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            present(alert, animated: true)
-        }
     
-    @objc private func openAppointmentDetails() {
-        let vc = AppointmentDetailsViewController()
-        vc.hidesBottomBarWhenPushed = true
-        navigationController?.pushViewController(vc, animated: true)
+    private func showClassificationError(_ error: Error) {
+        let alert = UIAlertController(
+            title: "Classification Failed",
+            message: "Could not identify the food item. Please try again.\n\nError: \(error.localizedDescription)",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
-
-
 }
 
 final class PreviewViewController: UIViewController {
@@ -1232,8 +1523,10 @@ final class PreviewViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         view.backgroundColor = .systemBackground
         setupUI()
+       // updateSegmentedMedicationCard()
     }
 
     private func setupUI() {
@@ -1266,8 +1559,6 @@ final class PreviewViewController: UIViewController {
     }
 }
 
-
-// MARK: - Semi-Circular Progress View
 class SemiCircularProgressView: UIView {
     
     var progress: CGFloat = 0 {
@@ -1281,18 +1572,15 @@ class SemiCircularProgressView: UIView {
     var lineWidth: CGFloat = 10
     
     override func draw(_ rect: CGRect) {
-        // Clear the background first
         UIColor.clear.setFill()
         UIRectFill(rect)
         
         let center = CGPoint(x: bounds.midX, y: bounds.maxY - 5)
         let radius = (bounds.width / 2) - (lineWidth / 2)
         
-        // Start from bottom left, go to top, then to bottom right (semi-circle)
-        let startAngle = CGFloat.pi // Left side (180 degrees)
-        let endAngle: CGFloat = 0 // Right side (0 degrees)
+        let startAngle = CGFloat.pi
+        let endAngle: CGFloat = 0
         
-        // Draw track (full semi-circle)
         let trackPath = UIBezierPath(arcCenter: center,
                                       radius: radius,
                                       startAngle: startAngle,
@@ -1303,7 +1591,6 @@ class SemiCircularProgressView: UIView {
         trackColor.setStroke()
         trackPath.stroke()
         
-        // Draw progress (partial semi-circle based on progress)
         let progressEndAngle = startAngle + (CGFloat.pi * progress)
         let progressPath = UIBezierPath(arcCenter: center,
                                          radius: radius,
@@ -1328,9 +1615,6 @@ class SemiCircularProgressView: UIView {
         isOpaque = false
     }
 }
-// MARK: - CameraCaptureDelegate
-
-// MARK: - CameraCaptureDelegate
 
 extension HomeDashboardViewController: CameraCaptureDelegate {
     
@@ -1349,5 +1633,20 @@ extension HomeDashboardViewController: CameraCaptureDelegate {
     
     func cameraCaptureDidCancel() {
         // Camera dismissed
+    }
+}
+
+extension HomeDashboardViewController: MedicationPopupDelegate {
+    func medicationPopupDidToggleMedication(_ medicationId: UUID, timeOfDay: TimeOfDay) {
+        updateMedicationCard()
+    }
+}
+
+extension UIColor {
+    convenience init(hex: Int, alpha: CGFloat = 1.0) {
+        let r = CGFloat((hex >> 16) & 0xFF) / 255.0
+        let g = CGFloat((hex >> 8) & 0xFF) / 255.0
+        let b = CGFloat(hex & 0xFF) / 255.0
+        self.init(red: r, green: g, blue: b, alpha: alpha)
     }
 }
