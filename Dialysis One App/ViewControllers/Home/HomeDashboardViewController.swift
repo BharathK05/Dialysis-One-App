@@ -26,6 +26,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     private var medicationPopupWidthConstraint: NSLayoutConstraint?
     private var medicationPopupHeightConstraint: NSLayoutConstraint?
     private var isMedicationPopupExpanded = false
+    private var medicationTotalLabel: UILabel?
     private let medicationStore = MedicationStore.shared
     
     // MARK: - Dynamic Data Properties
@@ -73,8 +74,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     private var waterProgressView: SemiCircularProgressView?
     
     private var medicationValueLabel: UILabel?
-    private var medicationTotalLabel: UILabel?
-    private var medicationProgressView: SemiCircularProgressView?
+    private var medicationProgressView: UIView? // Changed from SemiCircularProgressView
     
     private var potassiumValueLabel: UILabel?
     private var potassiumProgressFill: UIView?
@@ -96,6 +96,16 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         loadUserValues()
         addTopGradientBackground()
         setupUI()
+        
+        updateSegmentedMedicationCard()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        updateSegmentedMedicationCard()
+        
+        // Keep it fresh every time the screen appears
+       // updateSegmentedMedicationCard()
     }
     
     
@@ -241,10 +251,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     }
     
     private func updateMedicationCard() {
-        medicationValueLabel?.text = "\(dosesConsumed)"
-        medicationTotalLabel?.text = "out of\n\(dosesGoal) doses"
-        let progress = CGFloat(dosesConsumed) / CGFloat(dosesGoal)
-        medicationProgressView?.progress = min(progress, 1.0)
+        updateSegmentedMedicationCard()
     }
     
     private func updateNutrientCard() {
@@ -809,14 +816,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             type: .water
         )
 
-        let medicationProgress = CGFloat(dosesConsumed) / CGFloat(dosesGoal)
-        let doseCard = createProgressCard(
-            value: "\(dosesConsumed)",
-            total: "out of\n\(dosesGoal) doses",
-            color: UIColor.systemGreen,
-            progress: medicationProgress,
-            type: .medication
-        )
+        let doseCard = createSegmentedMedicationCard()
         
         // Add tap gesture to medication card
         let medicationTapGesture = UITapGestureRecognizer(target: self, action: #selector(medicationCardTapped))
@@ -1011,9 +1011,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             waterTotalLabel = totalLabel
             waterProgressView = circularProgress
         case .medication:
-            medicationValueLabel = valueLabel
-            medicationTotalLabel = totalLabel
-            medicationProgressView = circularProgress
+            break
         }
         
         NSLayoutConstraint.activate([
@@ -1043,6 +1041,247 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         return container
     }
+    class SegmentedMedicationProgressView: UIView {
+        
+        private var morningProgress: CGFloat = 0
+        private var afternoonProgress: CGFloat = 0
+        private var nightProgress: CGFloat = 0
+        
+        private let lineWidth: CGFloat = 10
+        private let trackColor = UIColor.lightGray.withAlphaComponent(0.2)
+        
+        func setProgress(morning: CGFloat, afternoon: CGFloat, night: CGFloat) {
+            self.morningProgress = min(max(morning, 0), 1.0)
+            self.afternoonProgress = min(max(afternoon, 0), 1.0)
+            self.nightProgress = min(max(night, 0), 1.0)
+            setNeedsDisplay()
+        }
+        
+        override func draw(_ rect: CGRect) {
+            UIColor.clear.setFill()
+            UIRectFill(rect)
+            
+            let center = CGPoint(x: bounds.midX, y: bounds.maxY - 5)
+            let radius = (bounds.width / 2) - (lineWidth / 2) - 3 // Extra padding
+            
+            let startAngle = CGFloat.pi
+            let endAngle: CGFloat = 0
+            
+            // Draw track (background arc)
+            let trackPath = UIBezierPath(arcCenter: center,
+                                          radius: radius,
+                                          startAngle: startAngle,
+                                          endAngle: endAngle,
+                                          clockwise: true)
+            trackPath.lineWidth = lineWidth
+            trackPath.lineCapStyle = .butt
+            trackColor.setStroke()
+            trackPath.stroke()
+            
+            // Calculate angles for 3 segments with small gaps
+            let totalAngle = CGFloat.pi
+            let gapAngle: CGFloat = 0.02 // Small gap between segments
+            let segmentAngle = (totalAngle - (gapAngle * 2)) / 3
+            
+            // Morning segment (left third) - Green with LOWER OPACITY
+            if morningProgress > 0 {
+                let morningStart = startAngle
+                let morningEnd = morningStart + (segmentAngle * morningProgress)
+                let morningPath = UIBezierPath(arcCenter: center,
+                                               radius: radius,
+                                               startAngle: morningStart,
+                                               endAngle: morningEnd,
+                                               clockwise: true)
+                morningPath.lineWidth = lineWidth
+                morningPath.lineCapStyle = .butt
+                UIColor.systemGreen.withAlphaComponent(0.6).setStroke() // 60% opacity
+                morningPath.stroke()
+            }
+            
+            // Afternoon segment (middle third) - Blue with LOWER OPACITY
+            if afternoonProgress > 0 {
+                let afternoonStart = startAngle + segmentAngle + gapAngle
+                let afternoonEnd = afternoonStart + (segmentAngle * afternoonProgress)
+                let afternoonPath = UIBezierPath(arcCenter: center,
+                                                 radius: radius,
+                                                 startAngle: afternoonStart,
+                                                 endAngle: afternoonEnd,
+                                                 clockwise: true)
+                afternoonPath.lineWidth = lineWidth
+                afternoonPath.lineCapStyle = .butt
+                UIColor.systemBlue.withAlphaComponent(0.6).setStroke() // 60% opacity
+                afternoonPath.stroke()
+            }
+            
+            // Night segment (right third) - Indigo with LOWER OPACITY
+            if nightProgress > 0 {
+                let nightStart = startAngle + (segmentAngle * 2) + (gapAngle * 2)
+                let nightEnd = nightStart + (segmentAngle * nightProgress)
+                let nightPath = UIBezierPath(arcCenter: center,
+                                             radius: radius,
+                                             startAngle: nightStart,
+                                             endAngle: nightEnd,
+                                             clockwise: true)
+                nightPath.lineWidth = lineWidth
+                nightPath.lineCapStyle = .butt
+                UIColor.systemIndigo.withAlphaComponent(0.6).setStroke() // 60% opacity
+                nightPath.stroke()
+            }
+            
+            // Draw separator lines between segments (very subtle)
+            let separatorColor = UIColor.white.withAlphaComponent(0.5)
+            let separatorWidth: CGFloat = 1.5
+            
+            // Separator 1 (between morning and afternoon)
+            let sep1Angle = startAngle + segmentAngle + (gapAngle / 2)
+            let sep1Start = CGPoint(
+                x: center.x + (radius - lineWidth/2 - 1) * cos(sep1Angle),
+                y: center.y + (radius - lineWidth/2 - 1) * sin(sep1Angle)
+            )
+            let sep1End = CGPoint(
+                x: center.x + (radius + lineWidth/2 + 1) * cos(sep1Angle),
+                y: center.y + (radius + lineWidth/2 + 1) * sin(sep1Angle)
+            )
+            let sep1Path = UIBezierPath()
+            sep1Path.move(to: sep1Start)
+            sep1Path.addLine(to: sep1End)
+            sep1Path.lineWidth = separatorWidth
+            separatorColor.setStroke()
+            sep1Path.stroke()
+            
+            // Separator 2 (between afternoon and night)
+            let sep2Angle = startAngle + (segmentAngle * 2) + gapAngle + (gapAngle / 2)
+            let sep2Start = CGPoint(
+                x: center.x + (radius - lineWidth/2 - 1) * cos(sep2Angle),
+                y: center.y + (radius - lineWidth/2 - 1) * sin(sep2Angle)
+            )
+            let sep2End = CGPoint(
+                x: center.x + (radius + lineWidth/2 + 1) * cos(sep2Angle),
+                y: center.y + (radius + lineWidth/2 + 1) * sin(sep2Angle)
+            )
+            let sep2Path = UIBezierPath()
+            sep2Path.move(to: sep2Start)
+            sep2Path.addLine(to: sep2End)
+            sep2Path.lineWidth = separatorWidth
+            separatorColor.setStroke()
+            sep2Path.stroke()
+        }
+        
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            backgroundColor = .clear
+            isOpaque = false
+        }
+        
+        required init?(coder: NSCoder) {
+            super.init(coder: coder)
+            backgroundColor = .clear
+            isOpaque = false
+        }
+    }
+    
+    private func createSegmentedMedicationCard() -> UIView {
+        let container = UIView()
+        container.backgroundColor = UIColor.white.withAlphaComponent(0.5)
+        container.layer.cornerRadius = 20
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let blurEffect = UIBlurEffect(style: .light)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        blurView.translatesAutoresizingMaskIntoConstraints = false
+        blurView.layer.cornerRadius = 20
+        blurView.clipsToBounds = true
+        container.insertSubview(blurView, at: 0)
+        
+        NSLayoutConstraint.activate([
+            blurView.topAnchor.constraint(equalTo: container.topAnchor),
+            blurView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            blurView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            blurView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        // Segmented progress view - SAME SIZE AS WATER CARD
+        let segmentedProgress = SegmentedMedicationProgressView(frame: CGRect(x: 0, y: 0, width: 110, height: 70))
+        segmentedProgress.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(segmentedProgress)
+        medicationProgressView = segmentedProgress
+        
+        // COUNT LABEL - BOLD, centered in progress circle
+        let countLabel = UILabel()
+        countLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        countLabel.textAlignment = .center
+        countLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(countLabel)
+        medicationValueLabel = countLabel
+        
+        // "out of X doses" label - below progress, regular weight
+        let totalLabel = UILabel()
+        totalLabel.font = UIFont.systemFont(ofSize: 13)
+        totalLabel.textAlignment = .center
+        totalLabel.numberOfLines = 2
+        totalLabel.textColor = .darkGray
+        totalLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(totalLabel)
+        medicationTotalLabel = totalLabel
+        
+        NSLayoutConstraint.activate([
+            segmentedProgress.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            segmentedProgress.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            segmentedProgress.widthAnchor.constraint(equalToConstant: 110),
+            segmentedProgress.heightAnchor.constraint(equalToConstant: 70),
+            
+            // Count label centered in the progress arc
+            countLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            countLabel.bottomAnchor.constraint(equalTo: segmentedProgress.bottomAnchor, constant: 0),
+            
+            // Total label below progress
+            totalLabel.topAnchor.constraint(equalTo: segmentedProgress.bottomAnchor, constant: 8),
+            totalLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            totalLabel.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 8),
+            totalLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -8)
+        ])
+        
+        updateSegmentedMedicationCard()
+        
+        // Add tap gesture
+        container.isUserInteractionEnabled = true
+        let tap = UITapGestureRecognizer(target: self, action: #selector(medicationCardTapped))
+        container.addGestureRecognizer(tap)
+        
+        blurView.isUserInteractionEnabled = false
+        segmentedProgress.isUserInteractionEnabled = false
+        
+        return container
+    }
+
+    private func updateSegmentedMedicationCard() {
+        let store = MedicationStore.shared
+        let today = Date()
+        
+        // Get progress for each time of day
+        let morningProgress = store.takenCount(for: .morning, date: today)
+        let afternoonProgress = store.takenCount(for: .afternoon, date: today)
+        let nightProgress = store.takenCount(for: .night, date: today)
+        
+        // Calculate segment values (0.0 to 1.0)
+        let morningValue: CGFloat = morningProgress.total > 0 ? CGFloat(morningProgress.taken) / CGFloat(morningProgress.total) : 0
+        let afternoonValue: CGFloat = afternoonProgress.total > 0 ? CGFloat(afternoonProgress.taken) / CGFloat(afternoonProgress.total) : 0
+        let nightValue: CGFloat = nightProgress.total > 0 ? CGFloat(nightProgress.taken) / CGFloat(nightProgress.total) : 0
+        
+        // Update the segmented view
+        if let segmentedView = medicationProgressView as? SegmentedMedicationProgressView {
+            segmentedView.setProgress(morning: morningValue, afternoon: afternoonValue, night: nightValue)
+        }
+        
+        // Update count - BOLD NUMBER like water card
+        let totalTaken = morningProgress.taken + afternoonProgress.taken + nightProgress.taken
+        let totalDoses = morningProgress.total + afternoonProgress.total + nightProgress.total
+        medicationValueLabel?.text = "\(totalTaken)"
+        
+        // Update total label
+        medicationTotalLabel?.text = "out of\n\(totalDoses) doses"
+    }
+
     
     @objc private func openHydrationStatus() {
         let hydrationVC = HydrationStatusViewController()
@@ -1284,8 +1523,10 @@ final class PreviewViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         view.backgroundColor = .systemBackground
         setupUI()
+       // updateSegmentedMedicationCard()
     }
 
     private func setupUI() {

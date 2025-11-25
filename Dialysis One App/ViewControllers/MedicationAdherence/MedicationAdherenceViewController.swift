@@ -18,6 +18,8 @@ class MedicationAdherenceViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        updateStatus()
+
         loadMedications()
     }
     
@@ -197,12 +199,12 @@ class MedicationAdherenceViewController: UIViewController {
         // Stack for medication list
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(stack)
         
-        // Add all medications
-        let allMeds = store.medications
+        // Add all medications with REAL names and dosages
+        let allMeds = MedicationStore.shared.medications
         for med in allMeds {
             let medRow = createMedicationInfoRow(medication: med)
             stack.addArrangedSubview(medRow)
@@ -211,8 +213,8 @@ class MedicationAdherenceViewController: UIViewController {
         NSLayoutConstraint.activate([
             iconView.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
             iconView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
-            iconView.widthAnchor.constraint(equalToConstant: 60),
-            iconView.heightAnchor.constraint(equalToConstant: 60),
+            iconView.widthAnchor.constraint(equalToConstant: 50),
+            iconView.heightAnchor.constraint(equalToConstant: 50),
             
             stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
             stack.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 16),
@@ -224,29 +226,49 @@ class MedicationAdherenceViewController: UIViewController {
         
         return container
     }
+
+
     
     private func createMedicationInfoRow(medication: Medication) -> UIView {
         let row = UIView()
         
+        // Name + Dosage stack
+        let nameStack = UIStackView()
+        nameStack.axis = .horizontal
+        nameStack.spacing = 6
+        nameStack.alignment = .center
+        nameStack.translatesAutoresizingMaskIntoConstraints = false
+        row.addSubview(nameStack)
+        
+        // REAL medication name
         let nameLabel = UILabel()
         nameLabel.text = medication.name
-        nameLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        row.addSubview(nameLabel)
+        nameLabel.font = UIFont.systemFont(ofSize: 15, weight: .semibold)
+        nameStack.addArrangedSubview(nameLabel)
         
+        // REAL dosage
+        let dosageLabel = UILabel()
+        dosageLabel.text = medication.dosage
+        dosageLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+        dosageLabel.textColor = .systemBlue
+        dosageLabel.setContentHuggingPriority(.required, for: .horizontal)
+        nameStack.addArrangedSubview(dosageLabel)
+        
+        // REAL description
         let descLabel = UILabel()
         descLabel.text = medication.description
-        descLabel.font = UIFont.systemFont(ofSize: 13, weight: .regular)
+        descLabel.font = UIFont.systemFont(ofSize: 12, weight: .regular)
         descLabel.textColor = .secondaryLabel
+        descLabel.numberOfLines = 2
         descLabel.translatesAutoresizingMaskIntoConstraints = false
         row.addSubview(descLabel)
         
         NSLayoutConstraint.activate([
-            nameLabel.topAnchor.constraint(equalTo: row.topAnchor),
-            nameLabel.leadingAnchor.constraint(equalTo: row.leadingAnchor),
-            nameLabel.trailingAnchor.constraint(equalTo: row.trailingAnchor),
+            nameStack.topAnchor.constraint(equalTo: row.topAnchor),
+            nameStack.leadingAnchor.constraint(equalTo: row.leadingAnchor),
+            nameStack.trailingAnchor.constraint(equalTo: row.trailingAnchor),
             
-            descLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
+            descLabel.topAnchor.constraint(equalTo: nameStack.bottomAnchor, constant: 2),
             descLabel.leadingAnchor.constraint(equalTo: row.leadingAnchor),
             descLabel.trailingAnchor.constraint(equalTo: row.trailingAnchor),
             descLabel.bottomAnchor.constraint(equalTo: row.bottomAnchor)
@@ -254,6 +276,7 @@ class MedicationAdherenceViewController: UIViewController {
         
         return row
     }
+
     
     private func loadMedications() {
         medicationStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -290,9 +313,18 @@ class MedicationAdherenceViewController: UIViewController {
     }
     
     @objc private func addMedicationTapped() {
-        let alert = UIAlertController(title: "Add Medication", message: "This feature will allow you to add new medications", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        let addMedVC = AddMedicationViewController()
+        addMedVC.delegate = self
+        let navController = UINavigationController(rootViewController: addMedVC)
+        navController.modalPresentationStyle = .pageSheet
+        
+        if let sheet = navController.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        
+        present(navController, animated: true)
     }
 }
 
@@ -329,6 +361,18 @@ extension MedicationAdherenceViewController: MedicationDetailRowDelegate {
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
+    }
+}
+extension MedicationAdherenceViewController: AddMedicationDelegate {
+    func didAddMedication() {
+        // Reload the "Your Medications" card
+        // You'll need to store a reference to it or rebuild the entire section
+        loadMedications()
+        updateStatus()
+        
+        // Show success feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
     }
 }
 
@@ -458,6 +502,7 @@ class MedicationDetailRow: UIView {
     
     private let checkboxButton = UIButton(type: .system)
     private let nameLabel = UILabel()
+    private let dosageLabel = UILabel()
     private let descriptionLabel = UILabel()
     private let stackView = UIStackView()
     
@@ -490,19 +535,34 @@ class MedicationDetailRow: UIView {
         
         // Stack for labels
         stackView.axis = .vertical
-        stackView.spacing = 4
+        stackView.spacing = 2
         stackView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stackView)
         
-        // Name label
-        nameLabel.text = medication.name
-        nameLabel.font = MedicationDesignTokens.Typography.medicationName
-        nameLabel.textColor = MedicationDesignTokens.Colors.textPrimary
-        stackView.addArrangedSubview(nameLabel)
+        // Name + Dosage in horizontal stack
+        let nameRow = UIStackView()
+        nameRow.axis = .horizontal
+        nameRow.spacing = 8
+        nameRow.alignment = .center
         
-        // Description label
+        // Name label - Shows REAL medication name
+        nameLabel.text = medication.name
+        nameLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        nameLabel.textColor = MedicationDesignTokens.Colors.textPrimary
+        nameRow.addArrangedSubview(nameLabel)
+        
+        // Dosage label - Shows REAL dosage
+        dosageLabel.text = medication.dosage
+        dosageLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        dosageLabel.textColor = .systemBlue
+        dosageLabel.setContentHuggingPriority(.required, for: .horizontal)
+        nameRow.addArrangedSubview(dosageLabel)
+        
+        stackView.addArrangedSubview(nameRow)
+        
+        // Description label - Shows REAL description
         descriptionLabel.text = medication.description
-        descriptionLabel.font = MedicationDesignTokens.Typography.medicationDescription
+        descriptionLabel.font = UIFont.systemFont(ofSize: 13, weight: .regular)
         descriptionLabel.textColor = MedicationDesignTokens.Colors.textSecondary
         descriptionLabel.numberOfLines = 2
         stackView.addArrangedSubview(descriptionLabel)
@@ -522,7 +582,7 @@ class MedicationDetailRow: UIView {
         
         // Accessibility
         isAccessibilityElement = true
-        accessibilityLabel = "\(medication.name), \(medication.description)"
+        accessibilityLabel = "\(medication.name) \(medication.dosage), \(medication.description)"
         accessibilityTraits = .button
         updateAccessibilityHint()
     }

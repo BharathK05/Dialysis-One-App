@@ -82,16 +82,73 @@ class MedicationStore: ObservableObject {
         loadMedications()
         
         // Sample data for testing
+        // Realistic CKD medication data
         if medications.isEmpty {
             medications = [
-                Medication(name: "Tablet 2", description: "Description of Tablet 2", times: [.morning, .afternoon], dosage: "10mg"),
-                Medication(name: "Tablet 4", description: "Description of Tablet 4", times: [.afternoon], dosage: "5mg"),
-                Medication(name: "Tablet 5", description: "Description of Tablet 5", times: [.morning, .night], dosage: "20mg")
+                // Phosphate Binders
+                Medication(
+                    name: "Calcium Acetate",
+                    description: "Phosphate binder - Take with meals",
+                    times: [.morning, .afternoon, .night],
+                    dosage: "667mg"
+                ),
+                
+                // Blood Pressure
+                Medication(
+                    name: "Amlodipine",
+                    description: "Blood pressure medication",
+                    times: [.morning],
+                    dosage: "5mg"
+                ),
+                
+                // Diuretic
+                Medication(
+                    name: "Furosemide",
+                    description: "Diuretic - Helps remove extra fluid",
+                    times: [.morning],
+                    dosage: "40mg"
+                ),
+                
+                // Potassium Binder
+                Medication(
+                    name: "Sodium Polystyrene",
+                    description: "Helps control potassium levels",
+                    times: [.morning, .night],
+                    dosage: "15g"
+                ),
+                
+                // Anemia Management
+                Medication(
+                    name: "Ferrous Sulfate",
+                    description: "Iron supplement for anemia",
+                    times: [.afternoon],
+                    dosage: "325mg"
+                ),
+                
+                // Vitamin D
+                Medication(
+                    name: "Calcitriol",
+                    description: "Active Vitamin D supplement",
+                    times: [.morning],
+                    dosage: "0.25mcg"
+                ),
+                
+                // Another Phosphate Binder
+                Medication(
+                    name: "Sevelamer",
+                    description: "Non-calcium phosphate binder",
+                    times: [.morning, .afternoon, .night],
+                    dosage: "800mg"
+                )
             ]
             saveMedications()
         }
     }
-    
+    // Add this method to MedicationStore:
+    func addMedication(_ medication: Medication) {
+        medications.append(medication)
+        saveMedications()
+    }
     func toggleTaken(medicationId: UUID, date: Date, timeOfDay: TimeOfDay) {
         guard let index = medications.firstIndex(where: { $0.id == medicationId }) else { return }
         let currentStatus = medications[index].isTaken(on: date, timeOfDay: timeOfDay)
@@ -112,8 +169,8 @@ class MedicationStore: ObservableObject {
     
     func totalProgress(date: Date = Date()) -> (taken: Int, total: Int) {
         let allTimesOfDay = TimeOfDay.allCases
-        var totalTaken = 0      // ← Changed variable name
-        var totalMedications = 0  // ← Changed variable name
+        var totalTaken = 0
+        var totalMedications = 0
         
         for time in allTimesOfDay {
             let progress = takenCount(for: time, date: date)
@@ -123,6 +180,7 @@ class MedicationStore: ObservableObject {
         
         return (taken: totalTaken, total: totalMedications)
     }
+    
     
     private func saveMedications() {
         if let encoded = try? JSONEncoder().encode(medications) {

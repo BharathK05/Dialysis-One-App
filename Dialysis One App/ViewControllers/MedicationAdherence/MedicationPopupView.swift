@@ -41,8 +41,8 @@ class MedicationPopupView: UIView {
         layer.shadowRadius = MedicationDesignTokens.Layout.shadowRadius
         layer.shadowOpacity = MedicationDesignTokens.Layout.shadowOpacity
         
-        // Time label
-        timeLabel.font = MedicationDesignTokens.Typography.timeSlotLabel
+        // Time label - UPDATED STYLING
+        timeLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
         timeLabel.textColor = MedicationDesignTokens.Colors.textPrimary
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(timeLabel)
@@ -68,20 +68,8 @@ class MedicationPopupView: UIView {
     }
     
     private func updateTimeLabel() {
-        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-        let icon = UIImage(systemName: currentTimeOfDay.icon, withConfiguration: config)
-        
-        let attachment = NSTextAttachment()
-        attachment.image = icon?.withTintColor(MedicationDesignTokens.Colors.textPrimary, renderingMode: .alwaysOriginal)
-        attachment.bounds = CGRect(x: 0, y: -2, width: 16, height: 16)
-        
-        let attributedString = NSMutableAttributedString(attachment: attachment)
-        attributedString.append(NSAttributedString(string: " \(currentTimeOfDay.rawValue) ◆", attributes: [
-            .font: MedicationDesignTokens.Typography.timeSlotLabel,
-            .foregroundColor: MedicationDesignTokens.Colors.textPrimary
-        ]))
-        
-        timeLabel.attributedText = attributedString
+        // Simple text without icons
+        timeLabel.text = currentTimeOfDay.rawValue
     }
     
     private func loadMedications() {
