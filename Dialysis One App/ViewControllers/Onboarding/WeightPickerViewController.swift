@@ -260,9 +260,15 @@ class WeightPickerViewController: UIViewController {
     }
     
     @objc private func nextButtonTapped() {
-        print("Selected weight: \(currentWeight) kg")
-        // Handle next action
+
+        if let uid = FirebaseAuthManager.shared.getUserID() {
+            UserDefaults.standard.set(currentWeight, forKey: "weight_\(uid)")
+        }
+
+        let nutrientVC = NutrientsViewController()   // <-- FIXED
+        navigationController?.pushViewController(nutrientVC, animated: true)
     }
+
 }
 
 // MARK: - UIScrollViewDelegate

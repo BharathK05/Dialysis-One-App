@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import FirebaseAuth  // ← CHANGED: Was "import Supabase"
+import FirebaseAuth  
 
 class SignInViewController: UIViewController {
     
@@ -65,7 +65,7 @@ class SignInViewController: UIViewController {
                     }
 
                     print("Login successful! User ID: \(user.uid)")
-                    self.switchToMainApp()
+                    self.handlePostLoginFlow(for: user)
 
                 case .failure(let error):
                     let errorMessage = FirebaseAuthManager.shared.getErrorMessage(from: error)
@@ -77,6 +77,33 @@ class SignInViewController: UIViewController {
 
         // ====================================================================
     }
+    
+    func showOnboarding() {
+        let onboardingVC = OnboardingViewController(
+            nibName: "OnboardingViewController",
+            bundle: nil
+        )
+
+        let nav = UINavigationController(rootViewController: onboardingVC)
+        nav.modalPresentationStyle = .fullScreen
+
+        present(nav, animated: true)
+    }
+
+    
+    func handlePostLoginFlow(for user: User) {
+
+        let onboardingKey = "onboardingCompleted_\(user.uid)"
+        let isOnboardingCompleted = UserDefaults.standard.bool(forKey: onboardingKey)
+
+        if !isOnboardingCompleted {
+            showOnboarding()
+        } else {
+            switchToMainApp()
+        }
+    }
+
+
     
     @IBAction func signUpButtonTapped(_ sender: UIButton) {
         let SignUpVC = SignUpViewController(nibName: "SignUpViewController", bundle: nil)

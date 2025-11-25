@@ -29,15 +29,6 @@ final class NutrientBalanceViewController: UIViewController {
         return b
     }()
 
-    private let editButton: UIButton = {
-        let b = UIButton(type: .system)
-        b.setTitle("Edit", for: .normal)
-        b.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .regular)
-        b.tintColor = UIColor.systemBlue
-        b.translatesAutoresizingMaskIntoConstraints = false
-        return b
-    }()
-
     private let titleLabel: UILabel = {
         let l = UILabel()
         l.text = "Nutrient Balance"
@@ -116,12 +107,17 @@ final class NutrientBalanceViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         configureNavigationBar()
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         setupLayout()
         populateNutrientCards()
         populateContentRows()
 
         gaugeView.maxValue = 2000
         gaugeView.currentValue = 1450
+    }
+    
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
     }
 
     override func viewDidLayoutSubviews() {
@@ -147,18 +143,12 @@ final class NutrientBalanceViewController: UIViewController {
         // Top area: back, title, edit
         gradientView.addSubview(backButton)
         gradientView.addSubview(titleLabel)
-        gradientView.addSubview(editButton)
 
         NSLayoutConstraint.activate([
             backButton.leadingAnchor.constraint(equalTo: gradientView.leadingAnchor, constant: 16),
             backButton.topAnchor.constraint(equalTo: gradientView.safeAreaLayoutGuide.topAnchor, constant: Spacing.topNav),
             backButton.widthAnchor.constraint(equalToConstant: 40),
             backButton.heightAnchor.constraint(equalToConstant: 40),
-
-            editButton.trailingAnchor.constraint(equalTo: gradientView.trailingAnchor, constant: -16),
-            editButton.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
-            editButton.widthAnchor.constraint(equalToConstant: 60),
-            editButton.heightAnchor.constraint(equalToConstant: 36),
 
             titleLabel.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor)

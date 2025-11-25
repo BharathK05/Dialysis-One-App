@@ -98,9 +98,11 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         setupUI()
     }
     
-    // MARK: - User Data Management
+    
+    
+    // MARK: - Public Update Methods
     private func loadUserValues() {
-        // Load values from UserDataManager with defaults for new users
+        // Default values for NEW users
         waterConsumed = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
         waterGoal = UserDataManager.shared.loadInt("waterGoal", uid: uid, defaultValue: 250)
 
@@ -118,8 +120,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
         currentWeight = UserDataManager.shared.loadDouble("weight", uid: uid, defaultValue: 0)
     }
-    
-    // MARK: - Public Update Methods
+
     func updateWater(consumed: Int, goal: Int? = nil) {
         waterConsumed = consumed
         UserDataManager.shared.save("waterConsumed", value: consumed, uid: uid)
