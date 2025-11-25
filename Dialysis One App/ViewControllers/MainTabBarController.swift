@@ -24,8 +24,7 @@ class MainTabBarController: UITabBarController {
         let healthandvitalsVC = HealthAndVitalsViewController()
         let vitalsNav = UINavigationController(rootViewController: healthandvitalsVC)
         
-        let storyboard = UIStoryboard(name: "ReliefGuideViewController", bundle: nil)
-        let reliefguideVC = storyboard.instantiateViewController(withIdentifier: "ReliefGuideViewController")
+        let reliefguideVC = ReliefGuideViewController(nibName: "ReliefGuideViewController", bundle: nil)
         
         // Set tab bar items ON THE NAVIGATION CONTROLLERS
         homeNav.tabBarItem = UITabBarItem(
