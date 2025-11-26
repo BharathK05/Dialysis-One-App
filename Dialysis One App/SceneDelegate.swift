@@ -4,7 +4,6 @@
 //
 //  Created by user@22 on 08/11/25.
 //
-
 import UIKit
 import FirebaseAuth
 
@@ -22,17 +21,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let user = Auth.auth().currentUser
 
-        // USER LOGGED IN
         if let u = user, u.isEmailVerified {
 
             let onboardingKey = "onboardingCompleted_\(u.uid)"
+            let introKey = "featureIntroSeen_\(u.uid)"
+
+            let introSeen = UserDefaults.standard.bool(forKey: introKey)
             let onboardingDone = UserDefaults.standard.bool(forKey: onboardingKey)
 
-            if onboardingDone {
-                // Go to home
-                window?.rootViewController = MainTabBarController()
-            } else {
-                // Force onboarding until it is completed
+            // 1️⃣ User logged in but has never seen feature introduction
+            if introSeen == false {
+                let introVC = WelcomeFeaturesViewController()
+                introVC.modalPresentationStyle = .fullScreen
+                window?.rootViewController = introVC
+            }
+            // 2️⃣ Show onboarding only if feature intro is done but onboarding not completed
+            else if onboardingDone == false {
                 let onboardingVC = OnboardingViewController(
                     nibName: "OnboardingViewController",
                     bundle: nil
@@ -40,6 +44,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 let nav = UINavigationController(rootViewController: onboardingVC)
                 nav.setNavigationBarHidden(true, animated: false)
                 window?.rootViewController = nav
+            }
+            // 3️⃣ Everything completed — go to home
+            else {
+                window?.rootViewController = MainTabBarController()
             }
         }
         // USER NOT LOGGED IN
@@ -52,37 +60,4 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window?.makeKeyAndVisible()
     }
-
-
-
-
-    func sceneDidDisconnect(_ scene: UIScene) {
-        // Called as the scene is being released by the system.
-        // This occurs shortly after the scene enters the background, or when its session is discarded.
-        // Release any resources associated with this scene that can be re-created the next time the scene connects.
-        // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
-    }
-
-    func sceneDidBecomeActive(_ scene: UIScene) {
-        // Called when the scene has moved from an inactive state to an active state.
-        // Use this method to restart any tasks that were paused (or not yet started) when the scene was inactive.
-    }
-
-    func sceneWillResignActive(_ scene: UIScene) {
-        // Called when the scene will move from an active state to an inactive state.
-        // This may occur due to temporary interruptions (ex. an incoming phone call).
-    }
-
-    func sceneWillEnterForeground(_ scene: UIScene) {
-        // Called as the scene transitions from the background to the foreground.
-        // Use this method to undo the changes made on entering the background.
-    }
-
-    func sceneDidEnterBackground(_ scene: UIScene) {
-        // Called as the scene transitions from the foreground to the background.
-        // Use this method to save data, release shared resources, and store enough scene-specific state information
-        // to restore the scene back to its current state.
-    }
-
-
 }
