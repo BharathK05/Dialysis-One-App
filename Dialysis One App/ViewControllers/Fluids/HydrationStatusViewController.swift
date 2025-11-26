@@ -32,7 +32,6 @@ class GradientCardView: UIView {
         layer.cornerRadius = 18
         layer.masksToBounds = true
         
-        // 75% opacity on both gradient stops
         gradientLayer.colors = [
             UIColor(hex: 0xF5F5F5, alpha: 0.75).cgColor,
             UIColor(hex: 0x93C3E8, alpha: 0.75).cgColor
@@ -48,8 +47,7 @@ class GradientCardView: UIView {
     }
 }
 
-
-// MARK: - Activity Row
+// MARK: - Activity Row (for future logs / previous logs screen)
 
 class ActivityRowView: GradientCardView {
     let iconView = UIImageView()
@@ -112,6 +110,44 @@ class ActivityRowView: GradientCardView {
     }
 }
 
+// MARK: - Rounded message card (“Today’s Log”, “Previous Logs”)
+
+final class RoundedMessageCard: UIView {
+    private let label = UILabel()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setup()
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+    
+    private func setup() {
+        backgroundColor = UIColor(hex: 0xD7E8FA, alpha: 0.65)
+        layer.cornerRadius = 24
+        
+        label.numberOfLines = 0
+        label.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        label.textColor = UIColor(hex: 0x152B3C)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: topAnchor, constant: 16),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16)
+        ])
+    }
+    
+    func update(text: String) {
+        label.text = text
+    }
+}
+
 // MARK: - Circular Progress View
 
 class CircularProgressView: UIView {
@@ -123,9 +159,7 @@ class CircularProgressView: UIView {
     let dropIcon = UIImageView()
     
     var progress: CGFloat = 0.0 {
-        didSet {
-            progressLayer.strokeEnd = max(0, min(progress, 1))
-        }
+        didSet { progressLayer.strokeEnd = max(0, min(progress, 1)) }
     }
     
     override init(frame: CGRect) {
@@ -198,13 +232,15 @@ class CircularProgressView: UIView {
         let centerPoint = CGPoint(x: bounds.midX, y: bounds.midY)
         let radius = min(rect.width, rect.height) / 2
         let startAngle: CGFloat = .pi * 0.9
-        let endAngle: CGFloat = .pi * 0.1
+        let endAngle: CGFloat   = .pi * 0.1
         
-        let path = UIBezierPath(arcCenter: centerPoint,
-                                radius: radius,
-                                startAngle: startAngle,
-                                endAngle: endAngle,
-                                clockwise: true)
+        let path = UIBezierPath(
+            arcCenter: centerPoint,
+            radius: radius,
+            startAngle: startAngle,
+            endAngle: endAngle,
+            clockwise: true
+        )
         
         trackLayer.path = path.cgPath
         progressLayer.path = path.cgPath
@@ -214,7 +250,7 @@ class CircularProgressView: UIView {
     }
 }
 
-// MARK: - Animated Wave View (Static Shape, Flowy Motion)
+// MARK: - Animated Wave View
 
 class WaveView: UIView {
     private let gradientLayer1 = CAGradientLayer()
@@ -269,13 +305,8 @@ class WaveView: UIView {
         displayLink?.add(to: .main, forMode: .common)
     }
 
-    // ---------------------------------------------------
-    // MARK: UPDATE LOOP — Sideways + Vertical Bobbing
-    // ---------------------------------------------------
     @objc private func updateWaves() {
-
-        // Midpoint between slow & fast version → smooth fluid wave
-        phase1 += 0.00375     // ideal speed
+        phase1 += 0.00375
         phase2 += 0.00315
 
         animateWave(
@@ -301,10 +332,6 @@ class WaveView: UIView {
         )
     }
 
-
-    // ---------------------------------------------------
-    // MARK: WAVE SHAPE — Now with vertical bobbing
-    // ---------------------------------------------------
     private func animateWave(layer: CAShapeLayer,
                              phase: CGFloat,
                              baseAmplitude: CGFloat,
@@ -316,26 +343,22 @@ class WaveView: UIView {
 
         guard bounds.width > 0, bounds.height > 0 else { return }
 
-        let width = bounds.width
+        let width  = bounds.width
         let height = bounds.height
 
         let path = UIBezierPath()
         let clamped = max(0, min(level, 1))
 
-        // NEW: smooth vertical flow like a real wave
         let verticalBob = sin(phase * bobbingSpeed) * bobbingStrength
-
-        // dynamic water level
         let baseline = height * clamped + baselineOffset + verticalBob
 
-        let amplitude = baseAmplitude
+        let amplitude  = baseAmplitude
         let wavelength = width * wavelengthFactor
         let k = (2 * .pi) / wavelength
 
         path.move(to: CGPoint(x: 0, y: height))
         path.addLine(to: CGPoint(x: 0, y: height - baseline))
 
-        // Static SHAPE + sideways flow + NEW vertical bobbing
         var x: CGFloat = 0
         while x <= width {
             let y = (height - baseline) + sin(k * x + phase) * amplitude
@@ -356,11 +379,6 @@ class WaveView: UIView {
     }
 }
 
-
-
-
-
-
 // MARK: - Main View Controller
 
 class HydrationStatusViewController: UIViewController {
@@ -378,21 +396,49 @@ class HydrationStatusViewController: UIViewController {
     private let goalCard = GradientCardView()
     private let remainingCard = GradientCardView()
     private let streakCard = GradientCardView()
-    
+
     private let goalTitle = UILabel()
     private let goalValue = UILabel()
     private let remainingTitle = UILabel()
     private let remainingValue = UILabel()
     private let streakTitle = UILabel()
     private let streakValue = UILabel()
-    
+
     private let recentActivityLabel = UILabel()
     private let previousLogsLabel = UILabel()
     private let viewAllButton = UIButton(type: .system)
+
+    // Activity section containers
+    private var todaysLogContainer: UIView!
+    private var previousLogsCard: GradientCardView!
+
     
-    // Data for this screen
-    private let consumedAmount: CGFloat = 75
-    private let goalAmount: CGFloat = 250
+    // MARK: - Shared data with Home
+    
+    private var uid: String {
+        FirebaseAuthManager.shared.getUserID() ?? "guest"
+    }
+    
+    private var consumedAmount: CGFloat = 0
+    private var goalAmount: CGFloat = 2500
+    
+    private func loadHydrationFromStore() {
+        let storedConsumed = UserDataManager.shared.loadInt("waterConsumed",
+                                                            uid: uid,
+                                                            defaultValue: 0)
+        let storedGoal = UserDataManager.shared.loadInt("waterGoal",
+                                                        uid: uid,
+                                                        defaultValue: 2500)
+
+        consumedAmount = CGFloat(max(storedConsumed, 0))
+        goalAmount = CGFloat(max(storedGoal, 1))
+    }
+
+    
+    // “reset once per app run” flag
+    private static var didResetForThisRun = false
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -400,35 +446,80 @@ class HydrationStatusViewController: UIViewController {
         setupHeader()
         setupProgress()
         setupStatsCards()
-        setupActivitySection()
+        setupActivitySection()   // <- THIS name
         setupWaveView()
+
+        loadHydrationFromStore()
         syncProgressToWave()
     }
+
+
     
     override func viewWillAppear(_ animated: Bool) {
-            super.viewWillAppear(animated)
-            navigationController?.setNavigationBarHidden(true, animated: false)
-        }
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: false)
 
-        // (optional but recommended)
-        override func viewWillDisappear(_ animated: Bool) {
-            super.viewWillDisappear(animated)
-            navigationController?.setNavigationBarHidden(false, animated: false)
+        // Refresh progress + cards from latest data
+        loadHydrationFromStore()
+        syncProgressToWave()
+        updateActivityContent()
+    }
+
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: false)
+    }
+    
+    // MARK: - Data
+    
+    private func loadHydrationValues() {
+        // For now: when app is freshly run, reset everything to 0 once.
+        // Later we’ll move this “daily reset” into a separate file.
+        if !Self.didResetForThisRun {
+            let storedGoal = UserDataManager.shared.loadInt("waterGoal",
+                                                            uid: uid,
+                                                            defaultValue: 2500)
+            goalAmount = CGFloat(max(storedGoal, 1))
+            consumedAmount = 0
+            
+            UserDataManager.shared.save("waterConsumed", value: 0, uid: uid)
+            UserDataManager.shared.save("waterGoal", value: Int(goalAmount), uid: uid)
+            
+            Self.didResetForThisRun = true
+        } else {
+            let consumed = UserDataManager.shared.loadInt("waterConsumed",
+                                                          uid: uid,
+                                                          defaultValue: 0)
+            let goal = UserDataManager.shared.loadInt("waterGoal",
+                                                      uid: uid,
+                                                      defaultValue: 2500)
+            consumedAmount = CGFloat(max(consumed, 0))
+            goalAmount = CGFloat(max(goal, 1))
         }
+    }
     
     private func syncProgressToWave() {
-        let ratio = consumedAmount / goalAmount  // 75/250 = 0.3
-        
-        // Progress ring
+        let ratio = max(0, min(consumedAmount / goalAmount, 1))
+
+        // Ring in the center
         progressView.valueLabel.text = "\(Int(consumedAmount))/\(Int(goalAmount))ml"
         progressView.progress = ratio
-        
-        // Wave height linked to same ratio
+
+        // Wave at the bottom
         waveView.level = ratio
-        
-        // Stats labels derived from same values
-        remainingValue.text = "\(Int(goalAmount - consumedAmount)) ml"
+
+        // Cards just under the ring
+        goalValue.text = "\(Int(goalAmount)) ml"
+        let remaining = max(goalAmount - consumedAmount, 0)
+        remainingValue.text = "\(Int(remaining)) ml"
+        streakValue.text = "3 days"   // placeholder for now
     }
+
+    
+    
+    
+    // MARK: - Setup UI
     
     private func setupBase() {
         view.backgroundColor = .white
@@ -464,7 +555,9 @@ class HydrationStatusViewController: UIViewController {
         titleLabel.textColor = UIColor(hex: 0x152B3C)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         
-        dateButton.setTitle("Oct 30, 2025", for: .normal)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM dd, yyyy"
+        dateButton.setTitle(formatter.string(from: Date()), for: .normal)
         dateButton.setTitleColor(UIColor(hex: 0x152B3C), for: .normal)
         dateButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
         dateButton.backgroundColor = UIColor(hex: 0xF3F4F6)
@@ -488,10 +581,6 @@ class HydrationStatusViewController: UIViewController {
             dateButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             dateButton.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16)
         ])
-    }
-    
-    @objc private func backTapped() {
-        navigationController?.popViewController(animated: true)
     }
     
     private func setupProgress() {
@@ -572,14 +661,14 @@ class HydrationStatusViewController: UIViewController {
                       value: goalValue,
                       iconName: "target",
                       titleText: "Goal",
-                      valueText: "\(Int(goalAmount)) ml")
+                      valueText: "0 ml")
         
         configureCard(card: remainingCard,
                       title: remainingTitle,
                       value: remainingValue,
                       iconName: "hourglass",
                       titleText: "Remaining",
-                      valueText: "\(Int(goalAmount - consumedAmount)) ml")
+                      valueText: "0 ml")
         
         configureCard(card: streakCard,
                       title: streakTitle,
@@ -596,99 +685,166 @@ class HydrationStatusViewController: UIViewController {
         ])
     }
     
+    
+    // MARK: - Today's Log + Previous Logs
     private func setupActivitySection() {
-        recentActivityLabel.text = "Recent Activity"
-        recentActivityLabel.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
-        recentActivityLabel.textColor = UIColor(hex: 0x152B3C)
-        recentActivityLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        contentView.addSubview(recentActivityLabel)
-        
-        let waterRecent = ActivityRowView(title: "Water",
-                                          subtitle: "75 ml",
-                                          time: "04:30 PM",
-                                          icon: UIImage(systemName: "drop"))
-        let coffeeRecent = ActivityRowView(title: "Coffee",
-                                           subtitle: "25 ml",
-                                           time: "12:00 PM",
-                                           icon: UIImage(systemName: "cup.and.saucer"))
-        let juiceRecent = ActivityRowView(title: "Juice",
-                                          subtitle: "50 ml",
-                                          time: "08:00 AM",
-                                          icon: UIImage(systemName: "takeoutbag.and.cup.and.straw"))
-        
-        [waterRecent, coffeeRecent, juiceRecent].forEach { $0.translatesAutoresizingMaskIntoConstraints = false }
-        
-        let recentStack = UIStackView(arrangedSubviews: [waterRecent, coffeeRecent, juiceRecent])
-        recentStack.axis = .vertical
-        recentStack.spacing = 10
-        recentStack.translatesAutoresizingMaskIntoConstraints = false
-        
-        contentView.addSubview(recentStack)
-        
+        // "Today’s Log" title
+        let todaysLogTitle = UILabel()
+        todaysLogTitle.text = "Today’s Log"
+        todaysLogTitle.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        todaysLogTitle.textColor = UIColor(hex: 0x152B3C)
+        todaysLogTitle.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(todaysLogTitle)
+
+        // Container for dynamic today's logs (empty state or list of rows)
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(container)
+        todaysLogContainer = container
+
+        // "Previous Logs" title + "View all" button
         previousLogsLabel.text = "Previous Logs"
         previousLogsLabel.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
         previousLogsLabel.textColor = UIColor(hex: 0x152B3C)
         previousLogsLabel.translatesAutoresizingMaskIntoConstraints = false
-        
+        contentView.addSubview(previousLogsLabel)
+
         viewAllButton.setTitle("View all", for: .normal)
         viewAllButton.setTitleColor(UIColor(hex: 0x152B3C), for: .normal)
         viewAllButton.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .semibold)
         viewAllButton.translatesAutoresizingMaskIntoConstraints = false
         viewAllButton.addTarget(self, action: #selector(viewAllTapped), for: .touchUpInside)
-        
-        contentView.addSubview(previousLogsLabel)
         contentView.addSubview(viewAllButton)
-        
-        let yesterdayLabel = UILabel()
-        yesterdayLabel.text = "Yesterday"
-        yesterdayLabel.font = UIFont.systemFont(ofSize: 15, weight: .medium)
-        yesterdayLabel.textColor = UIColor(hex: 0x152B3C)
-        yesterdayLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        contentView.addSubview(yesterdayLabel)
-        
-        let waterPrev = ActivityRowView(title: "Water",
-                                        subtitle: "75 ml",
-                                        time: "04:30 PM",
-                                        icon: UIImage(systemName: "drop"))
-        let coffeePrev = ActivityRowView(title: "Coffee",
-                                         subtitle: "25 ml",
-                                         time: "12:00 PM",
-                                         icon: UIImage(systemName: "cup.and.saucer"))
-        
-        [waterPrev, coffeePrev].forEach { $0.translatesAutoresizingMaskIntoConstraints = false }
-        
-        let previousStack = UIStackView(arrangedSubviews: [waterPrev, coffeePrev])
-        previousStack.axis = .vertical
-        previousStack.spacing = 10
-        previousStack.translatesAutoresizingMaskIntoConstraints = false
-        
-        contentView.addSubview(previousStack)
-        
+
+        // Static Previous Logs info card
+        let prevCard = GradientCardView()
+        prevCard.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(prevCard)
+        previousLogsCard = prevCard
+
+        let prevText = UILabel()
+        prevText.text = "Enter your fluid intake everyday to have a track of it!"
+        prevText.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        prevText.textColor = UIColor(hex: 0x152B3C)
+        prevText.numberOfLines = 0
+        prevText.translatesAutoresizingMaskIntoConstraints = false
+        prevCard.addSubview(prevText)
+
         NSLayoutConstraint.activate([
-            recentActivityLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18),
-            recentActivityLabel.topAnchor.constraint(equalTo: goalCard.bottomAnchor, constant: 24),
-            
-            recentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            recentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            recentStack.topAnchor.constraint(equalTo: recentActivityLabel.bottomAnchor, constant: 10),
-            
-            previousLogsLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18),
-            previousLogsLabel.topAnchor.constraint(equalTo: recentStack.bottomAnchor, constant: 26),
-            
+            // Today’s Log title under the stats cards
+            todaysLogTitle.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            todaysLogTitle.topAnchor.constraint(equalTo: goalCard.bottomAnchor, constant: 32),
+
+            // Container right under the title
+            container.topAnchor.constraint(equalTo: todaysLogTitle.bottomAnchor, constant: 12),
+            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+
+            // Previous Logs title & button under the container
+            previousLogsLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            previousLogsLabel.topAnchor.constraint(equalTo: container.bottomAnchor, constant: 28),
+
             viewAllButton.centerYAnchor.constraint(equalTo: previousLogsLabel.centerYAnchor),
-            viewAllButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -18),
-            
-            yesterdayLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18),
-            yesterdayLabel.topAnchor.constraint(equalTo: previousLogsLabel.bottomAnchor, constant: 10),
-            
-            previousStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            previousStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            previousStack.topAnchor.constraint(equalTo: yesterdayLabel.bottomAnchor, constant: 8),
-            previousStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
+            viewAllButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+
+            // Previous Logs card
+            prevCard.topAnchor.constraint(equalTo: previousLogsLabel.bottomAnchor, constant: 12),
+            prevCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            prevCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            prevCard.heightAnchor.constraint(equalToConstant: 90),
+            prevCard.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
+
+            prevText.leadingAnchor.constraint(equalTo: prevCard.leadingAnchor, constant: 20),
+            prevText.trailingAnchor.constraint(equalTo: prevCard.trailingAnchor, constant: -20),
+            prevText.topAnchor.constraint(equalTo: prevCard.topAnchor, constant: 18),
+            prevText.bottomAnchor.constraint(equalTo: prevCard.bottomAnchor, constant: -18)
         ])
+
+        // Fill the container with empty state or rows
+        updateActivityContent()
     }
+
+    
+    // Build today's log section based on current FluidLogStore
+    private func updateActivityContent() {
+        // Clean previous content
+        todaysLogContainer.subviews.forEach { $0.removeFromSuperview() }
+
+        let logs = FluidLogStore.shared.todayLogs()
+
+        if logs.isEmpty {
+            // Show the empty state card
+            let card = GradientCardView()
+            card.translatesAutoresizingMaskIntoConstraints = false
+            todaysLogContainer.addSubview(card)
+
+            let label = UILabel()
+            label.text = "You haven’t logged anything yet!"
+            label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+            label.textColor = UIColor(hex: 0x152B3C)
+            label.textAlignment = .center
+            label.numberOfLines = 0
+            label.translatesAutoresizingMaskIntoConstraints = false
+            card.addSubview(label)
+
+            NSLayoutConstraint.activate([
+                card.topAnchor.constraint(equalTo: todaysLogContainer.topAnchor),
+                card.leadingAnchor.constraint(equalTo: todaysLogContainer.leadingAnchor),
+                card.trailingAnchor.constraint(equalTo: todaysLogContainer.trailingAnchor),
+                card.bottomAnchor.constraint(equalTo: todaysLogContainer.bottomAnchor),
+                card.heightAnchor.constraint(equalToConstant: 80),
+
+                label.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
+                label.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
+                label.topAnchor.constraint(equalTo: card.topAnchor, constant: 18),
+                label.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -18)
+            ])
+
+        } else {
+            // Show actual fluid entries using ActivityRowView (your card design)
+            let stack = UIStackView()
+            stack.axis = .vertical
+            stack.spacing = 10
+            stack.translatesAutoresizingMaskIntoConstraints = false
+            todaysLogContainer.addSubview(stack)
+
+            let formatter = DateFormatter()
+            formatter.dateFormat = "hh:mm a"
+
+            for log in logs {
+                let iconName: String
+                switch log.type.lowercased() {
+                case "water":  iconName = "drop"
+                case "coffee": iconName = "cup.and.saucer"
+                case "juice":  iconName = "takeoutbag.and.cup.and.straw"
+                default:       iconName = "drop"
+                }
+
+                let timeString = formatter.string(from: log.date)
+
+                let row = ActivityRowView(
+                    title: log.type,
+                    subtitle: "\(log.quantity) ml",
+                    time: timeString,
+                    icon: UIImage(systemName: iconName)
+                )
+                row.translatesAutoresizingMaskIntoConstraints = false
+                stack.addArrangedSubview(row)
+            }
+
+            NSLayoutConstraint.activate([
+                stack.topAnchor.constraint(equalTo: todaysLogContainer.topAnchor),
+                stack.leadingAnchor.constraint(equalTo: todaysLogContainer.leadingAnchor),
+                stack.trailingAnchor.constraint(equalTo: todaysLogContainer.trailingAnchor),
+                stack.bottomAnchor.constraint(equalTo: todaysLogContainer.bottomAnchor)
+            ])
+        }
+    }
+
+
+
+    
+    
     
     private func setupWaveView() {
         waveView.translatesAutoresizingMaskIntoConstraints = false
@@ -698,10 +854,11 @@ class HydrationStatusViewController: UIViewController {
             waveView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             waveView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             waveView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            // taller so only one large crest is visible
             waveView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.7)
         ])
     }
+    
+    // MARK: - Actions
     
     @objc private func viewAllTapped() {
         let vc = PreviousLogsViewController()
@@ -711,5 +868,30 @@ class HydrationStatusViewController: UIViewController {
     @objc private func backButtonTapped() {
         navigationController?.popViewController(animated: true)
     }
-
 }
+
+// MARK: - Shared fluid log store (in-memory for this run)
+
+struct FluidLog {
+    let type: String
+    let quantity: Int
+    let date: Date
+}
+
+final class FluidLogStore {
+    static let shared = FluidLogStore()
+    private init() {}
+
+    private var logs: [FluidLog] = []
+
+    func addLog(type: String, quantity: Int, date: Date = Date()) {
+        let log = FluidLog(type: type, quantity: quantity, date: date)
+        logs.append(log)
+    }
+
+    func todayLogs() -> [FluidLog] {
+        let calendar = Calendar.current
+        return logs.filter { calendar.isDateInToday($0.date) }
+    }
+}
+

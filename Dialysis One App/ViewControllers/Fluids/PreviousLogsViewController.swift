@@ -3,17 +3,21 @@ import UIKit
 // MARK: - Heatmap Status
 
 enum HydrationStatusType {
-    case completed    // 47A8F2
-    case halfway      // 65B3EE
-    case partial      // 82B9E3
-    case noLog        // D9D9D9
+    case completed    // Exceeded
+    case halfway      // In-Range
+    case partial      // Halfway
+    case noLog        // No log
 
     var color: UIColor {
         switch self {
-        case .completed: return UIColor(hex: 0x47A8F2)
-        case .halfway:   return UIColor(hex: 0x65B3EE)
-        case .partial:   return UIColor(hex: 0x82B9E3)
-        case .noLog:     return UIColor(hex: 0xD9D9D9)
+        case .completed:
+            return UIColor(hex: 0x47A8F2)          // Exceeded
+        case .halfway:
+            return UIColor(hex: 0x86CBFF)          // In-Range (UPDATED)
+        case .partial:
+            return UIColor(hex: 0x82B9E3)          // Halfway
+        case .noLog:
+            return UIColor(hex: 0xD9D9D9)
         }
     }
 }
@@ -39,7 +43,7 @@ class HeatmapCellView: UIView {
     }
 }
 
-// MARK: - Soft Card (lower-opacity gradient)
+// MARK: - Soft Card
 
 class SoftCardView: UIView {
     private let gradientLayer = CAGradientLayer()
@@ -74,74 +78,11 @@ class SoftCardView: UIView {
     }
 }
 
-// MARK: - Log Row (inside Yesterday card)
-
-class LogRowView: UIView {
-    private let iconView = UIImageView()
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
-    private let timeLabel = UILabel()
-
-    init(title: String, subtitle: String, time: String, systemIcon: String) {
-        super.init(frame: .zero)
-        setup(title: title, subtitle: subtitle, time: time, systemIcon: systemIcon)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func setup(title: String, subtitle: String, time: String, systemIcon: String) {
-        translatesAutoresizingMaskIntoConstraints = false
-
-        iconView.image = UIImage(systemName: systemIcon)
-        iconView.tintColor = UIColor(hex: 0x152B3C)
-        iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.setContentHuggingPriority(.required, for: .horizontal)
-
-        titleLabel.text = title
-        titleLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        titleLabel.textColor = UIColor(hex: 0x152B3C)
-
-        subtitleLabel.text = subtitle
-        subtitleLabel.font = UIFont.systemFont(ofSize: 13, weight: .regular)
-        subtitleLabel.textColor = .darkGray
-
-        timeLabel.text = time
-        timeLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        timeLabel.textColor = UIColor(hex: 0x152B3C)
-        timeLabel.setContentHuggingPriority(.required, for: .horizontal)
-
-        let labelsStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
-        labelsStack.axis = .vertical
-        labelsStack.spacing = 2
-        labelsStack.translatesAutoresizingMaskIntoConstraints = false
-
-        let mainStack = UIStackView(arrangedSubviews: [iconView, labelsStack, UIView(), timeLabel])
-        mainStack.axis = .horizontal
-        mainStack.alignment = .center
-        mainStack.spacing = 10
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
-
-        addSubview(mainStack)
-
-        NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 48),
-
-            mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            mainStack.topAnchor.constraint(equalTo: topAnchor),
-            mainStack.bottomAnchor.constraint(equalTo: bottomAnchor),
-
-            iconView.widthAnchor.constraint(equalToConstant: 22),
-            iconView.heightAnchor.constraint(equalToConstant: 22)
-        ])
-    }
-}
-
 // MARK: - Previous Logs Screen
 
 class PreviousLogsViewController: UIViewController {
+
+    // MARK: UI
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -154,13 +95,42 @@ class PreviousLogsViewController: UIViewController {
     private let yesterdayCard = SoftCardView()
 
     private let monthlySummaryLabel = UILabel()
+
+    // Month control (calendar badge)
+    private let monthBadgeContainer = UIView()
+    private let prevMonthButton = UIButton(type: .system)
+    private let nextMonthButton = UIButton(type: .system)
+    private let monthLabel = UILabel()
+
+    // Heatmap stacks
+    private let daysStack = UIStackView()
+    private let weeksStack = UIStackView()
+    private let weekLabelsStack = UIStackView()
     private let legendStack = UIStackView()
 
     private var heatmapCells: [UIView] = []
 
+    // MARK: Calendar
+
+    private let calendar = Calendar.current
+    private var currentMonthDate = Date()   // normalized in viewDidLoad
+
+    private let dayKeyFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        return df
+    }()
+
+    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
+
+        // Normalize to first of the month
+        let comps = calendar.dateComponents([.year, .month], from: Date())
+        currentMonthDate = calendar.date(from: comps) ?? Date()
+
         setupBase()
         setupHeader()
         setupYesterdaySection()
@@ -171,6 +141,10 @@ class PreviousLogsViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: false)
+
+        // Refresh month label + heatmap when coming back from Home
+        updateMonthLabel()
+        buildHeatmap()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -229,7 +203,7 @@ class PreviousLogsViewController: UIViewController {
         ])
     }
 
-    // MARK: - Yesterday (single table card)
+    // MARK: - Yesterday card
 
     private func setupYesterdaySection() {
         yesterdayLabel.text = "Yesterday"
@@ -241,50 +215,30 @@ class PreviousLogsViewController: UIViewController {
         yesterdayCard.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(yesterdayCard)
 
-        let row1 = LogRowView(title: "Water",  subtitle: "75 ml",  time: "04:30 PM", systemIcon: "drop")
-        let row2 = LogRowView(title: "Coffee", subtitle: "25 ml",  time: "12:00 PM", systemIcon: "cup.and.saucer")
-        let row3 = LogRowView(title: "Juice",  subtitle: "50 ml",  time: "03:00 PM", systemIcon: "takeoutbag.and.cup.and.straw")
-        let row4 = LogRowView(title: "Water",  subtitle: "150 ml", time: "06:30 PM", systemIcon: "drop")
-
-        let rows = [row1, row2, row3, row4]
-
-        let verticalStack = UIStackView()
-        verticalStack.axis = .vertical
-        verticalStack.spacing = 0
-        verticalStack.translatesAutoresizingMaskIntoConstraints = false
-
-        for (index, row) in rows.enumerated() {
-            verticalStack.addArrangedSubview(row)
-            if index < rows.count - 1 {
-                let sep = UIView()
-                sep.backgroundColor = UIColor.black.withAlphaComponent(0.06)
-                sep.translatesAutoresizingMaskIntoConstraints = false
-                NSLayoutConstraint.activate([
-                    sep.heightAnchor.constraint(equalToConstant: 0.8)
-                ])
-                verticalStack.addArrangedSubview(sep)
-            }
-        }
-
-        yesterdayCard.addSubview(verticalStack)
+        let messageLabel = UILabel()
+        messageLabel.text = "Enter your fluid intake everyday to have a track of it!"
+        messageLabel.numberOfLines = 0
+        messageLabel.font = UIFont.systemFont(ofSize: 15, weight: .regular)
+        messageLabel.textColor = UIColor(hex: 0x152B3C)
+        messageLabel.translatesAutoresizingMaskIntoConstraints = false
+        yesterdayCard.addSubview(messageLabel)
 
         NSLayoutConstraint.activate([
             yesterdayLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            // 35pt spacing from header
             yesterdayLabel.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: 35),
 
             yesterdayCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             yesterdayCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             yesterdayCard.topAnchor.constraint(equalTo: yesterdayLabel.bottomAnchor, constant: 12),
 
-            verticalStack.leadingAnchor.constraint(equalTo: yesterdayCard.leadingAnchor),
-            verticalStack.trailingAnchor.constraint(equalTo: yesterdayCard.trailingAnchor),
-            verticalStack.topAnchor.constraint(equalTo: yesterdayCard.topAnchor, constant: 8),
-            verticalStack.bottomAnchor.constraint(equalTo: yesterdayCard.bottomAnchor, constant: -8)
+            messageLabel.leadingAnchor.constraint(equalTo: yesterdayCard.leadingAnchor, constant: 18),
+            messageLabel.trailingAnchor.constraint(equalTo: yesterdayCard.trailingAnchor, constant: -18),
+            messageLabel.topAnchor.constraint(equalTo: yesterdayCard.topAnchor, constant: 14),
+            messageLabel.bottomAnchor.constraint(equalTo: yesterdayCard.bottomAnchor, constant: -14)
         ])
     }
 
-    // MARK: - Monthly Summary + Heatmap + Info
+    // MARK: - Monthly Summary + Heatmap
 
     private func setupMonthlySummarySection() {
         monthlySummaryLabel.text = "Monthly Summary"
@@ -293,24 +247,15 @@ class PreviousLogsViewController: UIViewController {
         monthlySummaryLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(monthlySummaryLabel)
 
-        let monthBadge = UILabel()
-        monthBadge.text = "This month"
-        monthBadge.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
-        monthBadge.textColor = UIColor(hex: 0x43A7EF)
-        monthBadge.backgroundColor = UIColor.white.withAlphaComponent(0.7)
-        monthBadge.textAlignment = .center
-        monthBadge.layer.cornerRadius = 10
-        monthBadge.clipsToBounds = true
-        monthBadge.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(monthBadge)
+        setupMonthBadge()
 
-        let days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
-        let daysStack = UIStackView()
+        // Day headers (Mo–Su)
         daysStack.axis = .horizontal
         daysStack.alignment = .center
         daysStack.distribution = .equalSpacing
         daysStack.translatesAutoresizingMaskIntoConstraints = false
 
+        let days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
         for d in days {
             let lbl = UILabel()
             lbl.text = d
@@ -320,47 +265,15 @@ class PreviousLogsViewController: UIViewController {
         }
         contentView.addSubview(daysStack)
 
-        let weekData: [[HydrationStatusType]] = [
-            [.completed, .completed, .completed, .noLog,     .completed, .completed, .completed],
-            [.completed, .halfway,   .halfway,   .completed,  .completed, .completed, .noLog],
-            [.partial,   .partial,   .completed, .partial,    .partial,   .completed, .completed],
-            [.completed, .completed, .noLog,     .partial,    .completed, .completed, .completed]
-        ]
-
-        let weeksStack = UIStackView()
+        // Weeks + week labels
         weeksStack.axis = .vertical
         weeksStack.spacing = 10
         weeksStack.translatesAutoresizingMaskIntoConstraints = false
 
-        let weekLabelsStack = UIStackView()
         weekLabelsStack.axis = .vertical
         weekLabelsStack.alignment = .leading
         weekLabelsStack.spacing = 10
         weekLabelsStack.translatesAutoresizingMaskIntoConstraints = false
-
-        heatmapCells.removeAll()
-
-        for (index, week) in weekData.enumerated() {
-            let rowStack = UIStackView()
-            rowStack.axis = .horizontal
-            rowStack.alignment = .center
-            rowStack.distribution = .equalSpacing
-            rowStack.translatesAutoresizingMaskIntoConstraints = false
-
-            for status in week {
-                let cell = HeatmapCellView(status: status)
-                cell.alpha = 0
-                heatmapCells.append(cell)
-                rowStack.addArrangedSubview(cell)
-            }
-            weeksStack.addArrangedSubview(rowStack)
-
-            let weekLabel = UILabel()
-            weekLabel.text = "w\(index + 1)"
-            weekLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-            weekLabel.textColor = UIColor(hex: 0x152B3C)
-            weekLabelsStack.addArrangedSubview(weekLabel)
-        }
 
         let gridContainer = UIStackView(arrangedSubviews: [weeksStack, weekLabelsStack])
         gridContainer.axis = .horizontal
@@ -369,6 +282,7 @@ class PreviousLogsViewController: UIViewController {
         gridContainer.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(gridContainer)
 
+        // Legend
         legendStack.axis = .horizontal
         legendStack.alignment = .center
         legendStack.distribution = .equalSpacing
@@ -397,13 +311,13 @@ class PreviousLogsViewController: UIViewController {
             return stack
         }
 
-        // Updated labels: Exceeded / In-Range / Halfway / No log
         legendStack.addArrangedSubview(legendItem(color: HydrationStatusType.completed.color, text: "Exceeded"))
         legendStack.addArrangedSubview(legendItem(color: HydrationStatusType.halfway.color,   text: "In-Range"))
         legendStack.addArrangedSubview(legendItem(color: HydrationStatusType.partial.color,   text: "Halfway"))
         legendStack.addArrangedSubview(legendItem(color: HydrationStatusType.noLog.color,     text: "No log"))
         contentView.addSubview(legendStack)
 
+        // Info card
         let infoCard = SoftCardView()
         infoCard.translatesAutoresizingMaskIntoConstraints = false
         infoCard.layer.cornerRadius = 18
@@ -433,10 +347,8 @@ class PreviousLogsViewController: UIViewController {
             monthlySummaryLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             monthlySummaryLabel.topAnchor.constraint(equalTo: yesterdayCard.bottomAnchor, constant: 32),
 
-            monthBadge.centerYAnchor.constraint(equalTo: monthlySummaryLabel.centerYAnchor),
-            monthBadge.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            monthBadge.heightAnchor.constraint(equalToConstant: 22),
-            monthBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 80),
+            monthBadgeContainer.centerYAnchor.constraint(equalTo: monthlySummaryLabel.centerYAnchor),
+            monthBadgeContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
 
             daysStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             daysStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -80),
@@ -465,6 +377,180 @@ class PreviousLogsViewController: UIViewController {
             infoIcon.widthAnchor.constraint(equalToConstant: 20),
             infoIcon.heightAnchor.constraint(equalToConstant: 20)
         ])
+
+        updateMonthLabel()
+        buildHeatmap()
+    }
+
+    // MARK: Month badge
+
+    private func setupMonthBadge() {
+        monthBadgeContainer.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        monthBadgeContainer.layer.cornerRadius = 18
+        monthBadgeContainer.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(monthBadgeContainer)
+
+        prevMonthButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        prevMonthButton.tintColor = UIColor(hex: 0x43A7EF)
+        prevMonthButton.addTarget(self, action: #selector(prevMonthTapped), for: .touchUpInside)
+
+        nextMonthButton.setImage(UIImage(systemName: "chevron.right"), for: .normal)
+        nextMonthButton.tintColor = UIColor(hex: 0x43A7EF)
+        nextMonthButton.addTarget(self, action: #selector(nextMonthTapped), for: .touchUpInside)
+
+        let calendarIcon = UIImageView(image: UIImage(systemName: "calendar"))
+        calendarIcon.tintColor = UIColor(hex: 0x43A7EF)
+        calendarIcon.translatesAutoresizingMaskIntoConstraints = false
+
+        monthLabel.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        monthLabel.textColor = UIColor(hex: 0x152B3C)
+        monthLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let centerStack = UIStackView(arrangedSubviews: [calendarIcon, monthLabel])
+        centerStack.axis = .horizontal
+        centerStack.alignment = .center
+        centerStack.spacing = 6
+
+        let badgeStack = UIStackView(arrangedSubviews: [prevMonthButton, centerStack, nextMonthButton])
+        badgeStack.axis = .horizontal
+        badgeStack.alignment = .center
+        badgeStack.spacing = 8
+        badgeStack.translatesAutoresizingMaskIntoConstraints = false
+
+        monthBadgeContainer.addSubview(badgeStack)
+
+        NSLayoutConstraint.activate([
+            badgeStack.leadingAnchor.constraint(equalTo: monthBadgeContainer.leadingAnchor, constant: 10),
+            badgeStack.trailingAnchor.constraint(equalTo: monthBadgeContainer.trailingAnchor, constant: -10),
+            badgeStack.topAnchor.constraint(equalTo: monthBadgeContainer.topAnchor, constant: 4),
+            badgeStack.bottomAnchor.constraint(equalTo: monthBadgeContainer.bottomAnchor, constant: -4),
+
+            calendarIcon.widthAnchor.constraint(equalToConstant: 16),
+            calendarIcon.heightAnchor.constraint(equalToConstant: 16)
+        ])
+    }
+
+    private func updateMonthLabel() {
+        let df = DateFormatter()
+        df.dateFormat = "MMM yyyy"
+        monthLabel.text = df.string(from: currentMonthDate)
+    }
+
+    // MARK: - Data helpers
+
+    // MARK: - Data helpers
+    private func dailyConsumed(for date: Date) -> Int {
+        // Use the SAME UID string that you use in Home / HydrationStatus
+        let uid = "defaultUser"
+
+        let today = calendar.startOfDay(for: Date())
+        let thisDay = calendar.startOfDay(for: date)
+
+        if today == thisDay {
+            // Today uses the same key as Home / HydrationStatus
+            return UserDataManager.shared.loadInt("waterConsumed",
+                                                  uid: uid,
+                                                  defaultValue: 0)
+        } else {
+            // Per-day key (if you later save past days)
+            let key = "waterConsumed_" + dayKeyFormatter.string(from: date)
+            return UserDataManager.shared.loadInt(key,
+                                                  uid: uid,
+                                                  defaultValue: 0)
+        }
+    }
+
+
+    private func statusFor(consumed: Int, goal: Int) -> HydrationStatusType {
+        guard consumed > 0, goal > 0 else { return .noLog }
+
+        let ratio = Double(consumed) / Double(goal)
+
+        if ratio > 1.0 {
+            return .completed          // Exceeded
+        } else if ratio > 0.5 {
+            return .halfway            // In-Range
+        } else {
+            return .partial            // Halfway
+        }
+    }
+
+    // MARK: - Build 4-week heatmap
+
+    private func buildHeatmap() {
+        // Clear old rows & labels
+        weeksStack.arrangedSubviews.forEach {
+            weeksStack.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+        weekLabelsStack.arrangedSubviews.forEach {
+            weekLabelsStack.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+        heatmapCells.forEach { $0.removeFromSuperview() }
+        heatmapCells.removeAll()
+
+        let comps = calendar.dateComponents([.year, .month], from: currentMonthDate)
+        guard let firstOfMonth = calendar.date(from: DateComponents(year: comps.year,
+                                                                    month: comps.month,
+                                                                    day: 1)),
+              let range = calendar.range(of: .day, in: .month, for: firstOfMonth) else {
+            return
+        }
+
+        let numberOfDays = range.count
+
+        // Same UID constant as in dailyConsumed / Home / HydrationStatus
+        let uid = "defaultUser"
+        let goal = UserDataManager.shared.loadInt("waterGoal",
+                                                  uid: uid,
+                                                  defaultValue: 2500)
+
+
+        let maxWeeks = 4  // ALWAYS 4 rows: w1–w4
+
+        for weekIndex in 0..<maxWeeks {
+            let rowStack = UIStackView()
+            rowStack.axis = .horizontal
+            rowStack.alignment = .center
+            rowStack.distribution = .equalSpacing
+            rowStack.translatesAutoresizingMaskIntoConstraints = false
+
+            let startDay = weekIndex * 7 + 1
+
+            for col in 0..<7 {
+                let dayNumber = startDay + col
+                let cell: HeatmapCellView
+
+                if dayNumber >= 1 && dayNumber <= numberOfDays {
+                    let date = calendar.date(byAdding: .day,
+                                             value: dayNumber - 1,
+                                             to: firstOfMonth)!
+                    let consumed = dailyConsumed(for: date)
+                    let status = statusFor(consumed: consumed, goal: goal)
+                    cell = HeatmapCellView(status: status)
+                } else {
+                    cell = HeatmapCellView(status: .noLog)
+                    cell.alpha = 0.25
+                }
+
+                // Start hidden for animation
+                cell.alpha = 0
+                heatmapCells.append(cell)
+                rowStack.addArrangedSubview(cell)
+            }
+
+            weeksStack.addArrangedSubview(rowStack)
+
+            // Week labels aligned row-by-row
+            let weekLabel = UILabel()
+            weekLabel.text = "w\(weekIndex + 1)"
+            weekLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+            weekLabel.textColor = UIColor(hex: 0x152B3C)
+            weekLabelsStack.addArrangedSubview(weekLabel)
+        }
+
+        weeksStack.layoutIfNeeded()
     }
 
     // MARK: - Waves Background
@@ -499,5 +585,23 @@ class PreviousLogsViewController: UIViewController {
 
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
+    }
+
+    @objc private func prevMonthTapped() {
+        if let newDate = calendar.date(byAdding: .month, value: -1, to: currentMonthDate) {
+            currentMonthDate = newDate
+            updateMonthLabel()
+            buildHeatmap()
+            animateHeatmapCells()
+        }
+    }
+
+    @objc private func nextMonthTapped() {
+        if let newDate = calendar.date(byAdding: .month, value: 1, to: currentMonthDate) {
+            currentMonthDate = newDate
+            updateMonthLabel()
+            buildHeatmap()
+            animateHeatmapCells()
+        }
     }
 }
