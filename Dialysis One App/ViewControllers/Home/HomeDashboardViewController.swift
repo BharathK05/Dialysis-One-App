@@ -6,6 +6,11 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     
     private var didRunTour = false
     
+    private var appointmentHospitalLabel: UILabel?
+    private var appointmentDateLabel: UILabel?
+    private var appointmentTimeLabel: UILabel?
+
+    
     // MARK: - Properties
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -96,16 +101,19 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         loadUserValues()
         addTopGradientBackground()
         setupUI()
-        
+        refreshAppointmentCard()
         updateSegmentedMedicationCard()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateSegmentedMedicationCard()
-        
-        // Keep it fresh every time the screen appears
-       // updateSegmentedMedicationCard()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshAppointmentCard),
+            name: .appointmentsChanged,
+            object: nil
+        )
     }
     
     
@@ -1405,21 +1413,36 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         clockIcon.translatesAutoresizingMaskIntoConstraints = false
 
         let hospitalLabel = UILabel()
-        hospitalLabel.text = "SRM Medical Hospital"
         hospitalLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         hospitalLabel.translatesAutoresizingMaskIntoConstraints = false
 
         let dateLabel = UILabel()
-        dateLabel.text = "10 October 2025"
         dateLabel.font = UIFont.systemFont(ofSize: 14)
         dateLabel.textColor = .darkGray
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
 
         let timeLabel = UILabel()
-        timeLabel.text = "12:00 PM"
         timeLabel.font = UIFont.systemFont(ofSize: 14)
         timeLabel.textColor = .darkGray
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Fetch next upcoming appointment from UserDefaults
+        let next = AppointmentStore.shared.nextUpcoming()
+
+        if let appointment = next {
+            hospitalLabel.text = appointment.hospitalName
+            dateLabel.text = appointment.date.formatted(date: .long, time: .omitted)
+            timeLabel.text = appointment.date.formatted(date: .omitted, time: .shortened)
+        } else {
+            hospitalLabel.text = "No Appointments"
+            dateLabel.text = "Tap to add your first one"
+            timeLabel.text = ""
+        }
+        
+        appointmentHospitalLabel = hospitalLabel
+        appointmentDateLabel = dateLabel
+        appointmentTimeLabel = timeLabel
+
 
         let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
         chevron.tintColor = .gray
@@ -1438,16 +1461,15 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
             appointmentCard.topAnchor.constraint(equalTo: upcomingTitle.bottomAnchor, constant: 14),
             appointmentCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             appointmentCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            appointmentCard.heightAnchor.constraint(equalToConstant: 110),
             appointmentCard.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
-
+            
             blurView2.topAnchor.constraint(equalTo: appointmentCard.topAnchor),
             blurView2.bottomAnchor.constraint(equalTo: appointmentCard.bottomAnchor),
             blurView2.leadingAnchor.constraint(equalTo: appointmentCard.leadingAnchor),
             blurView2.trailingAnchor.constraint(equalTo: appointmentCard.trailingAnchor),
 
             clockIcon.leadingAnchor.constraint(equalTo: appointmentCard.leadingAnchor, constant: 16),
-            clockIcon.centerYAnchor.constraint(equalTo: appointmentCard.centerYAnchor),
+            clockIcon.topAnchor.constraint(equalTo: appointmentCard.topAnchor, constant: 20),
             clockIcon.widthAnchor.constraint(equalToConstant: 32),
             clockIcon.heightAnchor.constraint(equalToConstant: 32),
 
@@ -1459,10 +1481,12 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
 
             timeLabel.leadingAnchor.constraint(equalTo: hospitalLabel.leadingAnchor),
             timeLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 4),
+            timeLabel.bottomAnchor.constraint(equalTo: appointmentCard.bottomAnchor, constant: -18),
 
             chevron.trailingAnchor.constraint(equalTo: appointmentCard.trailingAnchor, constant: -16),
             chevron.centerYAnchor.constraint(equalTo: appointmentCard.centerYAnchor)
         ])
+
 
         let tap2 = UITapGestureRecognizer(target: self, action: #selector(openAppointmentDetails))
         appointmentCard.addGestureRecognizer(tap2)
@@ -1476,6 +1500,20 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         titleLabel.isUserInteractionEnabled = false
         valueLabel.isUserInteractionEnabled = false
         chevronImageView.isUserInteractionEnabled = false
+    }
+    
+    @objc func refreshAppointmentCard() {
+        let next = AppointmentStore.shared.nextUpcoming()
+
+        if let appointment = next {
+            appointmentHospitalLabel?.text = appointment.hospitalName
+            appointmentDateLabel?.text = appointment.date.formatted(date: .long, time: .omitted)
+            appointmentTimeLabel?.text = appointment.date.formatted(date: .omitted, time: .shortened)
+        } else {
+            appointmentHospitalLabel?.text = "No Appointments"
+            appointmentDateLabel?.text = "Tap to add"
+            appointmentTimeLabel?.text = ""
+        }
     }
     
     @objc private func openAppointmentDetails() {
@@ -1520,14 +1558,6 @@ final class PreviewViewController: UIViewController {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not supported") }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        view.backgroundColor = .systemBackground
-        setupUI()
-       // updateSegmentedMedicationCard()
-    }
 
     private func setupUI() {
         imageView.translatesAutoresizingMaskIntoConstraints = false

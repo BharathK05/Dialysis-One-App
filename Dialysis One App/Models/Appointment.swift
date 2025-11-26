@@ -12,5 +12,6 @@ struct Appointment: Codable, Identifiable {
     let hospitalName: String
     let date: Date
     let notes: String?
+    var attended: Bool?
 }
 
