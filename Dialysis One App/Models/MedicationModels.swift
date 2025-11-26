@@ -155,6 +155,10 @@ class MedicationStore: ObservableObject {
         medications[index].setTaken(!currentStatus, on: date, timeOfDay: timeOfDay)
         saveMedications()
     }
+    func deleteMedication(id: UUID) {
+            medications.removeAll { $0.id == id }
+            saveMedications()
+        }
     
     func medicationsFor(timeOfDay: TimeOfDay, date: Date = Date()) -> [Medication] {
         return medications.filter { $0.times.contains(timeOfDay) }

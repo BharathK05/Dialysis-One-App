@@ -1,3 +1,7 @@
+
+// user 1
+// main
+
 import UIKit
 import AVFoundation
 import Photos
@@ -48,26 +52,37 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     private var dosesGoal: Int = 3
     
     // Nutrient tracking
+    // MARK: - Nutrient tracking
+
+    // Consumed values (stored properties with didSet)
     private var potassiumConsumed: Int = 78 {
         didSet { updateNutrientCard() }
     }
-    private var potassiumGoal: Int = 90
-    
+
     private var sodiumConsumed: Int = 45 {
         didSet { updateNutrientCard() }
     }
-    private var sodiumGoal: Int = 70
-    
+
     private var proteinConsumed: Int = 95 {
         didSet { updateNutrientCard() }
     }
-    private var proteinGoal: Int = 110
-    
+
+    // Goal values (computed properties - dynamically fetch from LimitsManager)
+    private var potassiumGoal: Int {
+        return LimitsManager.shared.getPotassiumLimit()
+    }
+
+    private var sodiumGoal: Int {
+        return LimitsManager.shared.getSodiumLimit()
+    }
+
+    private var proteinGoal: Int {
+        return LimitsManager.shared.getProteinLimit()
+    }
     // Weight tracking
     private var currentWeight: Double = 57.0 {
         didSet { updateWeightCard() }
     }
-    
     // MARK: - UI Element References
     private var waterValueLabel: UILabel?
     private var waterTotalLabel: UILabel?
@@ -98,11 +113,29 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         setupUI()
         
         updateSegmentedMedicationCard()
+        loadTodayNutrients()
+        
+        // Listen for meal updates
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(mealsDidUpdate),
+            name: .mealsDidUpdate,
+            object: nil
+        )
+        
+        // Listen for limits updates
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(limitsDidUpdate),
+            name: .limitsDidUpdate,
+            object: nil
+        )
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateSegmentedMedicationCard()
+        loadTodayNutrients()
         
         // Keep it fresh every time the screen appears
        // updateSegmentedMedicationCard()
@@ -110,6 +143,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     
     
     
+    // MARK: - Public Update Methods
     // MARK: - Public Update Methods
     private func loadUserValues() {
         // Default values for NEW users
@@ -119,14 +153,15 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         dosesConsumed = UserDataManager.shared.loadInt("dosesConsumed", uid: uid, defaultValue: 0)
         dosesGoal = UserDataManager.shared.loadInt("dosesGoal", uid: uid, defaultValue: 3)
 
+        // ❌ REMOVE THESE THREE LINES - goals now come from LimitsManager
+        // potassiumGoal = UserDataManager.shared.loadInt("potassiumGoal", uid: uid, defaultValue: 90)
+        // sodiumGoal = UserDataManager.shared.loadInt("sodiumGoal", uid: uid, defaultValue: 70)
+        // proteinGoal = UserDataManager.shared.loadInt("proteinGoal", uid: uid, defaultValue: 110)
+
+        // Load consumed nutrients
         potassiumConsumed = UserDataManager.shared.loadInt("potassiumConsumed", uid: uid, defaultValue: 0)
-        potassiumGoal = UserDataManager.shared.loadInt("potassiumGoal", uid: uid, defaultValue: 90)
-
         sodiumConsumed = UserDataManager.shared.loadInt("sodiumConsumed", uid: uid, defaultValue: 0)
-        sodiumGoal = UserDataManager.shared.loadInt("sodiumGoal", uid: uid, defaultValue: 70)
-
         proteinConsumed = UserDataManager.shared.loadInt("proteinConsumed", uid: uid, defaultValue: 0)
-        proteinGoal = UserDataManager.shared.loadInt("proteinGoal", uid: uid, defaultValue: 110)
 
         currentWeight = UserDataManager.shared.loadDouble("weight", uid: uid, defaultValue: 0)
     }
@@ -256,7 +291,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     
     private func updateNutrientCard() {
         potassiumValueLabel?.text = "\(potassiumConsumed)/\(potassiumGoal)mg"
-        let potassiumProgress = CGFloat(potassiumConsumed) / CGFloat(potassiumGoal)
+        let potassiumProgress = potassiumConsumed > 0 ? CGFloat(potassiumConsumed) / CGFloat(potassiumGoal) : 0
         if let progressBar = potassiumProgressBar, let progressFill = potassiumProgressFill {
             progressFill.constraints.forEach { constraint in
                 if constraint.firstAttribute == .width {
@@ -269,7 +304,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         }
         
         sodiumValueLabel?.text = "\(sodiumConsumed)/\(sodiumGoal)mg"
-        let sodiumProgress = CGFloat(sodiumConsumed) / CGFloat(sodiumGoal)
+        let sodiumProgress = sodiumConsumed > 0 ? CGFloat(sodiumConsumed) / CGFloat(sodiumGoal) : 0
         if let progressBar = sodiumProgressBar, let progressFill = sodiumProgressFill {
             progressFill.constraints.forEach { constraint in
                 if constraint.firstAttribute == .width {
@@ -282,7 +317,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         }
         
         proteinValueLabel?.text = "\(proteinConsumed)/\(proteinGoal)mg"
-        let proteinProgress = CGFloat(proteinConsumed) / CGFloat(proteinGoal)
+        let proteinProgress = proteinConsumed > 0 ? CGFloat(proteinConsumed) / CGFloat(proteinGoal) : 0
         if let progressBar = proteinProgressBar, let progressFill = proteinProgressFill {
             progressFill.constraints.forEach { constraint in
                 if constraint.firstAttribute == .width {
@@ -298,7 +333,29 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     private func updateWeightCard() {
         weightValueLabel?.text = "\(Int(currentWeight)) Kg"
     }
-    
+    private func loadTodayNutrients() {
+        let totals = MealDataManager.shared.getTodayTotals()
+        
+        // Update local properties
+        potassiumConsumed = totals.potassium
+        sodiumConsumed = totals.sodium
+        proteinConsumed = totals.protein
+        
+        // Save to UserDefaults for persistence
+        UserDataManager.shared.save("potassiumConsumed", value: totals.potassium, uid: uid)
+        UserDataManager.shared.save("sodiumConsumed", value: totals.sodium, uid: uid)
+        UserDataManager.shared.save("proteinConsumed", value: totals.protein, uid: uid)
+        
+        // Update UI
+        updateNutrientCard()
+    }
+    @objc private func mealsDidUpdate() {
+        loadTodayNutrients()
+    }
+    @objc private func limitsDidUpdate() {
+        // Reload nutrient card with new limits
+        updateNutrientCard()
+    }
     // MARK: - Setup UI
     private func setupUI() {
         view.backgroundColor = UIColor(red: 0.78, green: 0.93, blue: 0.82, alpha: 1.0)
@@ -1253,6 +1310,7 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         
         return container
     }
+    
 
     private func updateSegmentedMedicationCard() {
         let store = MedicationStore.shared
@@ -1506,6 +1564,10 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
+    
+    deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
 }
 
 final class PreviewViewController: UIViewController {
@@ -1519,14 +1581,14 @@ final class PreviewViewController: UIViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    required init?(coder: NSCoder) { fatalError("init(coder:) not supported") }
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) not supported")
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         view.backgroundColor = .systemBackground
         setupUI()
-       // updateSegmentedMedicationCard()
     }
 
     private func setupUI() {

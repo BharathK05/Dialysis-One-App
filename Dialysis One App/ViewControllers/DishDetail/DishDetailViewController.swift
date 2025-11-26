@@ -431,7 +431,14 @@ class DishDetailViewController: UIViewController {
     // MARK: - Actions
     
     @objc private func closeTapped() {
-        dismiss(animated: true)
+        // Check if we're in a navigation stack or presented modally
+        if let nav = navigationController {
+            // We're pushed - pop back
+            nav.popViewController(animated: true)
+        } else {
+            // We're presented - dismiss
+            dismiss(animated: true, completion: nil)
+        }
     }
     
     @objc private func decreaseQuantity() {
@@ -455,24 +462,78 @@ class DishDetailViewController: UIViewController {
     }
     
     @objc private func saveButtonTapped() {
-        print("\n💾 Saving meal log:")
-        print("   Dish: \(recognitionResult.prediction.label)")
-        print("   Portion: \(selectedPortion.rawValue)")
-        print("   Quantity: \(quantity)")
-        if let scaled = scaledNutrients {
-            print("   Total Calories: \(scaled.calories) kcal")
-            print("   Total Sodium: \(scaled.sodium) mg")
-            print("   Total Potassium: \(scaled.potassium) mg")
+        guard let scaled = scaledNutrients else {
+            print("⚠️ No nutrients to save")
+            return
         }
         
+        // Show meal type selector
         let alert = UIAlertController(
-            title: "Saved!",
-            message: "Meal logged successfully",
+            title: "Select Meal Type",
+            message: "When did you have this meal?",
+            preferredStyle: .actionSheet
+        )
+        
+        alert.addAction(UIAlertAction(title: "Breakfast", style: .default) { [weak self] _ in
+            self?.saveMeal(mealType: .breakfast)
+        })
+        
+        alert.addAction(UIAlertAction(title: "Lunch", style: .default) { [weak self] _ in
+            self?.saveMeal(mealType: .lunch)
+        })
+        
+        alert.addAction(UIAlertAction(title: "Dinner", style: .default) { [weak self] _ in
+            self?.saveMeal(mealType: .dinner)
+        })
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        // For iPad
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = saveButton
+            popover.sourceRect = saveButton.bounds
+        }
+        
+        present(alert, animated: true)
+    }
+
+    private func saveMeal(mealType: SavedMeal.MealType) {
+        guard let scaled = scaledNutrients else { return }
+        
+        print("\n💾 Saving meal:")
+        print("   Dish: \(recognitionResult.prediction.displayName)")
+        print("   Type: \(mealType.rawValue)")
+        print("   Quantity: \(quantity)")
+        print("   Calories: \(scaled.calories) kcal")
+        print("   Potassium: \(scaled.potassium) mg")
+        print("   Sodium: \(scaled.sodium) mg")
+        print("   Protein: \(Int(scaled.protein)) g")
+        
+        MealDataManager.shared.saveMeal(
+            dishName: recognitionResult.prediction.displayName,
+            calories: scaled.calories,
+            potassium: scaled.potassium,
+            sodium: scaled.sodium,
+            protein: scaled.protein,
+            quantity: quantity,
+            mealType: mealType,
+            image: foodImage
+        )
+        
+        let successAlert = UIAlertController(
+            title: "✅ Saved!",
+            message: "Your \(mealType.rawValue.lowercased()) has been logged.",
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
-            self.dismiss(animated: true)
+        
+        successAlert.addAction(UIAlertAction(title: "Done", style: .default) { [weak self] _ in
+            if let nav = self?.navigationController {
+                nav.popViewController(animated: true)
+            } else {
+                self?.dismiss(animated: true)
+            }
         })
-        present(alert, animated: true)
+        
+        present(successAlert, animated: true)
     }
 }

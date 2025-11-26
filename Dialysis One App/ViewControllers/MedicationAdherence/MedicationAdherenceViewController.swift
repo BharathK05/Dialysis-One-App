@@ -14,24 +14,29 @@ class MedicationAdherenceViewController: UIViewController {
     private let medicationListContainer = UIView()
     private let medicationStackView = UIStackView()
     private let addMedicationButton = UIButton(type: .system)
+    private var yourMedicationsCard: UIView?
+    private var medsInfoCardConstraints: [NSLayoutConstraint] = []
+    private var isEditMode = false
+    private let editButton = UIButton(type: .system)
+    private let yourMedsLabel = UILabel()
+    private let dateEditContainer = UIView()
+
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         updateStatus()
-
         loadMedications()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateStatus()
-        // Reload to ensure fresh state
         loadMedications()
     }
     
     private func setupUI() {
-        view.backgroundColor = UIColor(red: 0.78, green: 0.93, blue: 0.82, alpha: 1.0)
+        addTopGradientBackground()
         
         // Title Label
         let titleLabel = UILabel()
@@ -57,16 +62,29 @@ class MedicationAdherenceViewController: UIViewController {
         contentView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentView)
         
+        // Container for date and edit button
+        dateEditContainer.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(dateEditContainer)
+        
         // Date label
         dateLabel.font = MedicationDesignTokens.Typography.dateLabel
         dateLabel.textColor = MedicationDesignTokens.Colors.textSecondary
-        dateLabel.textAlignment = .center
+        dateLabel.textAlignment = .left
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(dateLabel)
+        dateEditContainer.addSubview(dateLabel)
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "MMM dd, yyyy"
         dateLabel.text = dateFormatter.string(from: currentDate)
+        
+        // Edit button with smaller icon
+        let editConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
+        editButton.setImage(UIImage(systemName: "pencil.circle", withConfiguration: editConfig), for: .normal)
+        editButton.setImage(UIImage(systemName: "checkmark.circle.fill", withConfiguration: editConfig), for: .selected)
+        editButton.tintColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
+        editButton.translatesAutoresizingMaskIntoConstraints = false
+        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
+        dateEditContainer.addSubview(editButton)
         
         // Status label
         statusLabel.font = MedicationDesignTokens.Typography.statusBadge
@@ -82,7 +100,11 @@ class MedicationAdherenceViewController: UIViewController {
         
         // Medication list container
         medicationListContainer.backgroundColor = UIColor.white.withAlphaComponent(0.5)
-        medicationListContainer.layer.cornerRadius = MedicationDesignTokens.Layout.cardCornerRadius
+        medicationListContainer.layer.cornerRadius = 16
+        medicationListContainer.layer.shadowColor = UIColor.black.cgColor
+        medicationListContainer.layer.shadowOffset = CGSize(width: 0, height: 2)
+        medicationListContainer.layer.shadowRadius = 8
+        medicationListContainer.layer.shadowOpacity = 0.08
         medicationListContainer.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(medicationListContainer)
         
@@ -90,7 +112,7 @@ class MedicationAdherenceViewController: UIViewController {
         let blurEffect = UIBlurEffect(style: .light)
         let blurView = UIVisualEffectView(effect: blurEffect)
         blurView.translatesAutoresizingMaskIntoConstraints = false
-        blurView.layer.cornerRadius = MedicationDesignTokens.Layout.cardCornerRadius
+        blurView.layer.cornerRadius = 16
         blurView.clipsToBounds = true
         medicationListContainer.insertSubview(blurView, at: 0)
         
@@ -101,26 +123,37 @@ class MedicationAdherenceViewController: UIViewController {
         medicationListContainer.addSubview(medicationStackView)
         
         // "Your Medications" section label
-        let yourMedsLabel = UILabel()
         yourMedsLabel.text = "Your Medications"
         yourMedsLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
         yourMedsLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(yourMedsLabel)
         
         // Medications info card
-        let medsInfoCard = createYourMedicationsCard()
-        contentView.addSubview(medsInfoCard)
+        yourMedicationsCard = createYourMedicationsCard()
+        contentView.addSubview(yourMedicationsCard!)
         
         // Add medication button
         addMedicationButton.setTitle("Add Medication", for: .normal)
         addMedicationButton.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        addMedicationButton.setTitleColor(.systemBlue, for: .normal)
-        addMedicationButton.backgroundColor = UIColor.white.withAlphaComponent(0.8)
-        addMedicationButton.layer.cornerRadius = 16
+        addMedicationButton.setTitleColor(.white, for: .normal)
+        addMedicationButton.backgroundColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
+        addMedicationButton.layer.cornerRadius = 12
+        addMedicationButton.layer.shadowColor = UIColor.black.cgColor
+        addMedicationButton.layer.shadowOffset = CGSize(width: 0, height: 4)
+        addMedicationButton.layer.shadowRadius = 12
+        addMedicationButton.layer.shadowOpacity = 0.15
         addMedicationButton.translatesAutoresizingMaskIntoConstraints = false
         addMedicationButton.addTarget(self, action: #selector(addMedicationTapped), for: .touchUpInside)
         contentView.addSubview(addMedicationButton)
         
+        medsInfoCardConstraints = [
+            yourMedicationsCard!.topAnchor.constraint(equalTo: yourMedsLabel.bottomAnchor, constant: 16),
+            yourMedicationsCard!.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            yourMedicationsCard!.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+        ]
+
+        // Replace the NSLayoutConstraint.activate section in setupUI() with this:
+
         NSLayoutConstraint.activate([
             backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -141,10 +174,23 @@ class MedicationAdherenceViewController: UIViewController {
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             
-            dateLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
-            dateLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            dateEditContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            dateEditContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            dateEditContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            dateEditContainer.heightAnchor.constraint(equalToConstant: 30),
             
-            statusLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 16),
+            // DATE LABEL CONSTRAINTS - FIXED WITH TRAILING CONSTRAINT
+            dateLabel.leadingAnchor.constraint(equalTo: dateEditContainer.leadingAnchor),
+            dateLabel.centerYAnchor.constraint(equalTo: dateEditContainer.centerYAnchor),
+            dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: editButton.leadingAnchor, constant: -8),
+            
+            // EDIT BUTTON CONSTRAINTS
+            editButton.trailingAnchor.constraint(equalTo: dateEditContainer.trailingAnchor),
+            editButton.centerYAnchor.constraint(equalTo: dateEditContainer.centerYAnchor),
+            editButton.widthAnchor.constraint(equalToConstant: 32),
+            editButton.heightAnchor.constraint(equalToConstant: 32),
+            
+            statusLabel.topAnchor.constraint(equalTo: dateEditContainer.bottomAnchor, constant: 16),
             statusLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             
             timeSegmentedControl.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 24),
@@ -169,29 +215,53 @@ class MedicationAdherenceViewController: UIViewController {
             yourMedsLabel.topAnchor.constraint(equalTo: medicationListContainer.bottomAnchor, constant: 32),
             yourMedsLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             
-            medsInfoCard.topAnchor.constraint(equalTo: yourMedsLabel.bottomAnchor, constant: 16),
-            medsInfoCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            medsInfoCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            
-            addMedicationButton.topAnchor.constraint(equalTo: medsInfoCard.bottomAnchor, constant: 20),
+            addMedicationButton.topAnchor.constraint(equalTo: yourMedicationsCard!.bottomAnchor, constant: 20),
             addMedicationButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             addMedicationButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            addMedicationButton.heightAnchor.constraint(equalToConstant: 56),
+            addMedicationButton.heightAnchor.constraint(equalToConstant: 54),
             addMedicationButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
-        ])
+        ] + medsInfoCardConstraints)
         
         updateStatus()
     }
     
+    private func addTopGradientBackground() {
+        let gradient = CAGradientLayer()
+        let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)
+        let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1)
+
+        gradient.colors = [topColor.cgColor, bottomColor.cgColor]
+        gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
+        gradient.endPoint = CGPoint(x: 0.5, y: 1.0)
+        gradient.locations = [0.0, 0.7]
+        gradient.type = .axial
+        gradient.frame = view.bounds
+        gradient.zPosition = -1
+
+        view.layer.insertSublayer(gradient, at: 0)
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        if let gradientLayer = view.layer.sublayers?.first as? CAGradientLayer {
+            gradientLayer.frame = view.bounds
+        }
+    }
+    
     private func createYourMedicationsCard() -> UIView {
         let container = UIView()
-        container.backgroundColor = UIColor.white.withAlphaComponent(0.6)
-        container.layer.cornerRadius = 20
+        container.backgroundColor = UIColor.white.withAlphaComponent(0.7)
+        container.layer.cornerRadius = 16
+        container.layer.shadowColor = UIColor.black.cgColor
+        container.layer.shadowOffset = CGSize(width: 0, height: 2)
+        container.layer.shadowRadius = 8
+        container.layer.shadowOpacity = 0.08
         container.translatesAutoresizingMaskIntoConstraints = false
         
-        // Icon
-        let iconView = UIImageView(image: UIImage(systemName: "pills.circle.fill"))
-        iconView.tintColor = .systemGreen
+        // Icon (smaller)
+        let iconConfig = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
+        let iconView = UIImageView(image: UIImage(systemName: "pills.circle.fill", withConfiguration: iconConfig))
+        iconView.tintColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.contentMode = .scaleAspectFit
         container.addSubview(iconView)
@@ -205,28 +275,62 @@ class MedicationAdherenceViewController: UIViewController {
         
         // Add all medications with REAL names and dosages
         let allMeds = MedicationStore.shared.medications
-        for med in allMeds {
-            let medRow = createMedicationInfoRow(medication: med)
-            stack.addArrangedSubview(medRow)
+        
+        if allMeds.isEmpty {
+            let emptyLabel = UILabel()
+            emptyLabel.text = "No medications added yet"
+            emptyLabel.font = UIFont.systemFont(ofSize: 15, weight: .regular)
+            emptyLabel.textColor = .secondaryLabel
+            emptyLabel.textAlignment = .center
+            stack.addArrangedSubview(emptyLabel)
+        } else {
+            for med in allMeds {
+                let medRow = createMedicationInfoRow(medication: med)
+                stack.addArrangedSubview(medRow)
+            }
         }
         
         NSLayoutConstraint.activate([
             iconView.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
             iconView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
-            iconView.widthAnchor.constraint(equalToConstant: 50),
-            iconView.heightAnchor.constraint(equalToConstant: 50),
+            iconView.widthAnchor.constraint(equalToConstant: 32),
+            iconView.heightAnchor.constraint(equalToConstant: 32),
             
             stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
             stack.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 16),
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -20),
             
-            container.heightAnchor.constraint(greaterThanOrEqualToConstant: 100)
+            container.heightAnchor.constraint(greaterThanOrEqualToConstant: 80)
         ])
         
         return container
     }
-
+    
+    private func refreshYourMedicationsCard() {
+        // Remove old card
+        yourMedicationsCard?.removeFromSuperview()
+        
+        // Deactivate old constraints
+        NSLayoutConstraint.deactivate(medsInfoCardConstraints)
+        medsInfoCardConstraints.removeAll()
+        
+        // Create new card
+        yourMedicationsCard = createYourMedicationsCard()
+        contentView.addSubview(yourMedicationsCard!)
+        
+        // Re-apply constraints
+        medsInfoCardConstraints = [
+            yourMedicationsCard!.topAnchor.constraint(equalTo: yourMedsLabel.bottomAnchor, constant: 16),
+            yourMedicationsCard!.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            yourMedicationsCard!.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+        ]
+        
+        NSLayoutConstraint.activate(medsInfoCardConstraints)
+        
+        // Update button constraint
+        addMedicationButton.topAnchor.constraint(equalTo: yourMedicationsCard!.bottomAnchor, constant: 20).isActive = true
+    }
 
     
     private func createMedicationInfoRow(medication: Medication) -> UIView {
@@ -250,7 +354,7 @@ class MedicationAdherenceViewController: UIViewController {
         let dosageLabel = UILabel()
         dosageLabel.text = medication.dosage
         dosageLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
-        dosageLabel.textColor = .systemBlue
+        dosageLabel.textColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
         dosageLabel.setContentHuggingPriority(.required, for: .horizontal)
         nameStack.addArrangedSubview(dosageLabel)
         
@@ -292,7 +396,12 @@ class MedicationAdherenceViewController: UIViewController {
             medicationStackView.addArrangedSubview(emptyLabel)
         } else {
             for medication in medications {
-                let row = MedicationDetailRow(medication: medication, timeOfDay: selectedTimeOfDay, date: currentDate)
+                let row = MedicationDetailRow(
+                    medication: medication,
+                    timeOfDay: selectedTimeOfDay,
+                    date: currentDate,
+                    isEditMode: isEditMode
+                )
                 row.delegate = self
                 medicationStackView.addArrangedSubview(row)
                 
@@ -302,6 +411,18 @@ class MedicationAdherenceViewController: UIViewController {
             }
         }
     }
+    
+    @objc private func editTapped() {
+        isEditMode.toggle()
+        editButton.isSelected = isEditMode
+        
+        // Reload medications with edit UI
+        loadMedications()
+        
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+    }
+    
     
     private func updateStatus() {
         let progress = store.takenCount(for: selectedTimeOfDay, date: currentDate)
@@ -313,18 +434,17 @@ class MedicationAdherenceViewController: UIViewController {
     }
     
     @objc private func addMedicationTapped() {
-        let addMedVC = AddMedicationViewController()
-        addMedVC.delegate = self
-        let navController = UINavigationController(rootViewController: addMedVC)
-        navController.modalPresentationStyle = .pageSheet
+        let flowVC = AddMedicationFlowViewController()
+        flowVC.flowDelegate = self
+        flowVC.modalPresentationStyle = .pageSheet
         
-        if let sheet = navController.sheetPresentationController {
+        if let sheet = flowVC.sheetPresentationController {
             sheet.detents = [.large()]
             sheet.prefersGrabberVisible = true
             sheet.preferredCornerRadius = 28
         }
         
-        present(navController, animated: true)
+        present(flowVC, animated: true)
     }
 }
 
@@ -346,11 +466,36 @@ extension MedicationAdherenceViewController: TimeSegmentedControlDelegate {
     }
 }
 
+extension MedicationAdherenceViewController: AddMedicationFlowDelegate {
+    func medicationFlowDidComplete(_ data: MedicationFlowData) {
+        // Create medication from flow data
+        let medication = Medication(
+            name: data.name,
+            description: data.description,
+            times: Array(data.selectedTimes),
+            dosage: "\(data.dosage)\(data.unit)"
+        )
+        
+        store.addMedication(medication)
+        loadMedications()
+        updateStatus()
+        refreshYourMedicationsCard()
+        
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+    
+    func medicationFlowDidCancel() {
+        // User cancelled
+    }
+}
+
 // MARK: - MedicationDetailRowDelegate
 
 extension MedicationAdherenceViewController: MedicationDetailRowDelegate {
     func medicationDetailRowDidToggle(_ row: MedicationDetailRow, medication: Medication) {
         store.toggleTaken(medicationId: medication.id, date: currentDate, timeOfDay: selectedTimeOfDay)
+    
         
         // Force refresh after toggle
         DispatchQueue.main.async {
@@ -362,19 +507,31 @@ extension MedicationAdherenceViewController: MedicationDetailRowDelegate {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
     }
-}
-extension MedicationAdherenceViewController: AddMedicationDelegate {
-    func didAddMedication() {
-        // Reload the "Your Medications" card
-        // You'll need to store a reference to it or rebuild the entire section
-        loadMedications()
-        updateStatus()
-        
-        // Show success feedback
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+    
+    func medicationDetailRowDidRequestDelete(_ row: MedicationDetailRow, medication: Medication) {
+        let alert = UIAlertController(
+            title: "Delete Medication",
+            message: "Are you sure you want to delete \(medication.name)?",
+            preferredStyle: .alert
+        )
+            
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
+            self.store.deleteMedication(id: medication.id)
+            self.loadMedications()
+            self.updateStatus()
+            self.refreshYourMedicationsCard()
+                
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        })
+            
+        present(alert, animated: true)
     }
+    
 }
+
+
 
 // MARK: - TimeSegmentedControl
 
@@ -485,6 +642,7 @@ class TimeSegmentedControl: UIView {
 
 protocol MedicationDetailRowDelegate: AnyObject {
     func medicationDetailRowDidToggle(_ row: MedicationDetailRow, medication: Medication)
+    func medicationDetailRowDidRequestDelete(_ row: MedicationDetailRow, medication: Medication)
 }
 
 class MedicationDetailRow: UIView {
@@ -493,6 +651,8 @@ class MedicationDetailRow: UIView {
     private var medication: Medication
     private let timeOfDay: TimeOfDay
     private let date: Date
+    private let isEditMode: Bool
+    private let deleteButton = UIButton(type: .system)
     
     private var isChecked: Bool {
         // Always fetch fresh data from store
@@ -506,10 +666,11 @@ class MedicationDetailRow: UIView {
     private let descriptionLabel = UILabel()
     private let stackView = UIStackView()
     
-    init(medication: Medication, timeOfDay: TimeOfDay, date: Date) {
+    init(medication: Medication, timeOfDay: TimeOfDay, date: Date, isEditMode: Bool = false) {
         self.medication = medication
         self.timeOfDay = timeOfDay
         self.date = date
+        self.isEditMode = isEditMode
         super.init(frame: .zero)
         setupUI()
     }
@@ -522,8 +683,8 @@ class MedicationDetailRow: UIView {
         backgroundColor = UIColor.white.withAlphaComponent(0.7)
         layer.cornerRadius = 16
         
-        // Checkbox button
-        let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
+        // Checkbox button (smaller)
+        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
         checkboxButton.setImage(
             UIImage(systemName: "circle", withConfiguration: config),
             for: .normal
@@ -554,9 +715,25 @@ class MedicationDetailRow: UIView {
         // Dosage label - Shows REAL dosage
         dosageLabel.text = medication.dosage
         dosageLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        dosageLabel.textColor = .systemBlue
+        dosageLabel.textColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
         dosageLabel.setContentHuggingPriority(.required, for: .horizontal)
         nameRow.addArrangedSubview(dosageLabel)
+        
+        if isEditMode {
+            let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
+            deleteButton.setImage(UIImage(systemName: "trash.circle.fill", withConfiguration: config), for: .normal)
+            deleteButton.tintColor = .systemRed
+            deleteButton.translatesAutoresizingMaskIntoConstraints = false
+            deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
+            addSubview(deleteButton)
+                    
+            NSLayoutConstraint.activate([
+                deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+                deleteButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+                deleteButton.widthAnchor.constraint(equalToConstant: 44),
+                deleteButton.heightAnchor.constraint(equalToConstant: 44)
+            ])
+        }
         
         stackView.addArrangedSubview(nameRow)
         
@@ -567,6 +744,10 @@ class MedicationDetailRow: UIView {
         descriptionLabel.numberOfLines = 2
         stackView.addArrangedSubview(descriptionLabel)
         
+        let stackTrailing = isEditMode ?
+            stackView.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -8) :
+            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16)
+        
         NSLayoutConstraint.activate([
             checkboxButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: MedicationDesignTokens.Layout.rowPadding),
             checkboxButton.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -575,7 +756,7 @@ class MedicationDetailRow: UIView {
             
             stackView.leadingAnchor.constraint(equalTo: checkboxButton.trailingAnchor, constant: 12),
             stackView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MedicationDesignTokens.Layout.rowPadding)
+            stackTrailing
         ])
         
         updateCheckboxAppearance()
@@ -608,7 +789,13 @@ class MedicationDetailRow: UIView {
             }
         )
     }
+   
     
+    @objc private func deleteTapped() {
+        // Notify delegate
+        delegate?.medicationDetailRowDidRequestDelete(self, medication: medication)
+    }
+        
     func refreshCheckbox() {
         // Update local reference
         if let freshMedication = MedicationStore.shared.medications.first(where: { $0.id == medication.id }) {
@@ -619,7 +806,7 @@ class MedicationDetailRow: UIView {
     }
     
     private func updateCheckboxAppearance() {
-        let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
+        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
         let imageName = isChecked ? "checkmark.circle.fill" : "circle"
         let color = isChecked ? MedicationDesignTokens.Colors.checkmarkActive : MedicationDesignTokens.Colors.checkmarkInactive
         
