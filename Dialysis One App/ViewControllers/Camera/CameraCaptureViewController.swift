@@ -44,6 +44,8 @@ final class CameraCaptureViewController: UIViewController {
         setupViews()
         setupButtonTargets()
         configureSessionAsync()
+        
+        
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -68,13 +70,21 @@ final class CameraCaptureViewController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        recognitionTask?.cancel()
+        recognitionTask = nil
         stopSession()
     }
     
     deinit {
-        stopSession()
+        recognitionTask?.cancel()
+        print("🗑️ CameraCaptureViewController deinit")
+       // stopSession()
+        
+        
+        
+        previewLayer?.removeFromSuperlayer()
+        previewLayer = nil
     }
-    
     // MARK: - Setup Views
     
     private func setupViews() {
@@ -322,21 +332,35 @@ final class CameraCaptureViewController: UIViewController {
     
     // MARK: - Food Recognition
     
+    // MARK: - Food Recognition
+    private var recognitionTask: Task<Void, Never>?
+
     private func recognizeFood(image: UIImage) {
-        print("🔍 Running food recognition pipeline...")
+        recognitionTask?.cancel()
+        recognitionTask = nil
         
-        statusLabel.text = "Analyzing..."
-        statusBadge.backgroundColor = UIColor(red: 0.85, green: 0.85, blue: 0.9, alpha: 1.0)
-        
-        FoodRecognitionService.shared.recognizeFood(image: image) { [weak self] result in
-            guard let self = self else { return }
+        recognitionTask = Task { [weak self] in
+            guard let self else { return }
+            guard !self.isBeingDismissed else { return }
             
-            DispatchQueue.main.async {
+            await MainActor.run {
+                self.statusLabel.text = "Analyzing..."
+                self.statusBadge.backgroundColor = UIColor(red: 0.85, green: 0.85, blue: 0.9, alpha: 1.0)
+                self.statusBadge.alpha = 1.0
+            }
+            
+            let result = await withCheckedContinuation { continuation in
+                FoodRecognitionService.shared.recognizeFood(image: image) { r in
+                    continuation.resume(returning: r)
+                }
+            }
+            
+            guard !Task.isCancelled, !self.isBeingDismissed else { return }
+            
+            await MainActor.run {
                 switch result {
-                case .success(let recognitionResult):
-                    self.handleRecognitionSuccess(recognitionResult)
-                case .failure(let error):
-                    self.handleRecognitionError(error)
+                case .success(let r): self.handleRecognitionSuccess(r)
+                case .failure(let e): self.handleRecognitionError(e)
                 }
             }
         }
@@ -407,17 +431,13 @@ final class CameraCaptureViewController: UIViewController {
     // MARK: - Button Actions
     
     @objc private func closeTapped() {
-        if isPreviewingCapturedImage {
-            clearCapturedImagePreview()
-            lastCapturedImage = nil
-            recognitionResult = nil
-            isPreviewingCapturedImage = false
-            isFoodDetected = false
-            startSession()
-        } else {
-            delegate?.cameraCaptureDidCancel()
-            dismiss(animated: true)
-        }
+        print("Close button tapped — FORCING DISMISS")
+        
+        // This dismisses ANY presented view controller — no matter how deep
+        // Works 100% on iOS 13–18, with or without UINavigationController, modal, fullScreen, etc.
+        UIApplication.shared.windows.first(where: { $0.isKeyWindow })?
+            .rootViewController?
+            .dismiss(animated: true, completion: nil)
     }
     
     @objc private func crossTapped() {
@@ -426,26 +446,29 @@ final class CameraCaptureViewController: UIViewController {
         recognitionResult = nil
         isPreviewingCapturedImage = false
         isFoodDetected = false
-        startSession()
+        
+        // Restart session safely on the session queue
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            if !self.session.isRunning {
+                self.session.startRunning()
+                DispatchQueue.main.async {
+                    self.shutterButton.isEnabled = true
+                }
+            }
+        }
     }
     
     @objc private func tickTapped() {
-        guard isFoodDetected,
-              let img = lastCapturedImage,
-              let result = recognitionResult else {
-            dismiss(animated: true)
-            return
+        guard let img = lastCapturedImage, let result = recognitionResult else { return }
+        
+        print("User accepted: \(result.prediction.displayName)")
+        
+        // Just dismiss the camera — do NOT present anything
+        dismiss(animated: true) { [weak self] in
+            // Tell the parent (Home/TabBar) to show the detail screen
+            self?.delegate?.cameraCaptureDidCaptureFood(image: img, result: result)
         }
-        
-        print("✅ User accepted: \(result.prediction.displayName)")
-        
-        stopSession()
-        
-        // Call delegate FIRST, before dismissing
-        delegate?.cameraCaptureDidCaptureFood(image: img, result: result)
-        
-        // Then dismiss
-        dismiss(animated: true, completion: nil)
     }
     
     @objc private func shutterTapped() {
@@ -655,6 +678,7 @@ final class CameraCaptureViewController: UIViewController {
 }
 
 // MARK: - AVCapturePhotoCaptureDelegate
+
 
 extension CameraCaptureViewController: AVCapturePhotoCaptureDelegate {
     func photoOutput(

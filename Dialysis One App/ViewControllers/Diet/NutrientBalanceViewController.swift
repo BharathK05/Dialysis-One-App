@@ -2,7 +2,7 @@ import UIKit
 
 final class NutrientBalanceViewController: UIViewController {
 
-    // MARK: - Constants for easy tuning
+    // MARK: - Constants
     private enum Spacing {
         static let topNav: CGFloat = 12
         static let dateToGauge: CGFloat = 24
@@ -12,8 +12,26 @@ final class NutrientBalanceViewController: UIViewController {
         static let contentCardPadding: CGFloat = 20
     }
 
-    // MARK: - Views
+    // MARK: - Data
+    private var selectedMealType: SavedMeal.MealType = .lunch
+    private var meals: [SavedMeal] = []
+    private var isEditMode: Bool = false
+    
+    // Goals - now dynamic!
+    private var calorieGoal: Int {
+        return LimitsManager.shared.getCalorieLimit()
+    }
+    private var potassiumGoal: Int {
+        return LimitsManager.shared.getPotassiumLimit()
+    }
+    private var sodiumGoal: Int {
+        return LimitsManager.shared.getSodiumLimit()
+    }
+    private var proteinGoal: Int {
+        return LimitsManager.shared.getProteinLimit()
+    }
 
+    // MARK: - Views
     private let gradientView: UIView = {
         let v = UIView()
         v.translatesAutoresizingMaskIntoConstraints = false
@@ -37,10 +55,18 @@ final class NutrientBalanceViewController: UIViewController {
         l.textAlignment = .center
         return l
     }()
+    
+    private let editButton: UIButton = {
+        let b = UIButton(type: .system)
+        b.setTitle("Edit", for: .normal)
+        b.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .regular)
+        b.tintColor = .systemBlue
+        b.translatesAutoresizingMaskIntoConstraints = false
+        return b
+    }()
 
     private let datePill: UILabel = {
         let l = UILabel()
-        l.text = "Sep 15, 2025"
         l.textAlignment = .center
         l.font = UIFont.systemFont(ofSize: 14, weight: .regular)
         l.backgroundColor = UIColor(white: 1.0, alpha: 0.4)
@@ -50,10 +76,8 @@ final class NutrientBalanceViewController: UIViewController {
         return l
     }()
 
-    // horseshoe gauge
     private let gaugeView = HorseshoeGaugeView()
-
-    // nutrient cards container
+    
     private let nutrientsStack: UIStackView = {
         let s = UIStackView()
         s.axis = .horizontal
@@ -64,12 +88,10 @@ final class NutrientBalanceViewController: UIViewController {
         return s
     }()
 
-    // segmented control styled
     private let mealsSegmented: UISegmentedControl = {
         let sc = UISegmentedControl(items: ["Breakfast","Lunch","Dinner"])
         sc.selectedSegmentIndex = 1
         sc.translatesAutoresizingMaskIntoConstraints = false
-
         sc.backgroundColor = UIColor(white: 1.0, alpha: 0.3)
         sc.selectedSegmentTintColor = .white
         sc.setTitleTextAttributes([.foregroundColor: UIColor.black, .font: UIFont.systemFont(ofSize: 14, weight: .semibold)], for: .selected)
@@ -79,7 +101,6 @@ final class NutrientBalanceViewController: UIViewController {
         return sc
     }()
 
-    // content card
     private let contentCard: UIView = {
         let v = UIView()
         v.translatesAutoresizingMaskIntoConstraints = false
@@ -100,24 +121,114 @@ final class NutrientBalanceViewController: UIViewController {
         s.translatesAutoresizingMaskIntoConstraints = false
         return s
     }()
+    
+    private let emptyStateLabel: UILabel = {
+        let l = UILabel()
+        l.text = "No meals logged yet.\nStart by scanning your food!"
+        l.textAlignment = .center
+        l.numberOfLines = 0
+        l.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        l.textColor = .darkGray
+        l.translatesAutoresizingMaskIntoConstraints = false
+        l.isHidden = true
+        return l
+    }()
 
     // MARK: - Lifecycle
-
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         configureNavigationBar()
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         setupLayout()
-        populateNutrientCards()
-        populateContentRows()
-
-        gaugeView.maxValue = 2000
-        gaugeView.currentValue = 1450
+        
+        // Set today's date
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM dd, yyyy"
+        datePill.text = formatter.string(from: Date())
+        
+        loadMealData()
+        
+        // Listen for meal updates
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(loadMealData),
+            name: .mealsDidUpdate,
+            object: nil
+        )
+        
+        // Listen for limits updates
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(limitsDidUpdate),
+            name: .limitsDidUpdate,
+            object: nil
+        )
     }
     
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Actions
     @objc private func backTapped() {
         navigationController?.popViewController(animated: true)
+    }
+    
+    @objc private func editButtonTapped() {
+        isEditMode.toggle()
+        
+        // Update button title with animation
+        UIView.transition(with: editButton, duration: 0.2, options: .transitionCrossDissolve) {
+            self.editButton.setTitle(self.isEditMode ? "Done" : "Edit", for: .normal)
+        }
+        
+        // Reload the meal rows with delete buttons
+        populateContentRows()
+        
+        print("✏️ Edit mode: \(isEditMode)")
+    }
+    
+    @objc private func segmentChanged() {
+        // Exit edit mode when switching segments
+        if isEditMode {
+            isEditMode = false
+            editButton.setTitle("Edit", for: .normal)
+        }
+        
+        switch mealsSegmented.selectedSegmentIndex {
+        case 0: selectedMealType = .breakfast
+        case 1: selectedMealType = .lunch
+        case 2: selectedMealType = .dinner
+        default: selectedMealType = .lunch
+        }
+        loadMealData()
+    }
+    
+    @objc private func loadMealData() {
+        // Get today's totals for gauge and nutrient cards
+        let totals = MealDataManager.shared.getTodayTotals()
+        
+        // Update gauge
+        gaugeView.maxValue = CGFloat(calorieGoal)
+        gaugeView.currentValue = CGFloat(totals.calories)
+        
+        // Update nutrient cards
+        updateNutrientCards(
+            potassium: totals.potassium,
+            sodium: totals.sodium,
+            protein: totals.protein
+        )
+        
+        // Get meals for selected meal type
+        meals = MealDataManager.shared.getMeals(for: selectedMealType)
+        
+        // Update content card
+        populateContentRows()
+    }
+    
+    @objc private func limitsDidUpdate() {
+        // Reload everything with new limits
+        loadMealData()
     }
 
     override func viewDidLayoutSubviews() {
@@ -126,7 +237,6 @@ final class NutrientBalanceViewController: UIViewController {
     }
 
     // MARK: - Setup
-
     private func configureNavigationBar() {
         navigationController?.setNavigationBarHidden(true, animated: false)
     }
@@ -140,9 +250,15 @@ final class NutrientBalanceViewController: UIViewController {
             gradientView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
 
-        // Top area: back, title, edit
+        // Add all nav bar elements
         gradientView.addSubview(backButton)
         gradientView.addSubview(titleLabel)
+        gradientView.addSubview(editButton)
+        
+        // Setup targets
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
+        mealsSegmented.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
 
         NSLayoutConstraint.activate([
             backButton.leadingAnchor.constraint(equalTo: gradientView.leadingAnchor, constant: 16),
@@ -151,10 +267,13 @@ final class NutrientBalanceViewController: UIViewController {
             backButton.heightAnchor.constraint(equalToConstant: 40),
 
             titleLabel.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor)
+            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
+            
+            editButton.trailingAnchor.constraint(equalTo: gradientView.trailingAnchor, constant: -16),
+            editButton.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
+            editButton.heightAnchor.constraint(equalToConstant: 40)
         ])
 
-        // Date pill
         gradientView.addSubview(datePill)
         NSLayoutConstraint.activate([
             datePill.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
@@ -163,7 +282,6 @@ final class NutrientBalanceViewController: UIViewController {
             datePill.widthAnchor.constraint(greaterThanOrEqualToConstant: 120)
         ])
 
-        // Gauge
         gradientView.addSubview(gaugeView)
         gaugeView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -173,7 +291,6 @@ final class NutrientBalanceViewController: UIViewController {
             gaugeView.heightAnchor.constraint(equalToConstant: 160)
         ])
 
-        // Nutrient cards (no background)
         gradientView.addSubview(nutrientsStack)
         NSLayoutConstraint.activate([
             nutrientsStack.topAnchor.constraint(equalTo: gaugeView.bottomAnchor, constant: Spacing.gaugeToNutrients),
@@ -182,7 +299,6 @@ final class NutrientBalanceViewController: UIViewController {
             nutrientsStack.heightAnchor.constraint(equalToConstant: 72)
         ])
 
-        // Meals segmented control
         gradientView.addSubview(mealsSegmented)
         NSLayoutConstraint.activate([
             mealsSegmented.topAnchor.constraint(equalTo: nutrientsStack.bottomAnchor, constant: Spacing.nutrientsToSegment),
@@ -191,7 +307,6 @@ final class NutrientBalanceViewController: UIViewController {
             mealsSegmented.heightAnchor.constraint(equalToConstant: 40)
         ])
 
-        // Content card
         gradientView.addSubview(contentCard)
         NSLayoutConstraint.activate([
             contentCard.topAnchor.constraint(equalTo: mealsSegmented.bottomAnchor, constant: Spacing.segmentToCard),
@@ -201,12 +316,20 @@ final class NutrientBalanceViewController: UIViewController {
         ])
 
         contentCard.addSubview(contentStack)
+        contentCard.addSubview(emptyStateLabel)
+        
         NSLayoutConstraint.activate([
             contentStack.topAnchor.constraint(equalTo: contentCard.topAnchor, constant: Spacing.contentCardPadding),
-            contentStack.bottomAnchor.constraint(lessThanOrEqualTo: contentCard.bottomAnchor, constant: -Spacing.contentCardPadding),
             contentStack.leadingAnchor.constraint(equalTo: contentCard.leadingAnchor, constant: Spacing.contentCardPadding),
-            contentStack.trailingAnchor.constraint(equalTo: contentCard.trailingAnchor, constant: -Spacing.contentCardPadding)
+            contentStack.trailingAnchor.constraint(equalTo: contentCard.trailingAnchor, constant: -Spacing.contentCardPadding),
+            
+            emptyStateLabel.centerXAnchor.constraint(equalTo: contentCard.centerXAnchor),
+            emptyStateLabel.centerYAnchor.constraint(equalTo: contentCard.centerYAnchor),
+            emptyStateLabel.leadingAnchor.constraint(equalTo: contentCard.leadingAnchor, constant: 40),
+            emptyStateLabel.trailingAnchor.constraint(equalTo: contentCard.trailingAnchor, constant: -40)
         ])
+        
+        populateNutrientCards()
     }
 
     private func setGradient() {
@@ -223,16 +346,32 @@ final class NutrientBalanceViewController: UIViewController {
         gradientView.layer.insertSublayer(g, at: 0)
     }
 
-    // MARK: - Populate small components
-
+    // MARK: - Populate Components
     private func populateNutrientCards() {
-        let potassium = nutrientCard(title: "Potassium", value: "78/90mg", color: UIColor.systemGreen)
-        let sodium = nutrientCard(title: "Sodium", value: "45/70mg", color: UIColor.systemOrange)
-        let protein = nutrientCard(title: "Protein", value: "95/110mg", color: UIColor.systemYellow)
+        let potassium = nutrientCard(title: "Potassium", value: "0/\(potassiumGoal)mg", color: UIColor.systemGreen)
+        let sodium = nutrientCard(title: "Sodium", value: "0/\(sodiumGoal)mg", color: UIColor.systemOrange)
+        let protein = nutrientCard(title: "Protein", value: "0/\(proteinGoal)mg", color: UIColor.systemYellow)
 
         nutrientsStack.addArrangedSubview(potassium)
         nutrientsStack.addArrangedSubview(sodium)
         nutrientsStack.addArrangedSubview(protein)
+    }
+    
+    private func updateNutrientCards(potassium: Int, sodium: Int, protein: Int) {
+        if let potassiumCard = nutrientsStack.arrangedSubviews[0] as? UIView,
+           let valueLabel = potassiumCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
+            valueLabel.text = "\(potassium)/\(potassiumGoal)mg"
+        }
+        
+        if let sodiumCard = nutrientsStack.arrangedSubviews[1] as? UIView,
+           let valueLabel = sodiumCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
+            valueLabel.text = "\(sodium)/\(sodiumGoal)mg"
+        }
+        
+        if let proteinCard = nutrientsStack.arrangedSubviews[2] as? UIView,
+           let valueLabel = proteinCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
+            valueLabel.text = "\(protein)/\(proteinGoal)mg"
+        }
     }
 
     private func nutrientCard(title: String, value: String, color: UIColor) -> UIView {
@@ -256,7 +395,6 @@ final class NutrientBalanceViewController: UIViewController {
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
         valueLabel.textAlignment = .center
 
-        // colored underline
         let underline = UIView()
         underline.translatesAutoresizingMaskIntoConstraints = false
         underline.backgroundColor = color
@@ -268,15 +406,12 @@ final class NutrientBalanceViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             container.heightAnchor.constraint(equalToConstant: 72),
-
             titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
             titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-
             underline.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             underline.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
             underline.widthAnchor.constraint(equalToConstant: 40),
             underline.heightAnchor.constraint(equalToConstant: 3),
-
             valueLabel.topAnchor.constraint(equalTo: underline.bottomAnchor, constant: 8),
             valueLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             valueLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10)
@@ -285,20 +420,30 @@ final class NutrientBalanceViewController: UIViewController {
         return container
     }
 
-    // content rows in card
     private func populateContentRows() {
-        let rowsData: [(String, String, String)] = [
-            ("Rice", "200 gm", "250 kcal"),
-            ("Curd", "50 ml", "30 kcal"),
-            ("Pickle", "0.5 Tbs", "5 kcal")
-        ]
-
-        for item in rowsData {
-            contentStack.addArrangedSubview(makeRow(left: item.0, center: item.1, right: item.2))
+        // Clear existing rows
+        contentStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        if meals.isEmpty {
+            emptyStateLabel.isHidden = false
+            contentStack.isHidden = true
+        } else {
+            emptyStateLabel.isHidden = true
+            contentStack.isHidden = false
+            
+            for meal in meals {
+                let row = makeRow(
+                    left: meal.dishName,
+                    center: "x\(meal.quantity)",
+                    right: "\(meal.calories) kcal",
+                    meal: meal
+                )
+                contentStack.addArrangedSubview(row)
+            }
         }
     }
 
-    private func makeRow(left: String, center: String, right: String) -> UIView {
+    private func makeRow(left: String, center: String, right: String, meal: SavedMeal? = nil) -> UIView {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
         container.backgroundColor = UIColor(red: 210/255, green: 238/255, blue: 220/255, alpha: 1)
@@ -325,19 +470,85 @@ final class NutrientBalanceViewController: UIViewController {
         container.addSubview(leftLabel)
         container.addSubview(centerLabel)
         container.addSubview(rightLabel)
+        
+        // Add delete button if in edit mode
+        if isEditMode, let meal = meal {
+        let deleteButton = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+        deleteButton.setImage(UIImage(systemName: "trash.fill", withConfiguration: config), for: .normal)
+        deleteButton.tintColor = .systemRed
+        deleteButton.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        deleteButton.layer.cornerRadius = 14
+        deleteButton.translatesAutoresizingMaskIntoConstraints = false
+        deleteButton.addAction(UIAction { [weak self] _ in
+                        // Haptic feedback on tap
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+                        
+            self?.deleteMeal(meal)
+        }, for: .touchUpInside)
+        container.addSubview(deleteButton)
+                    
+        NSLayoutConstraint.activate([
+            deleteButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 14),
+            deleteButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            deleteButton.widthAnchor.constraint(equalToConstant: 28),
+            deleteButton.heightAnchor.constraint(equalToConstant: 28),
+                
+            leftLabel.leadingAnchor.constraint(equalTo: deleteButton.trailingAnchor, constant: 10),
+            leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            leftLabel.trailingAnchor.constraint(lessThanOrEqualTo: centerLabel.leadingAnchor, constant: -8)
+        ])
+        } else {
+            NSLayoutConstraint.activate([
+                leftLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
+                leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+            ])
+        }
 
         NSLayoutConstraint.activate([
-            leftLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
-            leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-
             centerLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
             centerLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-
             rightLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
             rightLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
         ])
 
         return container
+    }
+    
+    private func deleteMeal(_ meal: SavedMeal) {
+        print("🗑️ Delete tapped for: \(meal.dishName)")
+        
+        // Show confirmation alert
+        let alert = UIAlertController(
+            title: "Delete Meal",
+            message: "Are you sure you want to delete \(meal.dishName)?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            print("🗑️ Deleting meal: \(meal.dishName)")
+            
+            // Delete the meal
+            MealDataManager.shared.deleteMeal(id: meal.id)
+            
+            // Exit edit mode
+            self?.isEditMode = false
+            self?.editButton.setTitle("Edit", for: .normal)
+            
+            // Reload data (this will also trigger notification to update home screen)
+            self?.loadMealData()
+            
+            // Show success feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            
+            print("✅ Meal deleted successfully")
+        })
+        
+        present(alert, animated: true)
     }
 }
 
@@ -413,26 +624,24 @@ final class HorseshoeGaugeView: UIView {
         ctx.saveGState()
 
         let centerPoint = CGPoint(x: rect.midX, y: rect.maxY - 10)
-        let radius: CGFloat = 115 // increased by approximately 1cm (37 points)
+        let radius: CGFloat = 115
 
-        // Horseshoe goes from about 200° to 340° (140° total arc)
         let startAngle = CGFloat(200) * .pi / 180
         let endAngle = CGFloat(340) * .pi / 180
 
-        // Background track (light gray)
+        // Background track
         let bgPath = UIBezierPath(arcCenter: centerPoint, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
         UIColor(red: 210/255, green: 230/255, blue: 215/255, alpha: 1).setStroke()
         bgPath.lineWidth = trackWidth
         bgPath.lineCapStyle = .round
         bgPath.stroke()
 
-        // Progress arc with gradient
+        // Progress arc
         let fraction = min(max(currentValue / maxValue, 0), 1)
         let progEndAngle = startAngle + (endAngle - startAngle) * fraction
 
         let progPath = UIBezierPath(arcCenter: centerPoint, radius: radius, startAngle: startAngle, endAngle: progEndAngle, clockwise: true)
 
-        // Create gradient clipped to progress path
         ctx.saveGState()
         ctx.addPath(progPath.cgPath)
         ctx.setLineWidth(trackWidth)
@@ -452,7 +661,7 @@ final class HorseshoeGaugeView: UIView {
         }
         ctx.restoreGState()
 
-        // White knob at the end
+        // White knob
         let knobAngle = progEndAngle
         let knobCenter = CGPoint(x: centerPoint.x + radius * cos(knobAngle), y: centerPoint.y + radius * sin(knobAngle))
         let knobPath = UIBezierPath(arcCenter: knobCenter, radius: 8, startAngle: 0, endAngle: 2 * .pi, clockwise: true)

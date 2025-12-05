@@ -1,8 +1,3 @@
-//
-//  EditLimitsViewController.swift
-//  Dialysis One App
-//
-
 import UIKit
 
 class EditLimitsViewController: UIViewController {
@@ -10,14 +5,8 @@ class EditLimitsViewController: UIViewController {
     private let scroll = UIScrollView()
     private let content = UIStackView()
 
-    // Stored values
-    private var limits: [String: String] = [
-        "Total Calorie": "2000 kcal",
-        "Sodium": "70 mg",
-        "Potassium": "90 mg",
-        "Protein": "110 gm",
-        "Total Intake": "250 ml"
-    ]
+    // Reference to limits manager
+    private let limitsManager = LimitsManager.shared
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -88,14 +77,16 @@ class EditLimitsViewController: UIViewController {
         // SECTIONS
         content.addArrangedSubview(makeSectionHeader("Diet"))
         content.addArrangedSubview(makeEditableCard([
-            "Total Calorie",
-            "Sodium",
-            "Potassium",
-            "Protein"
+            ("Total Calorie", "\(limitsManager.getCalorieLimit()) kcal", "kcal"),
+            ("Sodium", "\(limitsManager.getSodiumLimit()) mg", "mg"),
+            ("Potassium", "\(limitsManager.getPotassiumLimit()) mg", "mg"),
+            ("Protein", "\(limitsManager.getProteinLimit()) g", "g")
         ]))
 
         content.addArrangedSubview(makeSectionHeader("Fluid"))
-        content.addArrangedSubview(makeEditableCard(["Total Intake"]))
+        content.addArrangedSubview(makeEditableCard([
+            ("Total Intake", "\(limitsManager.getFluidLimit()) ml", "ml")
+        ]))
         
         content.addArrangedSubview(makeSectionHeader("Medication"))
         content.addArrangedSubview(makeNavigationCard("Edit Medicines"))
@@ -122,7 +113,7 @@ class EditLimitsViewController: UIViewController {
     }
 
     // MARK: - Editable Card
-    private func makeEditableCard(_ items: [String]) -> UIView {
+    private func makeEditableCard(_ items: [(title: String, value: String, unit: String)]) -> UIView {
         let card = UIView()
         card.backgroundColor = .white
         card.layer.cornerRadius = 16
@@ -130,20 +121,20 @@ class EditLimitsViewController: UIViewController {
 
         var lastRow: UIView?
 
-        for (index, title) in items.enumerated() {
+        for (index, item) in items.enumerated() {
 
             let row = UIView()
             row.translatesAutoresizingMaskIntoConstraints = false
             card.addSubview(row)
 
             let label = UILabel()
-            label.text = title
+            label.text = item.title
             label.font = UIFont.systemFont(ofSize: 17)
             label.translatesAutoresizingMaskIntoConstraints = false
             row.addSubview(label)
 
             let valueLabel = UILabel()
-            valueLabel.text = limits[title]
+            valueLabel.text = item.value
             valueLabel.textColor = .systemGray
             valueLabel.font = UIFont.systemFont(ofSize: 16)
             valueLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -159,7 +150,7 @@ class EditLimitsViewController: UIViewController {
             button.translatesAutoresizingMaskIntoConstraints = false
             button.tag = index
             button.addAction(UIAction(handler: { _ in
-                self.showEditPopup(title: title)
+                self.showEditPopup(title: item.title, unit: item.unit)
             }), for: .touchUpInside)
             row.addSubview(button)
 
@@ -169,6 +160,7 @@ class EditLimitsViewController: UIViewController {
                 row.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
                 row.heightAnchor.constraint(equalToConstant: 52),
 
+                label.leadingAnchor.constraint(equalTo: row.leadingAnchor),
                 label.centerYAnchor.constraint(equalTo: row.centerYAnchor),
 
                 editIcon.trailingAnchor.constraint(equalTo: row.trailingAnchor),
@@ -262,29 +254,57 @@ class EditLimitsViewController: UIViewController {
         present(nav, animated: true)
     }
 
-
-
     // MARK: - Value Editing Popup
-    private func showEditPopup(title: String) {
-
-        let current = limits[title] ?? ""
-        let numberOnly = current.components(separatedBy: " ").first ?? ""
-
-        let suffix = current.components(separatedBy: " ").last ?? ""
+    private func showEditPopup(title: String, unit: String) {
+        let currentValue: Int
+        
+        switch title {
+        case "Total Calorie":
+            currentValue = limitsManager.getCalorieLimit()
+        case "Sodium":
+            currentValue = limitsManager.getSodiumLimit()
+        case "Potassium":
+            currentValue = limitsManager.getPotassiumLimit()
+        case "Protein":
+            currentValue = limitsManager.getProteinLimit()
+        case "Total Intake":
+            currentValue = limitsManager.getFluidLimit()
+        default:
+            return
+        }
 
         let alert = UIAlertController(title: title, message: "Enter new value", preferredStyle: .alert)
 
         alert.addTextField { textField in
             textField.keyboardType = .numberPad
-            textField.text = numberOnly   // only numeric part
+            textField.text = "\(currentValue)"
         }
 
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
 
         alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { [weak self] _ in
-            guard let newVal = alert.textFields?.first?.text, !newVal.isEmpty else { return }
+            guard let newValString = alert.textFields?.first?.text,
+                  let newVal = Int(newValString) else { return }
 
-            self?.limits[title] = "\(newVal) \(suffix)"
+            // Save to manager
+            switch title {
+            case "Total Calorie":
+                self?.limitsManager.setCalorieLimit(newVal)
+            case "Sodium":
+                self?.limitsManager.setSodiumLimit(newVal)
+            case "Potassium":
+                self?.limitsManager.setPotassiumLimit(newVal)
+            case "Protein":
+                self?.limitsManager.setProteinLimit(newVal)
+            case "Total Intake":
+                self?.limitsManager.setFluidLimit(newVal)
+            default:
+                break
+            }
+            
+            print("✅ Limit updated: \(title) = \(newVal) \(unit)")
+
+            // Reload UI
             self?.reload()
         }))
 
@@ -293,6 +313,22 @@ class EditLimitsViewController: UIViewController {
 
     private func reload() {
         content.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        setupUI()
+        
+        // Re-add sections with updated values
+        content.addArrangedSubview(makeSectionHeader("Diet"))
+        content.addArrangedSubview(makeEditableCard([
+            ("Total Calorie", "\(limitsManager.getCalorieLimit()) kcal", "kcal"),
+            ("Sodium", "\(limitsManager.getSodiumLimit()) mg", "mg"),
+            ("Potassium", "\(limitsManager.getPotassiumLimit()) mg", "mg"),
+            ("Protein", "\(limitsManager.getProteinLimit()) g", "g")
+        ]))
+
+        content.addArrangedSubview(makeSectionHeader("Fluid"))
+        content.addArrangedSubview(makeEditableCard([
+            ("Total Intake", "\(limitsManager.getFluidLimit()) ml", "ml")
+        ]))
+        
+        content.addArrangedSubview(makeSectionHeader("Medication"))
+        content.addArrangedSubview(makeNavigationCard("Edit Medicines"))
     }
 }
