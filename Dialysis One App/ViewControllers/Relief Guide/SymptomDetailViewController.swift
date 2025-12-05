@@ -154,7 +154,9 @@ final class SymptomDetailViewController: UIViewController {
             // content width = view width - stack horizontal insets
             let contentWidth = view.bounds.width - 18 - 18
             let aspect = img.size.height / img.size.width
-            let desired = min(max(contentWidth * aspect, 120), 360) // clamp between 120 and 360
+            let desired = min(max(contentWidth * aspect, 140), 200)
+
+
             headerHeightConstraint?.constant = desired
         } else {
             // no image — collapse header
@@ -170,7 +172,7 @@ final class SymptomDetailViewController: UIViewController {
         stack.addArrangedSubview(reasonCard)
 
         // Do's section
-        let dosHeader = makeSectionHeader("Do's ✅")
+        let dosHeader = makeSectionHeader("Do's")
         stack.addArrangedSubview(dosHeader)
 
         let dosContainer = UIStackView()
@@ -179,7 +181,7 @@ final class SymptomDetailViewController: UIViewController {
         stack.addArrangedSubview(dosContainer)
 
         // Don'ts section (will be added after dos rows)
-        let dontsHeader = makeSectionHeader("Don'ts ❌")
+        let dontsHeader = makeSectionHeader("Don'ts")
 
         let goods = symptom.cures.filter { $0.isGood }
         let bads = symptom.cures.filter { !$0.isGood }

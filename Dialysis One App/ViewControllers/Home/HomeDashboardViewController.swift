@@ -6,7 +6,14 @@ import UIKit
 import AVFoundation
 import Photos
 
-class HomeDashboardViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIGestureRecognizerDelegate {
+class HomeDashboardViewController: UIViewController,
+                                   UIImagePickerControllerDelegate,
+                                   UINavigationControllerDelegate,
+                                   UIGestureRecognizerDelegate,
+                                   UIPickerViewDelegate,
+                                   UIPickerViewDataSource,
+                                   UITextFieldDelegate {
+
     
     private var didRunTour = false
     
@@ -37,7 +44,35 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
     private var isMedicationPopupExpanded = false
     private var medicationTotalLabel: UILabel?
     private let medicationStore = MedicationStore.shared
-    
+    // --- Fluid quick-add state & UI refs ---
+    private var fluidTypes: [String] = ["Water", "Coffee", "Tea", "Juice"]
+    private var selectedFluidTypeIndex: Int = 0
+    private var selectedFluidQuantity: Int = 0   // start at 0
+
+    private var fluidStepper: UIStepper?
+    private var fluidTypeLabel: UILabel?
+    private var fluidQuantityDisplayLabel: UILabel?
+    private var fluidEditButton: UIButton?
+
+    // width constraint for the fluid/water button (used during expand/collapse)
+    private var waterButtonWidthConstraint: NSLayoutConstraint?
+    private var isFluidExpanded: Bool = false
+
+    // constraints to animate icon alignment
+    private var fluidIconCenterConstraint: NSLayoutConstraint?
+    private var fluidIconLeadingConstraint: NSLayoutConstraint?
+
+    // fluid editor popup references
+    private var fluidEditorOverlay: UIView?
+    private var fluidEditorCard: UIView?
+
+    // constraints to swap when fluid expands (so it can fill horizontally)
+    private var waterButtonLeadingToDietConstraint: NSLayoutConstraint?
+    private var waterButtonLeadingToContentConstraint: NSLayoutConstraint?
+
+    // Save button on the expanded fluid card
+    private var fluidQuickAddSaveButton: UIButton?
+
     // MARK: - Dynamic Data Properties
     
     private var uid: String {
@@ -447,47 +482,59 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         label.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
         label.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(label)
-        
+
         NSLayoutConstraint.activate([
             label.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 90),
             label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24)
         ])
-        
+
         // Diet Button (Expandable)
         dietButton = createExpandableDietButton()
         cameraButton.addTarget(self, action: #selector(cameraButtonTapped), for: .touchUpInside)
         contentView.addSubview(dietButton)
-        
-        // Water Button
-        waterButton = createQuickAddButton(color: UIColor(red: 0.67, green: 0.85, blue: 0.93, alpha: 1.0), iconName: "drop.fill")
+
+        // Water Button (Fluid quick-add)
+        waterButton = createFluidQuickAddButton()
         contentView.addSubview(waterButton)
-        
+
         // Pill Button with tap gesture
-        pillButton = createQuickAddButton(color: UIColor(red: 0.55, green: 0.89, blue: 0.70, alpha: 1.0), iconName: "pills.fill")
+        pillButton = createQuickAddButton(
+            color: UIColor(red: 0.55, green: 0.89, blue: 0.70, alpha: 1.0),
+            iconName: "pills.fill"
+        )
         pillButton.isUserInteractionEnabled = true
         let pillTapGesture = UITapGestureRecognizer(target: self, action: #selector(pillButtonTapped))
         pillButton.addGestureRecognizer(pillTapGesture)
         contentView.addSubview(pillButton)
-        
+
         dietButtonWidthConstraint = dietButton.widthAnchor.constraint(equalToConstant: 110)
-        
+
+        // initial width constraint for waterButton
+        waterButtonWidthConstraint = waterButton.widthAnchor.constraint(equalToConstant: 110)
+        waterButtonWidthConstraint?.isActive = true
+
+        // keep a reference to the leading constraint so we can replace it when expanding
+        waterButtonLeadingToDietConstraint =
+            waterButton.leadingAnchor.constraint(equalTo: dietButton.trailingAnchor, constant: 12)
+        waterButtonLeadingToDietConstraint?.isActive = true
+
         NSLayoutConstraint.activate([
             dietButton.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 16),
             dietButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             dietButton.heightAnchor.constraint(equalToConstant: 60),
             dietButtonWidthConstraint,
-            
+
             waterButton.topAnchor.constraint(equalTo: dietButton.topAnchor),
             waterButton.leadingAnchor.constraint(equalTo: dietButton.trailingAnchor, constant: 12),
-            waterButton.widthAnchor.constraint(equalToConstant: 110),
             waterButton.heightAnchor.constraint(equalToConstant: 60),
-            
+
             pillButton.topAnchor.constraint(equalTo: dietButton.topAnchor),
             pillButton.leadingAnchor.constraint(equalTo: waterButton.trailingAnchor, constant: 12),
             pillButton.widthAnchor.constraint(equalToConstant: 110),
             pillButton.heightAnchor.constraint(equalToConstant: 60)
         ])
     }
+
     
     private func createExpandableDietButton() -> UIView {
         let container = UIView()
@@ -1350,6 +1397,366 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         // Update total label
         medicationTotalLabel?.text = "out of\n\(totalDoses) doses"
     }
+    // MARK: - Fluid Quick-Add (button + editor)
+
+    private func createFluidQuickAddButton() -> UIView {
+        let container = UIView()
+        container.backgroundColor = UIColor(red: 0.67, green: 0.85, blue: 0.93, alpha: 1.0)
+        container.layer.cornerRadius = 14
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.clipsToBounds = true
+
+        let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
+        let iconView = UIImageView(image: UIImage(systemName: "drop.fill", withConfiguration: config))
+        iconView.tintColor = .black
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.contentMode = .scaleAspectFit
+        iconView.tag = 201
+        container.addSubview(iconView)
+
+        // hidden content: type label
+        let fluidLabel = UILabel()
+        fluidLabel.text = fluidTypes[selectedFluidTypeIndex]
+        fluidLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        fluidLabel.translatesAutoresizingMaskIntoConstraints = false
+        fluidLabel.alpha = 0
+        container.addSubview(fluidLabel)
+        self.fluidTypeLabel = fluidLabel
+
+        // hidden content: quantity label
+        let qtyLabel = UILabel()
+        qtyLabel.text = "\(selectedFluidQuantity) ml"
+        qtyLabel.font = UIFont.systemFont(ofSize: 18, weight: .bold)
+        qtyLabel.translatesAutoresizingMaskIntoConstraints = false
+        qtyLabel.alpha = 0
+        qtyLabel.isUserInteractionEnabled = true
+        container.addSubview(qtyLabel)
+        self.fluidQuantityDisplayLabel = qtyLabel
+
+        // hidden: edit button
+        let editBtn = UIButton(type: .system)
+        let editCfg = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
+        editBtn.setImage(UIImage(systemName: "square.and.pencil", withConfiguration: editCfg), for: .normal)
+        editBtn.tintColor = .black
+        editBtn.translatesAutoresizingMaskIntoConstraints = false
+        editBtn.alpha = 0
+        container.addSubview(editBtn)
+        self.fluidEditButton = editBtn
+        editBtn.addTarget(self, action: #selector(fluidEditTapped), for: .touchUpInside)
+
+        // hidden: stepper
+        let stepper = UIStepper()
+        stepper.minimumValue = 0
+        stepper.maximumValue = 2000
+        stepper.stepValue = 25
+        stepper.translatesAutoresizingMaskIntoConstraints = false
+        stepper.alpha = 0
+        stepper.value = Double(selectedFluidQuantity)
+        container.addSubview(stepper)
+        self.fluidStepper = stepper
+        stepper.addTarget(self, action: #selector(fluidStepperChanged(_:)), for: .valueChanged)
+
+        // hidden: Save button
+        let saveBtn = UIButton(type: .system)
+        saveBtn.setTitle("Save", for: .normal)
+        saveBtn.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .semibold)
+        saveBtn.translatesAutoresizingMaskIntoConstraints = false
+        saveBtn.alpha = 0
+        container.addSubview(saveBtn)
+        self.fluidQuickAddSaveButton = saveBtn
+        saveBtn.addTarget(self, action: #selector(fluidQuickAddSaveTapped(_:)), for: .touchUpInside)
+
+        // icon constraints – center vs leading (for expand/collapse)
+        fluidIconCenterConstraint =
+            iconView.centerXAnchor.constraint(equalTo: container.centerXAnchor)
+        fluidIconLeadingConstraint =
+            iconView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16)
+
+        fluidIconCenterConstraint?.isActive = true   // start centered
+
+        NSLayoutConstraint.activate([
+            iconView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 28),
+            iconView.heightAnchor.constraint(equalToConstant: 28),
+
+            fluidLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
+            fluidLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+            qtyLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            editBtn.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            stepper.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            saveBtn.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+            saveBtn.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            stepper.trailingAnchor.constraint(equalTo: saveBtn.leadingAnchor, constant: -8),
+            editBtn.trailingAnchor.constraint(equalTo: stepper.leadingAnchor, constant: -8),
+            qtyLabel.trailingAnchor.constraint(equalTo: editBtn.leadingAnchor, constant: -8)
+        ])
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(fluidButtonTapped))
+        container.addGestureRecognizer(tap)
+
+        let qtyTap = UITapGestureRecognizer(target: self, action: #selector(fluidEditTapped))
+        qtyLabel.addGestureRecognizer(qtyTap)
+
+        fluidQuantityDisplayLabel?.text = "\(selectedFluidQuantity) ml"
+
+        return container
+    }
+
+    @objc private func fluidButtonTapped() {
+        isFluidExpanded.toggle()
+
+        if waterButtonWidthConstraint == nil {
+            waterButtonWidthConstraint = waterButton.widthAnchor.constraint(equalToConstant: 110)
+            waterButtonWidthConstraint?.isActive = true
+        }
+
+        if isFluidExpanded {
+            // expand
+            let targetWidth: CGFloat = max(110, view.bounds.width - 48)
+
+            waterButtonLeadingToDietConstraint?.isActive = false
+            if waterButtonLeadingToContentConstraint == nil {
+                waterButtonLeadingToContentConstraint =
+                    waterButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24)
+            }
+            waterButtonLeadingToContentConstraint?.isActive = true
+
+            waterButtonWidthConstraint?.constant = targetWidth
+
+            fluidIconCenterConstraint?.isActive = false
+            fluidIconLeadingConstraint?.isActive = true
+
+            UIView.animate(withDuration: 0.12) {
+                self.dietButton.alpha = 0
+                self.pillButton.alpha = 0
+            }
+
+            UIView.animate(withDuration: 0.45,
+                           delay: 0,
+                           usingSpringWithDamping: 0.68,
+                           initialSpringVelocity: 0.9,
+                           options: .curveEaseOut,
+                           animations: {
+                self.view.layoutIfNeeded()
+            }, completion: { _ in
+                UIView.animate(withDuration: 0.25) {
+                    self.fluidTypeLabel?.alpha = 1
+                    self.fluidQuantityDisplayLabel?.alpha = 1
+                    self.fluidEditButton?.alpha = 1
+                    self.fluidStepper?.alpha = 1
+                    self.fluidQuickAddSaveButton?.alpha = 1
+                }
+            })
+        } else {
+            // collapse
+            waterButtonWidthConstraint?.constant = 110
+
+            waterButtonLeadingToContentConstraint?.isActive = false
+            waterButtonLeadingToDietConstraint?.isActive = true
+
+            fluidIconLeadingConstraint?.isActive = false
+            fluidIconCenterConstraint?.isActive = true
+
+            UIView.animate(withDuration: 0.2) {
+                self.fluidTypeLabel?.alpha = 0
+                self.fluidQuantityDisplayLabel?.alpha = 0
+                self.fluidEditButton?.alpha = 0
+                self.fluidStepper?.alpha = 0
+                self.fluidQuickAddSaveButton?.alpha = 0
+                self.view.layoutIfNeeded()
+            } completion: { _ in
+                UIView.animate(withDuration: 0.2) {
+                    self.dietButton.alpha = 1
+                    self.pillButton.alpha = 1
+                }
+            }
+        }
+    }
+
+    @objc private func fluidStepperChanged(_ sender: UIStepper) {
+        selectedFluidQuantity = Int(sender.value)
+        fluidQuantityDisplayLabel?.text = "\(selectedFluidQuantity) ml"
+    }
+
+    @objc private func fluidQuickAddSaveTapped(_ sender: UIButton) {
+        // Add quantity to total water & log entry
+        let currentTotal = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
+        let newTotal = currentTotal + selectedFluidQuantity
+        updateWater(consumed: newTotal)
+
+        let type = fluidTypes[selectedFluidTypeIndex]
+        FluidLogStore.shared.addLog(type: type, quantity: selectedFluidQuantity)
+
+        // collapse after save
+        fluidButtonTapped()
+    }
+
+    @objc private func fluidEditTapped() {
+        buildFluidEditorPopup()
+    }
+
+    // MARK: - Fluid editor popup
+
+    private func buildFluidEditorPopup() {
+        // dim overlay
+        let overlay = UIView(frame: view.bounds)
+        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        overlay.alpha = 0
+        view.addSubview(overlay)
+        fluidEditorOverlay = overlay
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(fluidEditorCancelTapped(_:)))
+        overlay.addGestureRecognizer(tap)
+
+        // card
+        let card = UIView()
+        card.backgroundColor = .systemBackground
+        card.layer.cornerRadius = 18
+        card.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(card)
+        fluidEditorCard = card
+
+        let title = UILabel()
+        title.text = "Add Fluid"
+        title.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
+        title.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(title)
+
+        let typeLabel = UILabel()
+        typeLabel.text = "Fluid Type"
+        typeLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        typeLabel.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(typeLabel)
+
+        let typeField = UITextField()
+        typeField.borderStyle = .roundedRect
+        typeField.placeholder = "Water / Coffee / Tea..."
+        typeField.translatesAutoresizingMaskIntoConstraints = false
+        typeField.delegate = self
+        card.addSubview(typeField)
+
+        // picker for types
+        let picker = UIPickerView()
+        picker.delegate = self
+        picker.dataSource = self
+        typeField.inputView = picker
+        picker.selectRow(selectedFluidTypeIndex, inComponent: 0, animated: false)
+
+        let qtyLabel = UILabel()
+        qtyLabel.text = "Quantity (ml)"
+        qtyLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        qtyLabel.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(qtyLabel)
+
+        let qtyField = UITextField()
+        qtyField.borderStyle = .roundedRect
+        qtyField.keyboardType = .numberPad
+        qtyField.translatesAutoresizingMaskIntoConstraints = false
+        qtyField.text = "\(selectedFluidQuantity)"
+        card.addSubview(qtyField)
+        attachDoneButtonToNumberPad(qtyField)
+
+        let cancelBtn = UIButton(type: .system)
+        cancelBtn.setTitle("Cancel", for: .normal)
+        cancelBtn.addTarget(self, action: #selector(fluidEditorCancelTapped(_:)), for: .touchUpInside)
+        cancelBtn.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(cancelBtn)
+
+        let saveBtn = UIButton(type: .system)
+        saveBtn.setTitle("Save", for: .normal)
+        saveBtn.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        saveBtn.addTarget(self, action: #selector(fluidEditorSaveTapped(_:)), for: .touchUpInside)
+        saveBtn.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(saveBtn)
+
+        NSLayoutConstraint.activate([
+            card.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            card.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            card.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            title.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
+            title.centerXAnchor.constraint(equalTo: card.centerXAnchor),
+
+            typeLabel.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 16),
+            typeLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+
+            typeField.topAnchor.constraint(equalTo: typeLabel.bottomAnchor, constant: 8),
+            typeField.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            typeField.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+
+            qtyLabel.topAnchor.constraint(equalTo: typeField.bottomAnchor, constant: 16),
+            qtyLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+
+            qtyField.topAnchor.constraint(equalTo: qtyLabel.bottomAnchor, constant: 8),
+            qtyField.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            qtyField.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+
+            cancelBtn.topAnchor.constraint(equalTo: qtyField.bottomAnchor, constant: 18),
+            cancelBtn.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            cancelBtn.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16),
+
+            saveBtn.centerYAnchor.constraint(equalTo: cancelBtn.centerYAnchor),
+            saveBtn.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16)
+        ])
+
+        UIView.animate(withDuration: 0.2) {
+            overlay.alpha = 1
+        }
+    }
+
+    @objc private func fluidEditorSaveTapped(_ sender: Any) {
+        guard
+            let card = fluidEditorCard,
+            let typeField = card.subviews.compactMap({ $0 as? UITextField }).first,
+            let qtyField = card.subviews.compactMap({ $0 as? UITextField }).last
+        else { return }
+
+        let typedType = (typeField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let qtyText = (qtyField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let qty = Int(qtyText) ?? selectedFluidQuantity
+
+        if !typedType.isEmpty {
+            if !fluidTypes.contains(typedType) {
+                fluidTypes.append(typedType)
+            }
+            selectedFluidTypeIndex = fluidTypes.firstIndex(of: typedType) ?? selectedFluidTypeIndex
+        }
+
+        selectedFluidQuantity = qty
+
+        fluidTypeLabel?.text = fluidTypes[selectedFluidTypeIndex]
+        fluidQuantityDisplayLabel?.text = "\(selectedFluidQuantity) ml"
+        fluidStepper?.value = Double(selectedFluidQuantity)
+
+        // update hydration + log
+        let currentTotal = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
+        let newTotal = currentTotal + selectedFluidQuantity
+        updateWater(consumed: newTotal)
+
+        let finalType = fluidTypes[selectedFluidTypeIndex]
+        FluidLogStore.shared.addLog(type: finalType, quantity: selectedFluidQuantity)
+
+        view.endEditing(true)
+        dismissFluidEditor()
+    }
+
+    @objc private func fluidEditorCancelTapped(_ sender: Any) {
+        view.endEditing(true)
+        dismissFluidEditor()
+    }
+
+    private func dismissFluidEditor() {
+        UIView.animate(withDuration: 0.2, animations: {
+            self.fluidEditorOverlay?.alpha = 0
+        }, completion: { _ in
+            self.fluidEditorCard?.removeFromSuperview()
+            self.fluidEditorOverlay?.removeFromSuperview()
+            self.fluidEditorCard = nil
+            self.fluidEditorOverlay = nil
+        })
+    }
 
     
     @objc private func openHydrationStatus() {
@@ -1605,6 +2012,48 @@ class HomeDashboardViewController: UIViewController, UIImagePickerControllerDele
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
+    // MARK: - UIPickerView DataSource & Delegate
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return fluidTypes.count
+    }
+
+    func pickerView(_ pickerView: UIPickerView,
+                    titleForRow row: Int,
+                    forComponent component: Int) -> String? {
+        return fluidTypes[row]
+    }
+
+    func pickerView(_ pickerView: UIPickerView,
+                    didSelectRow row: Int,
+                    inComponent component: Int) {
+        selectedFluidTypeIndex = row
+    }
+
+    // UITextFieldDelegate
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
+    }
+
+    private func attachDoneButtonToNumberPad(_ textField: UITextField) {
+        let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 44))
+        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let done = UIBarButtonItem(title: "Done",
+                                   style: .done,
+                                   target: self,
+                                   action: #selector(numberPadDoneTapped))
+        toolbar.items = [flex, done]
+        textField.inputAccessoryView = toolbar
+    }
+
+    @objc private func numberPadDoneTapped() {
+        view.endEditing(true)
+    }
+
     
     deinit {
             NotificationCenter.default.removeObserver(self)
