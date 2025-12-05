@@ -894,3 +894,4 @@ final class FluidLogStore {
         return logs.filter { calendar.isDateInToday($0.date) }
     }
 }
+
