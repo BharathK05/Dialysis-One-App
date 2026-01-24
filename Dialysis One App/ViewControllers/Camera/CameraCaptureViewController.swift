@@ -19,7 +19,8 @@ final class CameraCaptureViewController: UIViewController {
     private var isFoodDetected = false {
         didSet { updateDetectionStatus() }
     }
-    private var recognitionResult: FoodRecognitionResult?
+    private var detectedFoods: [DetectedFood] = []  // Changed from detectedLabels
+   // private var recognitionResult: FoodRecognitionResult?
     private let crossButton = UIButton(type: .system)
     private let tickButton = UIButton(type: .system)
     private let galleryButton = UIButton(type: .system)
@@ -37,6 +38,13 @@ final class CameraCaptureViewController: UIViewController {
     private var isPreviewingCapturedImage = false {
         didSet { updateUIForPreviewState() }
     }
+    private let loadingIndicator: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .large)
+        indicator.color = .white
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.hidesWhenStopped = true
+        return indicator
+    }()
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -44,6 +52,13 @@ final class CameraCaptureViewController: UIViewController {
         setupViews()
         setupButtonTargets()
         configureSessionAsync()
+        // Listen for rescan requests
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleRescanRequest),
+            name: .reopenCamera,
+            object: nil
+        )
         
         
     }
@@ -116,7 +131,8 @@ final class CameraCaptureViewController: UIViewController {
         cropBoxView.layer.cornerRadius = 20.0
         cropBoxView.backgroundColor = .clear
         
-        let cropSize: CGFloat = min(view.bounds.width, view.bounds.height) * 0.75
+        let cropSize: CGFloat = min(view.bounds.width, view.bounds.height) *  0.85
+
         NSLayoutConstraint.activate([
             cropBoxView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             cropBoxView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -30),
@@ -162,6 +178,7 @@ final class CameraCaptureViewController: UIViewController {
             statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 140)
         ])
         
+        
         statusLabel.text = "Food Detected"
         statusLabel.textColor = UIColor(red: 0.2, green: 0.4, blue: 0.2, alpha: 1.0)
         statusLabel.font = .systemFont(ofSize: 15, weight: .semibold)
@@ -174,6 +191,12 @@ final class CameraCaptureViewController: UIViewController {
             statusLabel.centerYAnchor.constraint(equalTo: statusBadge.centerYAnchor),
             statusLabel.leadingAnchor.constraint(equalTo: statusBadge.leadingAnchor, constant: 20),
             statusLabel.trailingAnchor.constraint(equalTo: statusBadge.trailingAnchor, constant: -20)
+        ])
+        view.addSubview(loadingIndicator)
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            loadingIndicator.centerXAnchor.constraint(equalTo: statusBadge.centerXAnchor),
+            loadingIndicator.topAnchor.constraint(equalTo: statusBadge.bottomAnchor, constant: 12)
         ])
     }
     
@@ -199,7 +222,7 @@ final class CameraCaptureViewController: UIViewController {
         tickButton.backgroundColor = UIColor(red: 0.2, green: 0.6, blue: 0.3, alpha: 1.0)
         tickButton.layer.cornerRadius = 25
         tickButton.clipsToBounds = true
-        tickButton.alpha = 0
+//        tickButton.alpha = 0
         tickButton.isEnabled = false
         
         view.addSubview(tickButton)
@@ -266,6 +289,13 @@ final class CameraCaptureViewController: UIViewController {
         shutterButton.addTarget(self, action: #selector(shutterTapped), for: .touchUpInside)
         galleryButton.addTarget(self, action: #selector(galleryTapped), for: .touchUpInside)
     }
+    private func showLoadingIndicator() {
+        loadingIndicator.startAnimating()
+    }
+
+    private func hideLoadingIndicator() {
+        loadingIndicator.stopAnimating()
+    }
     
     // MARK: - Detection Status
     
@@ -278,11 +308,9 @@ final class CameraCaptureViewController: UIViewController {
                     self.statusBadge.alpha = 1.0
                     self.statusBadge.backgroundColor = UIColor(red: 0.7, green: 0.9, blue: 0.7, alpha: 1.0)
                     
-                    if let result = self.recognitionResult {
-                        self.statusLabel.text = result.prediction.displayName
-                    } else {
-                        self.statusLabel.text = "Food Detected"
-                    }
+                    self.statusLabel.text = "Food detected"
+
+
                     
                     self.statusLabel.textColor = UIColor(red: 0.1, green: 0.5, blue: 0.1, alpha: 1.0)
                     self.tickButton.isEnabled = true
@@ -315,7 +343,10 @@ final class CameraCaptureViewController: UIViewController {
                     self.galleryButton.isEnabled = false
                     
                     if let image = self.lastCapturedImage {
-                        self.recognizeFood(image: image)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            self.recognizeFood(image: image)
+                        }
+
                     }
                 } else {
                     self.crossButton.alpha = 0.0
@@ -347,68 +378,68 @@ final class CameraCaptureViewController: UIViewController {
                 self.statusLabel.text = "Analyzing..."
                 self.statusBadge.backgroundColor = UIColor(red: 0.85, green: 0.85, blue: 0.9, alpha: 1.0)
                 self.statusBadge.alpha = 1.0
+                
+                // Show loading indicator
+                self.showLoadingIndicator()
             }
             
-            let result = await withCheckedContinuation { continuation in
-                FoodRecognitionService.shared.recognizeFood(image: image) { r in
-                    continuation.resume(returning: r)
-                }
-            }
+            // Call Gemini Vision API
+            let foods = await GeminiVisionService.shared.detectFood(in: image)
             
             guard !Task.isCancelled, !self.isBeingDismissed else { return }
             
             await MainActor.run {
-                switch result {
-                case .success(let r): self.handleRecognitionSuccess(r)
-                case .failure(let e): self.handleRecognitionError(e)
+                self.hideLoadingIndicator()
+                
+                if !foods.isEmpty {
+                    self.handleVisionSuccess(foods)
+                    // Auto-proceed after success
+                    self.proceedToConfirmation()
+                } else {
+                    self.handleVisionError()
                 }
             }
         }
     }
     
-    private func handleRecognitionSuccess(_ result: FoodRecognitionResult) {
-        self.recognitionResult = result
-        
-        print("\n🔍 Recognition Result:")
-        print("   Top: \(result.prediction.displayName) (\(String(format: "%.1f%%", result.prediction.confidence * 100)))")
-        print("   Has DB nutrients: \(result.hasNutrients)")
-        
-        let shouldEnable = result.prediction.confidence >= 0.30 || result.hasNutrients
-        
-        if shouldEnable {
-            self.isFoodDetected = true
-            
-            if result.hasNutrients {
-                statusLabel.text = result.prediction.displayName
-                statusBadge.backgroundColor = UIColor(red: 0.7, green: 0.9, blue: 0.7, alpha: 1.0)
-                statusLabel.textColor = UIColor(red: 0.1, green: 0.5, blue: 0.1, alpha: 1.0)
-                print("✅ Enabled: Has nutrients")
-            } else {
-                statusLabel.text = "\(result.prediction.displayName) (Manual entry)"
-                statusBadge.backgroundColor = UIColor(red: 0.95, green: 0.85, blue: 0.7, alpha: 1.0)
-                statusLabel.textColor = UIColor(red: 0.6, green: 0.4, blue: 0.1, alpha: 1.0)
-                print("⚠️ Enabled: No nutrients but confident")
+    private func handleVisionSuccess(_ foods: [DetectedFood]) {
+        print("\n✅ ========== GEMINI VISION RESULTS ==========")
+        print("📋 Total food items detected: \(foods.count)")
+        print("📝 Detected foods:")
+        for (index, food) in foods.enumerated() {
+            print("   \(index + 1). \(food.name)")
+            if let type = food.type {
+                print("      └─ Type: \(type)")
             }
-        } else {
-            self.isFoodDetected = false
-            statusLabel.text = "Unable to recognize"
-            statusBadge.backgroundColor = UIColor(red: 0.9, green: 0.8, blue: 0.8, alpha: 1.0)
-            statusLabel.textColor = UIColor(red: 0.6, green: 0.2, blue: 0.2, alpha: 1.0)
-            print("❌ Disabled: Low confidence and no nutrients")
+            if let quantity = food.quantity {
+                print("      └─ Quantity: \(quantity)")
+            }
         }
+        print("============================================\n")
+        
+        self.detectedFoods = foods
+        
+        // Show all detected food names in status
+        
+        isFoodDetected = true
+        statusLabel.text = "Food detected"
+        statusBadge.backgroundColor = UIColor(red: 0.7, green: 0.9, blue: 0.7, alpha: 1.0)
+        statusLabel.textColor = UIColor(red: 0.1, green: 0.5, blue: 0.1, alpha: 1.0)
+        tickButton.isEnabled = true
+        tickButton.backgroundColor = UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
     }
-    
-    private func handleRecognitionError(_ error: Error) {
-        print("❌ Recognition failed:", error.localizedDescription)
+
+    private func handleVisionError() {
+        print("❌ No food detected by Gemini Vision")
         
         isFoodDetected = false
-        recognitionResult = nil
+        detectedFoods = []
         
-        statusLabel.text = "Recognition Failed"
-        statusBadge.backgroundColor = UIColor(red: 0.9, green: 0.7, blue: 0.7, alpha: 1.0)
-        statusLabel.textColor = UIColor(red: 0.7, green: 0.2, blue: 0.2, alpha: 1.0)
-        
-        showRecognitionErrorAlert(error)
+        statusLabel.text = "No Food Detected"
+        statusBadge.backgroundColor = UIColor(red: 0.9, green: 0.8, blue: 0.8, alpha: 1.0)
+        statusLabel.textColor = UIColor(red: 0.6, green: 0.2, blue: 0.2, alpha: 1.0)
+        tickButton.isEnabled = false
+        tickButton.backgroundColor = UIColor(white: 0.5, alpha: 0.5)
     }
     
     private func showRecognitionErrorAlert(_ error: Error) {
@@ -431,19 +462,14 @@ final class CameraCaptureViewController: UIViewController {
     // MARK: - Button Actions
     
     @objc private func closeTapped() {
-        print("Close button tapped — FORCING DISMISS")
-        
-        // This dismisses ANY presented view controller — no matter how deep
-        // Works 100% on iOS 13–18, with or without UINavigationController, modal, fullScreen, etc.
-        UIApplication.shared.windows.first(where: { $0.isKeyWindow })?
-            .rootViewController?
-            .dismiss(animated: true, completion: nil)
+        dismiss(animated: true)
     }
+
     
     @objc private func crossTapped() {
         clearCapturedImagePreview()
         lastCapturedImage = nil
-        recognitionResult = nil
+        detectedFoods = []
         isPreviewingCapturedImage = false
         isFoodDetected = false
         
@@ -458,16 +484,51 @@ final class CameraCaptureViewController: UIViewController {
             }
         }
     }
+
     
     @objc private func tickTapped() {
-        guard let img = lastCapturedImage, let result = recognitionResult else { return }
-        
-        print("User accepted: \(result.prediction.displayName)")
-        
-        // Just dismiss the camera — do NOT present anything
-        dismiss(animated: true) { [weak self] in
-            // Tell the parent (Home/TabBar) to show the detail screen
-            self?.delegate?.cameraCaptureDidCaptureFood(image: img, result: result)
+        proceedToConfirmation()
+    }
+    
+    private func proceedToConfirmation() {
+        guard let img = lastCapturedImage, !detectedFoods.isEmpty else { return }
+
+        print("\n✅ Auto-proceeding to confirmation")
+
+        Task {
+            var primary: DetectedFood?
+            
+            if isCompositeIndianMeal(detectedFoods) {
+                let mealName = await MealNamingService.shared.nameMeal(from: detectedFoods)
+                let finalName: String
+
+                if let mealName, !mealName.isEmpty {
+                    finalName = normalizeMealName(mealName)
+                    print("🧠 Gemini meal name:", finalName)
+                } else {
+                    finalName = "South Indian Vegetarian Meal"
+                    print("⚠️ Gemini failed — using fallback meal name")
+                }
+
+                primary = DetectedFood(
+                    name: finalName,
+                    type: "composite meal",
+                    quantity: "1 plate",
+                    confidence: "0.95"
+                )
+            } else {
+                primary = detectedFoods.first
+            }
+            
+            await MainActor.run {
+                let confirmVC = DishConfirmationViewController()
+                confirmVC.capturedImage = img
+                confirmVC.detectedFoods = detectedFoods
+                confirmVC.selectedDish = primary
+                confirmVC.modalPresentationStyle = .fullScreen
+
+                self.present(confirmVC, animated: true)
+            }
         }
     }
     
@@ -487,7 +548,25 @@ final class CameraCaptureViewController: UIViewController {
         photoSettings.flashMode = .off
         photoOutput.capturePhoto(with: photoSettings, delegate: self)
     }
-    
+    @objc private func handleRescanRequest() {
+        // Reset camera state
+        clearCapturedImagePreview()
+        lastCapturedImage = nil
+        detectedFoods = []
+        isPreviewingCapturedImage = false
+        isFoodDetected = false
+        
+        // Restart session
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            if !self.session.isRunning {
+                self.session.startRunning()
+                DispatchQueue.main.async {
+                    self.shutterButton.isEnabled = true
+                }
+            }
+        }
+    }
     @objc private func galleryTapped() {
         let picker = UIImagePickerController()
         picker.delegate = self
@@ -532,6 +611,24 @@ final class CameraCaptureViewController: UIViewController {
             self?.configureSession()
         }
     }
+    private func normalizeMealName(_ raw: String) -> String {
+        let lower = raw.lowercased()
+
+        if lower == "south" {
+            return "South Indian Vegetarian Meal"
+        }
+
+        if lower.contains("south") && lower.contains("indian") {
+            return "South Indian Vegetarian Meal"
+        }
+
+        if lower.contains("thali") {
+            return "Vegetarian Thali"
+        }
+
+        return raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     
     private func configureSession() {
         session.beginConfiguration()

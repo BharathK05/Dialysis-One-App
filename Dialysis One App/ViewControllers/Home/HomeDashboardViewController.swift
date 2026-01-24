@@ -574,6 +574,7 @@ class HomeDashboardViewController: UIViewController,
         searchButton.tag = 103
         searchButton.transform = CGAffineTransform(scaleX: 0.1, y: 0.1)
         container.addSubview(searchButton)
+        searchButton.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
         
         NSLayoutConstraint.activate([
             iconView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
@@ -779,6 +780,17 @@ class HomeDashboardViewController: UIViewController,
         cameraVC.delegate = self
         cameraVC.modalPresentationStyle = .fullScreen
         present(cameraVC, animated: true)
+    }
+    @objc private func searchButtonTapped() {
+        print("🔍 Search button tapped - opening FoodSearchViewController")
+        
+        let searchVC = EnhancedFoodSearchViewController()  // ← Use new one // ← This stays the same!
+        searchVC.hidesBottomBarWhenPushed = true
+        
+        let navController = UINavigationController(rootViewController: searchVC)
+        navController.modalPresentationStyle = .fullScreen
+        
+        present(navController, animated: true)
     }
     
     @objc private func weightCardTapped() {
@@ -1823,12 +1835,11 @@ class HomeDashboardViewController: UIViewController,
         
         weightValueLabel = valueLabel
         
-        let chevronConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+        let chevronConfig = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
         let chevronImageView = UIImageView(image: UIImage(systemName: "chevron.right", withConfiguration: chevronConfig))
-        chevronImageView.tintColor = .gray
+        chevronImageView.tintColor = .systemGray2
         chevronImageView.translatesAutoresizingMaskIntoConstraints = false
         weightCard.addSubview(chevronImageView)
-        
         guard let lastView = contentView.subviews.last(where: { $0 !== weightCard }) else { return }
         
         NSLayoutConstraint.activate([
@@ -1850,8 +1861,8 @@ class HomeDashboardViewController: UIViewController,
             
             chevronImageView.trailingAnchor.constraint(equalTo: weightCard.trailingAnchor, constant: -16),
             chevronImageView.centerYAnchor.constraint(equalTo: weightCard.centerYAnchor),
-            chevronImageView.widthAnchor.constraint(equalToConstant: 14),
-            chevronImageView.heightAnchor.constraint(equalToConstant: 14)
+            chevronImageView.widthAnchor.constraint(equalToConstant: 16),
+            chevronImageView.heightAnchor.constraint(equalToConstant: 16)
         ])
         
         // Upcoming Appointments Section
@@ -2170,10 +2181,48 @@ class SemiCircularProgressView: UIView {
 
 extension HomeDashboardViewController: CameraCaptureDelegate {
     
-    func cameraCaptureDidCaptureFood(image: UIImage, result: FoodRecognitionResult) {
+    /// Pick the "main" dish from Gemini results.
+    /// For now we just avoid obvious garnish / herb / spice types.
+    private func pickPrimaryDish(from foods: [DetectedFood]) -> DetectedFood? {
+        let ignoreTypeKeywords = ["garnish", "herb", "spice"]
+        
+        // Prefer items whose `type` is NOT just garnish/herb/spice
+        if let main = foods.first(where: { food in
+            guard let type = food.type?.lowercased() else { return true }
+            return !ignoreTypeKeywords.contains(where: { type.contains($0) })
+        }) {
+            return main
+        }
+        
+        // Fallback: just use the first one
+        return foods.first
+    }
+    
+    func cameraCaptureDidCaptureFood(image: UIImage, foods: [DetectedFood]) {
+        print("\n📱 ========== HOME RECEIVED RESULTS ==========")
+        print("✅ Received \(foods.count) food items:")
+        for (index, food) in foods.enumerated() {
+            print("   \(index + 1). \(food.name)")
+            if let type = food.type {
+                print("      Type: \(type)")
+            }
+            if let quantity = food.quantity {
+                print("      Quantity: \(quantity)")
+            }
+        }
+        
+        guard let primary = pickPrimaryDish(from: foods) else {
+            print("⚠️ No primary dish could be chosen")
+            return
+        }
+        
+        print("🍛 Primary dish chosen for details: \(primary.name)")
+        print("============================================\n")
+        
         let detailVC = DishDetailViewController()
-        detailVC.recognitionResult = result
-        detailVC.foodImage = image
+        detailVC.configureWithDetectedFood(primary: primary,
+                                           allFoods: foods,
+                                           image: image)
         
         if let navController = navigationController {
             navController.pushViewController(detailVC, animated: true)
@@ -2186,7 +2235,12 @@ extension HomeDashboardViewController: CameraCaptureDelegate {
     func cameraCaptureDidCancel() {
         // Camera dismissed
     }
+    func cameraCaptureDidRequestRescan() {
+        // Camera will handle the rescan internally via notification
+        print("📷 Rescan requested")
+    }
 }
+
 
 extension HomeDashboardViewController: MedicationPopupDelegate {
     func medicationPopupDidToggleMedication(_ medicationId: UUID, timeOfDay: TimeOfDay) {

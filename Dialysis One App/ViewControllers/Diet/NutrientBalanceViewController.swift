@@ -454,18 +454,22 @@ final class NutrientBalanceViewController: UIViewController {
         leftLabel.text = left
         leftLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         leftLabel.translatesAutoresizingMaskIntoConstraints = false
+        leftLabel.numberOfLines = 1
+        leftLabel.lineBreakMode = .byTruncatingTail // Add truncation
 
         let centerLabel = UILabel()
         centerLabel.text = center
         centerLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         centerLabel.translatesAutoresizingMaskIntoConstraints = false
         centerLabel.textAlignment = .center
+        centerLabel.setContentCompressionResistancePriority(.required, for: .horizontal) // Keep center visible
 
         let rightLabel = UILabel()
         rightLabel.text = right
         rightLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         rightLabel.translatesAutoresizingMaskIntoConstraints = false
         rightLabel.textAlignment = .right
+        rightLabel.setContentCompressionResistancePriority(.required, for: .horizontal) // Keep right visible
 
         container.addSubview(leftLabel)
         container.addSubview(centerLabel)
@@ -473,44 +477,46 @@ final class NutrientBalanceViewController: UIViewController {
         
         // Add delete button if in edit mode
         if isEditMode, let meal = meal {
-        let deleteButton = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        deleteButton.setImage(UIImage(systemName: "trash.fill", withConfiguration: config), for: .normal)
-        deleteButton.tintColor = .systemRed
-        deleteButton.backgroundColor = UIColor.white.withAlphaComponent(0.9)
-        deleteButton.layer.cornerRadius = 14
-        deleteButton.translatesAutoresizingMaskIntoConstraints = false
-        deleteButton.addAction(UIAction { [weak self] _ in
-                        // Haptic feedback on tap
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
+            let deleteButton = UIButton(type: .system)
+            let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+            deleteButton.setImage(UIImage(systemName: "trash.fill", withConfiguration: config), for: .normal)
+            deleteButton.tintColor = .systemRed
+            deleteButton.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+            deleteButton.layer.cornerRadius = 14
+            deleteButton.translatesAutoresizingMaskIntoConstraints = false
+            deleteButton.addAction(UIAction { [weak self] _ in
+                let generator = UIImpactFeedbackGenerator(style: .medium)
+                generator.impactOccurred()
+                self?.deleteMeal(meal)
+            }, for: .touchUpInside)
+            container.addSubview(deleteButton)
                         
-            self?.deleteMeal(meal)
-        }, for: .touchUpInside)
-        container.addSubview(deleteButton)
+            NSLayoutConstraint.activate([
+                deleteButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 14),
+                deleteButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                deleteButton.widthAnchor.constraint(equalToConstant: 28),
+                deleteButton.heightAnchor.constraint(equalToConstant: 28),
                     
-        NSLayoutConstraint.activate([
-            deleteButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 14),
-            deleteButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            deleteButton.widthAnchor.constraint(equalToConstant: 28),
-            deleteButton.heightAnchor.constraint(equalToConstant: 28),
-                
-            leftLabel.leadingAnchor.constraint(equalTo: deleteButton.trailingAnchor, constant: 10),
-            leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            leftLabel.trailingAnchor.constraint(lessThanOrEqualTo: centerLabel.leadingAnchor, constant: -8)
-        ])
+                leftLabel.leadingAnchor.constraint(equalTo: deleteButton.trailingAnchor, constant: 10),
+                leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                leftLabel.trailingAnchor.constraint(lessThanOrEqualTo: centerLabel.leadingAnchor, constant: -12) // Increased spacing
+            ])
         } else {
             NSLayoutConstraint.activate([
                 leftLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
-                leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+                leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                leftLabel.trailingAnchor.constraint(lessThanOrEqualTo: centerLabel.leadingAnchor, constant: -12) // Increased spacing
             ])
         }
 
         NSLayoutConstraint.activate([
             centerLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
             centerLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            centerLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leftLabel.trailingAnchor, constant: 12), // Add minimum spacing
+            
             rightLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
-            rightLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+            rightLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            rightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: centerLabel.trailingAnchor, constant: 12) // Add minimum spacing
         ])
 
         return container
