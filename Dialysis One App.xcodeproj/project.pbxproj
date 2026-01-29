@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		37000D992EF1392700DCC20E /* DialysisOneWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 37000D8F2EF1392600DCC20E /* DialysisOneWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		37317CD82EF2C3AE00F73C61 /* WatchMessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */; };
+		37317CD92EF2C3FC00F73C61 /* WatchMessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */; };
 		3786FD1D2EC26270006795F3 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 3786FD1C2EC26270006795F3 /* Auth */; };
 		3786FD1F2EC26270006795F3 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 3786FD1E2EC26270006795F3 /* Functions */; };
 		3786FD212EC26270006795F3 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 3786FD202EC26270006795F3 /* PostgREST */; };
@@ -18,7 +21,33 @@
 		37F0FACC2EC2EE4600859256 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		37000D972EF1392700DCC20E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 373BB79A2EBF0F1000E4D6BE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 37000D8E2EF1392600DCC20E;
+			remoteInfo = "DialysisOneWatch Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		37000D9A2EF1392700DCC20E /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				37000D992EF1392700DCC20E /* DialysisOneWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		37000D8F2EF1392600DCC20E /* DialysisOneWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DialysisOneWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMessageType.swift; sourceTree = "<group>"; };
 		373BB7A22EBF0F1000E4D6BE /* Dialysis One App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dialysis One App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -34,6 +63,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		37000D902EF1392600DCC20E /* DialysisOneWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "DialysisOneWatch Watch App";
+			sourceTree = "<group>";
+		};
 		373BB7A42EBF0F1000E4D6BE /* Dialysis One App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -45,6 +79,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		37000D8C2EF1392600DCC20E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		373BB79F2EBF0F1000E4D6BE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -66,7 +107,9 @@
 		373BB7992EBF0F1000E4D6BE = {
 			isa = PBXGroup;
 			children = (
+				37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */,
 				373BB7A42EBF0F1000E4D6BE /* Dialysis One App */,
+				37000D902EF1392600DCC20E /* DialysisOneWatch Watch App */,
 				373BB7A32EBF0F1000E4D6BE /* Products */,
 				37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */,
 			);
@@ -76,6 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				373BB7A22EBF0F1000E4D6BE /* Dialysis One App.app */,
+				37000D8F2EF1392600DCC20E /* DialysisOneWatch Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +127,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		37000D8E2EF1392600DCC20E /* DialysisOneWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 37000D9D2EF1392700DCC20E /* Build configuration list for PBXNativeTarget "DialysisOneWatch Watch App" */;
+			buildPhases = (
+				37000D8B2EF1392600DCC20E /* Sources */,
+				37000D8C2EF1392600DCC20E /* Frameworks */,
+				37000D8D2EF1392600DCC20E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				37000D902EF1392600DCC20E /* DialysisOneWatch Watch App */,
+			);
+			name = "DialysisOneWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "DialysisOneWatch Watch App";
+			productReference = 37000D8F2EF1392600DCC20E /* DialysisOneWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 		373BB7A12EBF0F1000E4D6BE /* Dialysis One App */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 373BB7B52EBF0F1100E4D6BE /* Build configuration list for PBXNativeTarget "Dialysis One App" */;
@@ -90,10 +156,12 @@
 				373BB79E2EBF0F1000E4D6BE /* Sources */,
 				373BB79F2EBF0F1000E4D6BE /* Frameworks */,
 				373BB7A02EBF0F1000E4D6BE /* Resources */,
+				37000D9A2EF1392700DCC20E /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				37000D982EF1392700DCC20E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				373BB7A42EBF0F1000E4D6BE /* Dialysis One App */,
@@ -120,9 +188,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					37000D8E2EF1392600DCC20E = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 					373BB7A12EBF0F1000E4D6BE = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -147,11 +218,19 @@
 			projectRoot = "";
 			targets = (
 				373BB7A12EBF0F1000E4D6BE /* Dialysis One App */,
+				37000D8E2EF1392600DCC20E /* DialysisOneWatch Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		37000D8D2EF1392600DCC20E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		373BB7A02EBF0F1000E4D6BE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -163,16 +242,109 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		37000D8B2EF1392600DCC20E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				37317CD92EF2C3FC00F73C61 /* WatchMessageType.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		373BB79E2EBF0F1000E4D6BE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				37317CD82EF2C3AE00F73C61 /* WatchMessageType.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		37000D982EF1392700DCC20E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 37000D8E2EF1392600DCC20E /* DialysisOneWatch Watch App */;
+			targetProxy = 37000D972EF1392700DCC20E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		37000D9B2EF1392700DCC20E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "DialysisOneWatch Watch App/DialysisOneWatch Watch App.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = DialysisOneWatch;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.iOS.DialysisOneAppp;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Debug;
+		};
+		37000D9C2EF1392700DCC20E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "DialysisOneWatch Watch App/DialysisOneWatch Watch App.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = DialysisOneWatch;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.iOS.DialysisOneAppp;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Release;
+		};
 		373BB7B62EBF0F1100E4D6BE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -182,7 +354,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3DXUA7RP32;
+				DEVELOPMENT_TEAM = 2XF95KUMBG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
@@ -193,13 +365,13 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -225,7 +397,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3DXUA7RP32;
+				DEVELOPMENT_TEAM = 2XF95KUMBG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
@@ -236,13 +408,13 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -383,6 +555,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		37000D9D2EF1392700DCC20E /* Build configuration list for PBXNativeTarget "DialysisOneWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				37000D9B2EF1392700DCC20E /* Debug */,
+				37000D9C2EF1392700DCC20E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		373BB79D2EBF0F1000E4D6BE /* Build configuration list for PBXProject "Dialysis One App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

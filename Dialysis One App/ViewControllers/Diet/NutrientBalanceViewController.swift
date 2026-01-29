@@ -17,6 +17,9 @@ final class NutrientBalanceViewController: UIViewController {
     private var meals: [SavedMeal] = []
     private var isEditMode: Bool = false
     
+    private let metricsContainer = MetricsContainerView()
+
+    
     // Goals - now dynamic!
     private var calorieGoal: Int {
         return LimitsManager.shared.getCalorieLimit()
@@ -40,8 +43,15 @@ final class NutrientBalanceViewController: UIViewController {
 
     private let backButton: UIButton = {
         let b = UIButton(type: .system)
-        b.setTitle("‹", for: .normal)
-        b.titleLabel?.font = UIFont.systemFont(ofSize: 28, weight: .semibold)
+
+        let config = UIImage.SymbolConfiguration(
+            pointSize: 17,
+            weight: .semibold
+        )
+
+        let image = UIImage(systemName: "chevron.left", withConfiguration: config)
+        b.setImage(image, for: .normal)
+
         b.tintColor = .black
         b.translatesAutoresizingMaskIntoConstraints = false
         return b
@@ -76,17 +86,17 @@ final class NutrientBalanceViewController: UIViewController {
         return l
     }()
 
-    private let gaugeView = HorseshoeGaugeView()
+//    private let gaugeView = HorseshoeGaugeView()
     
-    private let nutrientsStack: UIStackView = {
-        let s = UIStackView()
-        s.axis = .horizontal
-        s.distribution = .fillEqually
-        s.alignment = .center
-        s.spacing = 12
-        s.translatesAutoresizingMaskIntoConstraints = false
-        return s
-    }()
+//    private let nutrientsStack: UIStackView = {
+//        let s = UIStackView()
+//        s.axis = .horizontal
+//        s.distribution = .fillEqually
+//        s.alignment = .center
+//        s.spacing = 12
+//        s.translatesAutoresizingMaskIntoConstraints = false
+//        return s
+//    }()
 
     private let mealsSegmented: UISegmentedControl = {
         let sc = UISegmentedControl(items: ["Breakfast","Lunch","Dinner"])
@@ -208,16 +218,25 @@ final class NutrientBalanceViewController: UIViewController {
         // Get today's totals for gauge and nutrient cards
         let totals = MealDataManager.shared.getTodayTotals()
         
-        // Update gauge
-        gaugeView.maxValue = CGFloat(calorieGoal)
-        gaugeView.currentValue = CGFloat(totals.calories)
-        
-        // Update nutrient cards
-        updateNutrientCards(
+        metricsContainer.update(
+            calories: totals.calories,
+            calorieGoal: calorieGoal,
             potassium: totals.potassium,
             sodium: totals.sodium,
             protein: totals.protein
         )
+
+        
+        // Update gauge
+//        gaugeView.maxValue = CGFloat(calorieGoal)
+//        gaugeView.currentValue = CGFloat(totals.calories)
+        
+        // Update nutrient cards
+//        updateNutrientCards(
+//            potassium: totals.potassium,
+//            sodium: totals.sodium,
+//            protein: totals.protein
+//        )
         
         // Get meals for selected meal type
         meals = MealDataManager.shared.getMeals(for: selectedMealType)
@@ -281,27 +300,39 @@ final class NutrientBalanceViewController: UIViewController {
             datePill.heightAnchor.constraint(equalToConstant: 34),
             datePill.widthAnchor.constraint(greaterThanOrEqualToConstant: 120)
         ])
+        
+        gradientView.addSubview(metricsContainer)
+        metricsContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        gradientView.addSubview(gaugeView)
-        gaugeView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            gaugeView.topAnchor.constraint(equalTo: datePill.bottomAnchor, constant: Spacing.dateToGauge),
-            gaugeView.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
-            gaugeView.widthAnchor.constraint(equalToConstant: 300),
-            gaugeView.heightAnchor.constraint(equalToConstant: 160)
+            metricsContainer.topAnchor.constraint(equalTo: datePill.bottomAnchor, constant: Spacing.dateToGauge),
+            metricsContainer.leadingAnchor.constraint(equalTo: gradientView.leadingAnchor),
+            metricsContainer.trailingAnchor.constraint(equalTo: gradientView.trailingAnchor),
+            metricsContainer.heightAnchor.constraint(equalToConstant: 340)
         ])
 
-        gradientView.addSubview(nutrientsStack)
-        NSLayoutConstraint.activate([
-            nutrientsStack.topAnchor.constraint(equalTo: gaugeView.bottomAnchor, constant: Spacing.gaugeToNutrients),
-            nutrientsStack.leadingAnchor.constraint(equalTo: gradientView.leadingAnchor, constant: 18),
-            nutrientsStack.trailingAnchor.constraint(equalTo: gradientView.trailingAnchor, constant: -18),
-            nutrientsStack.heightAnchor.constraint(equalToConstant: 72)
-        ])
+
+//        gradientView.addSubview(gaugeView)
+//        gaugeView.translatesAutoresizingMaskIntoConstraints = false
+//        NSLayoutConstraint.activate([
+//            gaugeView.topAnchor.constraint(equalTo: datePill.bottomAnchor, constant: Spacing.dateToGauge),
+//            gaugeView.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
+//            gaugeView.widthAnchor.constraint(equalToConstant: 300),
+//            gaugeView.heightAnchor.constraint(equalToConstant: 160)
+//        ])
+
+//        gradientView.addSubview(nutrientsStack)
+//        NSLayoutConstraint.activate([
+//            nutrientsStack.topAnchor.constraint(equalTo: gaugeView.bottomAnchor, constant: Spacing.gaugeToNutrients),
+//            nutrientsStack.leadingAnchor.constraint(equalTo: gradientView.leadingAnchor, constant: 18),
+//            nutrientsStack.trailingAnchor.constraint(equalTo: gradientView.trailingAnchor, constant: -18),
+//            nutrientsStack.heightAnchor.constraint(equalToConstant: 72)
+//        ])
 
         gradientView.addSubview(mealsSegmented)
         NSLayoutConstraint.activate([
-            mealsSegmented.topAnchor.constraint(equalTo: nutrientsStack.bottomAnchor, constant: Spacing.nutrientsToSegment),
+//            mealsSegmented.topAnchor.constraint(equalTo: nutrientsStack.bottomAnchor, constant: Spacing.nutrientsToSegment),
+            mealsSegmented.topAnchor.constraint(equalTo: metricsContainer.bottomAnchor, constant: Spacing.nutrientsToSegment),
             mealsSegmented.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
             mealsSegmented.widthAnchor.constraint(equalTo: gradientView.widthAnchor, multiplier: 0.86),
             mealsSegmented.heightAnchor.constraint(equalToConstant: 40)
@@ -329,7 +360,7 @@ final class NutrientBalanceViewController: UIViewController {
             emptyStateLabel.trailingAnchor.constraint(equalTo: contentCard.trailingAnchor, constant: -40)
         ])
         
-        populateNutrientCards()
+//        populateNutrientCards()
     }
 
     private func setGradient() {
@@ -347,78 +378,78 @@ final class NutrientBalanceViewController: UIViewController {
     }
 
     // MARK: - Populate Components
-    private func populateNutrientCards() {
-        let potassium = nutrientCard(title: "Potassium", value: "0/\(potassiumGoal)mg", color: UIColor.systemGreen)
-        let sodium = nutrientCard(title: "Sodium", value: "0/\(sodiumGoal)mg", color: UIColor.systemOrange)
-        let protein = nutrientCard(title: "Protein", value: "0/\(proteinGoal)mg", color: UIColor.systemYellow)
-
-        nutrientsStack.addArrangedSubview(potassium)
-        nutrientsStack.addArrangedSubview(sodium)
-        nutrientsStack.addArrangedSubview(protein)
-    }
+//    private func populateNutrientCards() {
+//        let potassium = nutrientCard(title: "Potassium", value: "0/\(potassiumGoal)mg", color: UIColor.systemGreen)
+//        let sodium = nutrientCard(title: "Sodium", value: "0/\(sodiumGoal)mg", color: UIColor.systemOrange)
+//        let protein = nutrientCard(title: "Protein", value: "0/\(proteinGoal)mg", color: UIColor.systemYellow)
+//
+//        nutrientsStack.addArrangedSubview(potassium)
+//        nutrientsStack.addArrangedSubview(sodium)
+//        nutrientsStack.addArrangedSubview(protein)
+//    }
     
-    private func updateNutrientCards(potassium: Int, sodium: Int, protein: Int) {
-        if let potassiumCard = nutrientsStack.arrangedSubviews[0] as? UIView,
-           let valueLabel = potassiumCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
-            valueLabel.text = "\(potassium)/\(potassiumGoal)mg"
-        }
+//    private func updateNutrientCards(potassium: Int, sodium: Int, protein: Int) {
+//        if let potassiumCard = nutrientsStack.arrangedSubviews[0] as? UIView,
+//           let valueLabel = potassiumCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
+//            valueLabel.text = "\(potassium)/\(potassiumGoal)mg"
+//        }
         
-        if let sodiumCard = nutrientsStack.arrangedSubviews[1] as? UIView,
-           let valueLabel = sodiumCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
-            valueLabel.text = "\(sodium)/\(sodiumGoal)mg"
-        }
-        
-        if let proteinCard = nutrientsStack.arrangedSubviews[2] as? UIView,
-           let valueLabel = proteinCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
-            valueLabel.text = "\(protein)/\(proteinGoal)mg"
-        }
-    }
+//        if let sodiumCard = nutrientsStack.arrangedSubviews[1] as? UIView,
+//           let valueLabel = sodiumCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
+//            valueLabel.text = "\(sodium)/\(sodiumGoal)mg"
+//        }
+//        
+//        if let proteinCard = nutrientsStack.arrangedSubviews[2] as? UIView,
+//           let valueLabel = proteinCard.subviews.first(where: { ($0 as? UILabel)?.text?.contains("/") == true }) as? UILabel {
+//            valueLabel.text = "\(protein)/\(proteinGoal)mg"
+//        }
+    
 
-    private func nutrientCard(title: String, value: String, color: UIColor) -> UIView {
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.backgroundColor = .white
-        container.layer.cornerRadius = 12
-        container.layer.shadowColor = UIColor.black.cgColor
-        container.layer.shadowOpacity = 0.04
-        container.layer.shadowOffset = CGSize(width: 0, height: 4)
-        container.layer.shadowRadius = 8
-
-        let titleLabel = UILabel()
-        titleLabel.text = title
-        titleLabel.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let valueLabel = UILabel()
-        valueLabel.text = value
-        valueLabel.font = UIFont.systemFont(ofSize: 11, weight: .regular)
-        valueLabel.translatesAutoresizingMaskIntoConstraints = false
-        valueLabel.textAlignment = .center
-
-        let underline = UIView()
-        underline.translatesAutoresizingMaskIntoConstraints = false
-        underline.backgroundColor = color
-        underline.layer.cornerRadius = 1.5
-
-        container.addSubview(titleLabel)
-        container.addSubview(underline)
-        container.addSubview(valueLabel)
-
-        NSLayoutConstraint.activate([
-            container.heightAnchor.constraint(equalToConstant: 72),
-            titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
-            titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            underline.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            underline.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            underline.widthAnchor.constraint(equalToConstant: 40),
-            underline.heightAnchor.constraint(equalToConstant: 3),
-            valueLabel.topAnchor.constraint(equalTo: underline.bottomAnchor, constant: 8),
-            valueLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            valueLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10)
-        ])
-
-        return container
-    }
+//    private func nutrientCard(title: String, value: String, color: UIColor) -> UIView {
+//        let container = UIView()
+//        container.translatesAutoresizingMaskIntoConstraints = false
+//        container.backgroundColor = .white
+//        container.layer.cornerRadius = 12
+//        container.layer.shadowColor = UIColor.black.cgColor
+//        container.layer.shadowOpacity = 0.04
+//        container.layer.shadowOffset = CGSize(width: 0, height: 4)
+//        container.layer.shadowRadius = 8
+//
+//        let titleLabel = UILabel()
+//        titleLabel.text = title
+//        titleLabel.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+//        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+//
+//        let valueLabel = UILabel()
+//        valueLabel.text = value
+//        valueLabel.font = UIFont.systemFont(ofSize: 11, weight: .regular)
+//        valueLabel.translatesAutoresizingMaskIntoConstraints = false
+//        valueLabel.textAlignment = .center
+//
+//        let underline = UIView()
+//        underline.translatesAutoresizingMaskIntoConstraints = false
+//        underline.backgroundColor = color
+//        underline.layer.cornerRadius = 1.5
+//
+//        container.addSubview(titleLabel)
+//        container.addSubview(underline)
+//        container.addSubview(valueLabel)
+//
+//        NSLayoutConstraint.activate([
+//            container.heightAnchor.constraint(equalToConstant: 72),
+//            titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
+//            titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+//            underline.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+//            underline.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+//            underline.widthAnchor.constraint(equalToConstant: 40),
+//            underline.heightAnchor.constraint(equalToConstant: 3),
+//            valueLabel.topAnchor.constraint(equalTo: underline.bottomAnchor, constant: 8),
+//            valueLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+//            valueLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10)
+//        ])
+//
+//        return container
+//    }
 
     private func populateContentRows() {
         // Clear existing rows
@@ -475,7 +506,7 @@ final class NutrientBalanceViewController: UIViewController {
         if isEditMode, let meal = meal {
         let deleteButton = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        deleteButton.setImage(UIImage(systemName: "trash.fill", withConfiguration: config), for: .normal)
+        deleteButton.setImage(UIImage(systemName: "trash", withConfiguration: config), for: .normal)
         deleteButton.tintColor = .systemRed
         deleteButton.backgroundColor = UIColor.white.withAlphaComponent(0.9)
         deleteButton.layer.cornerRadius = 14
@@ -551,6 +582,274 @@ final class NutrientBalanceViewController: UIViewController {
         present(alert, animated: true)
     }
 }
+
+final class MetricsContainerView: UIView {
+
+    enum Mode {
+        case list, cards
+    }
+
+    private var mode: Mode = .cards
+
+    private let toggle: UISegmentedControl = {
+        let listIcon = UIImage(systemName: "list.bullet")
+        let cardIcon = UIImage(systemName: "rectangle.stack")
+
+        let sc = UISegmentedControl(items: [listIcon, cardIcon])
+        sc.selectedSegmentIndex = 1
+        sc.backgroundColor = UIColor.white.withAlphaComponent(0.35)
+        sc.selectedSegmentTintColor = .white
+        sc.layer.cornerRadius = 18
+        sc.clipsToBounds = true
+        return sc
+    }()
+
+    private let listView = MetricsListView()
+    private let cardsView = MetricsCardsView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setup()
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setup() {
+        toggle.selectedSegmentIndex = 1
+        toggle.addTarget(self, action: #selector(toggleChanged), for: .valueChanged)
+
+        addSubview(toggle)
+        addSubview(listView)
+        addSubview(cardsView)
+
+        toggle.translatesAutoresizingMaskIntoConstraints = false
+        listView.translatesAutoresizingMaskIntoConstraints = false
+        cardsView.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            toggle.topAnchor.constraint(equalTo: topAnchor),
+            toggle.centerXAnchor.constraint(equalTo: centerXAnchor),
+            toggle.heightAnchor.constraint(equalToConstant: 36),
+
+            listView.topAnchor.constraint(equalTo: toggle.bottomAnchor, constant: 16),
+            listView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
+            listView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
+            listView.bottomAnchor.constraint(equalTo: bottomAnchor),
+
+            cardsView.topAnchor.constraint(equalTo: toggle.bottomAnchor, constant: 16),
+            cardsView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            cardsView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            cardsView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+
+        listView.isHidden = true
+    }
+
+    @objc private func toggleChanged() {
+        mode = toggle.selectedSegmentIndex == 0 ? .list : .cards
+        listView.isHidden = mode != .list
+        cardsView.isHidden = mode != .cards
+    }
+
+    func update(calories: Int, calorieGoal: Int, potassium: Int, sodium: Int, protein: Int) {
+        listView.update(calories: calories, potassium: potassium, sodium: sodium, protein: protein)
+        cardsView.update(calories: calories, goal: calorieGoal, potassium: potassium, sodium: sodium, protein: protein)
+    }
+}
+
+final class MetricsListView: UIView {
+
+    private let stack = UIStackView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        stack.axis = .vertical
+        stack.spacing = 12
+        addSubview(stack)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func update(calories: Int, potassium: Int, sodium: Int, protein: Int) {
+        stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        stack.addArrangedSubview(makeRow("Calories", "\(calories) kcal"))
+        stack.addArrangedSubview(makeRow("Potassium", "\(potassium) mg"))
+        stack.addArrangedSubview(makeRow("Sodium", "\(sodium) mg"))
+        stack.addArrangedSubview(makeRow("Protein", "\(protein) g"))
+    }
+
+    private func makeRow(_ title: String, _ value: String) -> UIView {
+        let container = UIView()
+        container.applyGlassCardStyle(cornerRadius: 18)
+
+        let titleLabel = UILabel()
+        titleLabel.text = title
+        titleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+
+        let valueLabel = UILabel()
+        valueLabel.text = value
+        valueLabel.font = .systemFont(ofSize: 16, weight: .regular)
+        valueLabel.textAlignment = .right
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, valueLabel])
+        stack.axis = .horizontal
+        stack.distribution = .fillEqually
+
+        container.addSubview(stack)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            container.heightAnchor.constraint(equalToConstant: 52),
+
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
+            stack.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+
+        return container
+    }
+
+}
+
+final class MetricsCardsView: UIView,
+                              UICollectionViewDataSource,
+                              UICollectionViewDelegate {
+
+    private var data: [(String, Int, Int)] = []
+
+    private lazy var collectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.itemSize = CGSize(
+            width: UIScreen.main.bounds.width * 0.78,
+            height: 260
+        )
+        layout.minimumLineSpacing = 16
+
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        cv.contentInset = UIEdgeInsets(
+            top: 0,
+            left: 30,
+            bottom: 0,
+            right: 30
+        )
+        cv.decelerationRate = .fast
+        cv.backgroundColor = .clear
+        cv.showsHorizontalScrollIndicator = false
+        cv.dataSource = self
+        cv.register(MetricCardCell.self, forCellWithReuseIdentifier: "cell")
+        cv.delegate = self
+        return cv
+    }()
+
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        addSubview(collectionView)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: topAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func update(calories: Int, goal: Int, potassium: Int, sodium: Int, protein: Int) {
+        data = [
+            ("Calories", calories, goal),
+            ("Potassium", potassium, 2000),
+            ("Sodium", sodium, 2000),
+            ("Protein", protein, 84)
+        ]
+        collectionView.reloadData()
+    }
+
+    func collectionView(_ cv: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        data.count
+    }
+
+    func collectionView(_ cv: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = cv.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as! MetricCardCell
+        let item = data[indexPath.item]
+        cell.configure(title: item.0, value: item.1, goal: item.2)
+        return cell
+    }
+    
+    func scrollViewWillEndDragging(
+        _ scrollView: UIScrollView,
+        withVelocity velocity: CGPoint,
+        targetContentOffset: UnsafeMutablePointer<CGPoint>
+    ) {
+        guard let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout else { return }
+
+        let itemWidth = layout.itemSize.width + layout.minimumLineSpacing
+        let offsetX = targetContentOffset.pointee.x + scrollView.contentInset.left
+
+        let index = round(offsetX / itemWidth)
+        let newOffsetX = index * itemWidth - scrollView.contentInset.left
+
+        targetContentOffset.pointee.x = newOffsetX
+    }
+
+}
+
+final class MetricCardCell: UICollectionViewCell {
+
+    private let titleLabel = UILabel()
+    private let gaugeView = HorseshoeGaugeView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+
+        contentView.addSubview(titleLabel)
+        contentView.addSubview(gaugeView)
+        layer.masksToBounds = false
+        contentView.layer.masksToBounds = false
+        backgroundColor = .clear
+        contentView.applyGlassCardStyle()
+        contentView.backgroundColor = UIColor.white.withAlphaComponent(0.55)
+
+
+        titleLabel.font = .systemFont(ofSize: 18, weight: .semibold)
+        titleLabel.textAlignment = .center
+
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        gaugeView.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+
+            gaugeView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
+            gaugeView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            gaugeView.widthAnchor.constraint(equalToConstant: 260),
+            gaugeView.heightAnchor.constraint(equalToConstant: 150)
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(title: String, value: Int, goal: Int) {
+        titleLabel.text = title
+        gaugeView.maxValue = CGFloat(goal)
+        gaugeView.currentValue = CGFloat(value)
+    }
+}
+
+
+
 
 // MARK: - HorseshoeGaugeView
 
@@ -675,3 +974,15 @@ final class HorseshoeGaugeView: UIView {
         ctx.restoreGState()
     }
 }
+
+extension UIView {
+    func applyGlassCardStyle(cornerRadius: CGFloat = 22) {
+        backgroundColor = UIColor.white.withAlphaComponent(0.55)
+        layer.cornerRadius = cornerRadius
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.06
+        layer.shadowOffset = CGSize(width: 0, height: 6)
+        layer.shadowRadius = 12
+    }
+}
+

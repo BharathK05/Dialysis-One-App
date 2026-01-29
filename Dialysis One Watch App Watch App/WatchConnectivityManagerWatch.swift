@@ -1,4 +1,4 @@
-//  WatchConnectivityManager.swift
+//  WatchConnectivityManagerWatch.swift
 //  Dialysis One Watch App
 //
 //  Created by user@22 on 15/12/25.

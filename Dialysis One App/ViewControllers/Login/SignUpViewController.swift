@@ -131,7 +131,7 @@ class SignUpViewController: UIViewController {
     
     @IBAction func signInButtonTapped(_ sender: UIButton) {
         // Dismiss to go back to sign in screen
-        dismiss(animated: true)
+        navigationController?.popViewController(animated: true)
     }
     
     func navigateToOnboarding() {
