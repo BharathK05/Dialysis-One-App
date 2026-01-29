@@ -1,51 +1,73 @@
+//
+//  AddMedicationWatchView.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 17/12/25.
+//
+
+
 import SwiftUI
 import WatchKit
 
 struct AddMedicationWatchView: View {
 
+    @StateObject private var data = WatchDataManager.shared
     @Environment(\.dismiss) private var dismiss
 
+    private let times = ["morning", "afternoon", "night"]
+    
+        
+
+
     var body: some View {
-        ZStack {
-            // 🌿 Same background as Home
-            LinearGradient(
-                colors: [
-                    Color(red: 215/255, green: 240/255, blue: 230/255),
-                    Color(red: 190/255, green: 225/255, blue: 210/255)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+        VStack(spacing: 10) {
 
-            VStack(spacing: 12) {
-
-                medicationButton(title: "Morning")
-                medicationButton(title: "Afternoon")
-                medicationButton(title: "Night")
+            Picker("Time", selection: $data.selectedTimeOfDay) {
+                ForEach(times, id: \.self) {
+                    Text($0.capitalized)
+                }
             }
-            .padding()
-        }
-        .navigationTitle("Medication")
-    }
+            .pickerStyle(.wheel)
 
-    private func medicationButton(title: String) -> some View {
-        Button {
-            WatchConnectivityManager.shared.sendAddMedication(timeOfDay: title.lowercased())
+            if data.medications.isEmpty {
+                Text("No medications")
+                    .foregroundColor(.secondary)
+            } else {
+                ScrollView {
+                    VStack(spacing: 6) {
+                        ForEach(data.medications) { med in
+                            Button {
+                                WatchConnectivityManager.shared.sendAddMedication(
+                                    medicationId: med.id,
+                                    timeOfDay: data.selectedTimeOfDay
+                                )
 
-            WKInterfaceDevice.current().play(.success)
-            dismiss()
-        } label: {
-            Text(title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.white.opacity(0.9))
-                )
+                                WKInterfaceDevice.current().play(.success)
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(med.name)
+                                            .font(.system(size: 14, weight: .semibold))
+                                        Text(med.dosage)
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: med.isTaken ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(med.isTaken ? .green : .gray)
+                                }
+                            }
+                            .disabled(med.isTaken)
+                            .opacity(med.isTaken ? 0.5 : 1.0)
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
         }
-        .buttonStyle(.plain)
+        .padding()
     }
 }

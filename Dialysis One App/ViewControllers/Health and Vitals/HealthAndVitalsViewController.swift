@@ -6,10 +6,10 @@
 //
 import HealthKit
 import UIKit
+import WatchConnectivity
+
 
 class HealthAndVitalsViewController: UIViewController {
-
-    private var isConnected = false
 
     private let scroll = UIScrollView()
     private let content = UIStackView()
@@ -22,7 +22,6 @@ class HealthAndVitalsViewController: UIViewController {
     private let vitalsTitle = UILabel()
     private let vitalsContainer = UIView()
     @objc var watchCard = UIView()
-    private let connectButton = UIButton(type: .system)
 
     // BPM & SpO2 cards
     private let bpCard = UIView()
@@ -62,6 +61,12 @@ class HealthAndVitalsViewController: UIViewController {
         updateWatchUI()
         loadReports()
         setupHealthKit()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateWatchUI),
+            name: .watchStateChanged,
+            object: nil
+        )
     }
     
     override func viewDidLayoutSubviews() {
@@ -145,63 +150,62 @@ class HealthAndVitalsViewController: UIViewController {
         content.addArrangedSubview(vitalsTitle)
 
         // Watch card (connect)
-        watchCard.backgroundColor = UIColor.white.withAlphaComponent(0.85)
+        watchCard.backgroundColor = UIColor.white.withAlphaComponent(0.9)
         watchCard.layer.cornerRadius = 22
-        watchCard.layer.shadowColor = UIColor.black.withAlphaComponent(0.09).cgColor
+        watchCard.layer.shadowColor = UIColor.black.withAlphaComponent(0.08).cgColor
         watchCard.layer.shadowOpacity = 1
-        watchCard.layer.shadowRadius = 12
+        watchCard.layer.shadowRadius = 10
         watchCard.layer.shadowOffset = CGSize(width: 0, height: 4)
         watchCard.translatesAutoresizingMaskIntoConstraints = false
-        watchCard.heightAnchor.constraint(equalToConstant: 220).isActive = true
+        watchCard.heightAnchor.constraint(equalToConstant: 160).isActive = true
+        
+        // Watch status card (informational only)
+        watchCard.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        watchCard.layer.cornerRadius = 22
+        watchCard.layer.shadowColor = UIColor.black.withAlphaComponent(0.08).cgColor
+        watchCard.layer.shadowOpacity = 1
+        watchCard.layer.shadowRadius = 10
+        watchCard.layer.shadowOffset = CGSize(width: 0, height: 4)
+        watchCard.translatesAutoresizingMaskIntoConstraints = false
+        watchCard.heightAnchor.constraint(equalToConstant: 160).isActive = true
 
         let icon = UIImageView(image: UIImage(systemName: "applewatch"))
         icon.tintColor = .black
         icon.translatesAutoresizingMaskIntoConstraints = false
-        connectButton.setTitle("Connect", for: .normal)
-        connectButton.backgroundColor = UIColor.systemGreen
-        connectButton.setTitleColor(.white, for: .normal)
-        connectButton.layer.cornerRadius = 20
-        connectButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 22, bottom: 8, right: 22)
-        connectButton.addTarget(self, action: #selector(connectTapped), for: .touchUpInside)
 
         let title = UILabel()
-        title.text = "Connect to Apple Watch"
+        title.text = "Apple Watch"
         title.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
         title.textAlignment = .center
 
-        let subtitle = UILabel()
-        subtitle.text = "To see your latest blood pressure and oxygen readings, connect your Apple Watch."
-        subtitle.font = UIFont.systemFont(ofSize: 14)
-        subtitle.textColor = .gray
-        subtitle.textAlignment = .center
-        subtitle.numberOfLines = 0
+        let statusLabel = UILabel()
+        statusLabel.text = "Checking connection…"
+        statusLabel.font = UIFont.systemFont(ofSize: 14)
+        statusLabel.textColor = .gray
+        statusLabel.textAlignment = .center
+        statusLabel.numberOfLines = 0
+        statusLabel.tag = 999
 
-        let watchVstack = UIStackView(arrangedSubviews: [
+        let watchVStack = UIStackView(arrangedSubviews: [
             icon,
             title,
-            subtitle,
-            connectButton
+            statusLabel
         ])
-        watchVstack.axis = .vertical
-        watchVstack.alignment = .center
-        watchVstack.spacing = 8
-        watchVstack.translatesAutoresizingMaskIntoConstraints = false
+        watchVStack.axis = .vertical
+        watchVStack.alignment = .center
+        watchVStack.spacing = 10
+        watchVStack.translatesAutoresizingMaskIntoConstraints = false
 
-        watchCard.addSubview(watchVstack)
+        watchCard.addSubview(watchVStack)
 
         NSLayoutConstraint.activate([
-            watchVstack.centerXAnchor.constraint(equalTo: watchCard.centerXAnchor),
-            watchVstack.centerYAnchor.constraint(equalTo: watchCard.centerYAnchor),
-
+            watchVStack.centerXAnchor.constraint(equalTo: watchCard.centerXAnchor),
+            watchVStack.centerYAnchor.constraint(equalTo: watchCard.centerYAnchor),
+            watchVStack.leadingAnchor.constraint(equalTo: watchCard.leadingAnchor, constant: 16),
+            watchVStack.trailingAnchor.constraint(equalTo: watchCard.trailingAnchor, constant: -16),
             icon.heightAnchor.constraint(equalToConstant: 36),
-            icon.widthAnchor.constraint(equalToConstant: 36),
-
-            // Make sure text fits inside card
-            watchVstack.leadingAnchor.constraint(equalTo: watchCard.leadingAnchor, constant: 16),
-            watchVstack.trailingAnchor.constraint(equalTo: watchCard.trailingAnchor, constant: -16)
+            icon.widthAnchor.constraint(equalToConstant: 36)
         ])
-
-
         content.addArrangedSubview(watchCard)
 
         // Two small cards (BP / SpO2) in row
@@ -278,14 +282,33 @@ class HealthAndVitalsViewController: UIViewController {
         }
     }
     
-    private func updateWatchUI() {
-        watchCard.isHidden = isConnected
+    @objc private func updateWatchUI() {
+        let statusLabel = watchCard.viewWithTag(999) as? UILabel
 
-        // vitals cards visible only when connected
-        bpCard.isHidden = !isConnected
-        spO2Card.isHidden = !isConnected
+        guard WCSession.isSupported() else {
+            statusLabel?.text = "Apple Watch not supported"
+            statusLabel?.textColor = .gray
+            bpCard.isHidden = true
+            spO2Card.isHidden = true
+            return
+        }
+
+        let session = WCSession.default
+
+        if session.isPaired && session.isWatchAppInstalled {
+            statusLabel?.text = "Apple Watch connected"
+            statusLabel?.textColor = .systemGreen
+
+            bpCard.isHidden = false
+            spO2Card.isHidden = false
+        } else {
+            statusLabel?.text = "Apple Watch not detected"
+            statusLabel?.textColor = .gray
+
+            bpCard.isHidden = true
+            spO2Card.isHidden = true
+        }
     }
-
 
     private func refreshVitals() {
         DispatchQueue.main.async {
@@ -378,61 +401,6 @@ class HealthAndVitalsViewController: UIViewController {
 
 
     // MARK: - Actions
-    @objc private func connectTapped() {
-        let healthStore = HKHealthStore()
-        
-        healthStore.getRequestStatusForAuthorization(toShare: [], read: HealthKitManager.shared.readTypes) { status, error in
-            DispatchQueue.main.async {
-                switch status {
-                case .shouldRequest:
-                    // show actual popup
-                    self.askForHealthKitPermissions()
-                    
-                case .unnecessary:
-                    // already granted earlier
-                    self.isConnected = true
-                    self.updateWatchUI()
-                    self.refreshVitals()
-                    
-                case .unknown:
-                    self.showSettingsAlert()
-                @unknown default:
-                    break
-                }
-            }
-        }
-    }
-    
-    private func animateConnection() {
-        let pulse = CASpringAnimation(keyPath: "transform.scale")
-        pulse.fromValue = 0.85
-        pulse.toValue = 1.0
-        pulse.duration = 0.4
-        pulse.initialVelocity = 0.8
-        pulse.damping = 0.8
-        pulse.autoreverses = false
-        pulse.repeatCount = 1
-
-        bpCard.layer.add(pulse, forKey: nil)
-        spO2Card.layer.add(pulse, forKey: nil)
-    }
-
-
-    private func askForHealthKitPermissions() {
-        HealthKitManager.shared.requestAuthorization { ok, err in
-            DispatchQueue.main.async {
-                if ok {
-                    self.isConnected = true
-                    self.updateWatchUI()
-                    self.refreshVitals()
-                    self.animateConnection() 
-                } else {
-                    self.showSettingsAlert()
-                }
-            }
-        }
-    }
-
     private func showSettingsAlert() {
         let alert = UIAlertController(
             title: "Permission Required",
@@ -620,6 +588,10 @@ extension HealthAndVitalsViewController: ReportCardSwipeDelegate {
         // Optionally confirm with the user (we're doing soft delete + undo, so optional)
         performSoftDelete(cardView: card, report: report)
     }
+}
+
+extension Notification.Name {
+    static let watchStateChanged = Notification.Name("watchStateChanged")
 }
 
 

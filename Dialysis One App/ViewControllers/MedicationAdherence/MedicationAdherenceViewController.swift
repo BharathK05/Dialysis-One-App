@@ -34,6 +34,17 @@ class MedicationAdherenceViewController: UIViewController {
         
         updateStatus()
         loadMedications()
+        
+        // 📤 Send medication list to Watch (default: current time)
+            let time = TimeOfDay.current()
+
+            WatchConnectivityManager.shared.sendMedicationList(
+                MedicationStore.shared.medicationsFor(
+                    timeOfDay: time,
+                    date: Date()
+                ),
+                timeOfDay: time
+            )
     }
     
     private func setupUI() {

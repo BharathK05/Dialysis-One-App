@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24128" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24412" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
-        <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
-        <capability name="Image references" minToolsVersion="12.0"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24405"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -33,22 +32,6 @@
                         <action selector="forgotPasswordButtonTapped:" destination="-1" eventType="touchUpInside" id="Nsb-A2-C5o"/>
                     </connections>
                 </button>
-                <button opaque="NO" alpha="0.30000001192092896" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="YBJ-gg-Zaw">
-                    <rect key="frame" x="18" y="379" width="44" height="35"/>
-                    <rect key="contentStretch" x="0.0" y="0.0" width="0.5" height="0.5"/>
-                    <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                    <state key="normal" title="Button"/>
-                    <buttonConfiguration key="configuration" style="plain">
-                        <imageReference key="image" image="square" catalog="system" symbolScale="medium"/>
-                        <preferredSymbolConfiguration key="preferredSymbolConfigurationForImage" weight="light"/>
-                    </buttonConfiguration>
-                </button>
-                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Remember Me" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="i0X-rX-to2">
-                    <rect key="frame" x="54" y="388" width="93" height="17"/>
-                    <fontDescription key="fontDescription" type="system" weight="light" pointSize="14"/>
-                    <nil key="textColor"/>
-                    <nil key="highlightedColor"/>
-                </label>
                 <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Enter Your Password" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="Diz-PF-AmA">
                     <rect key="frame" x="27" y="306" width="349" height="47"/>
                     <color key="backgroundColor" red="0.96862745100000003" green="0.97254901959999995" blue="0.99215686270000003" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
@@ -119,7 +102,7 @@
                     <state key="normal" title="Button"/>
                     <buttonConfiguration key="configuration" style="plain" title="Sign Up">
                         <fontDescription key="titleFontDescription" type="system" weight="semibold" pointSize="14"/>
-                        <color key="baseForegroundColor" systemColor="linkColor"/>
+                        <color key="baseForegroundColor" name="onboarding green"/>
                     </buttonConfiguration>
                     <connections>
                         <action selector="signUpButtonTapped:" destination="-1" eventType="touchUpInside" id="mSJ-De-kQ1"/>
@@ -134,14 +117,11 @@
                 <constraint firstItem="sDF-Wm-MPf" firstAttribute="bottom" secondItem="fnl-2z-Ty3" secondAttribute="bottom" constant="-9" id="Cqb-lQ-rJc"/>
                 <constraint firstItem="nws-8d-YRf" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" constant="27" id="Ctc-wM-kJ0"/>
                 <constraint firstItem="sit-ag-Xzx" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" constant="27" id="Dm9-wW-IcV"/>
-                <constraint firstItem="YBJ-gg-Zaw" firstAttribute="top" secondItem="Diz-PF-AmA" secondAttribute="bottom" constant="26" id="DmV-be-4xZ"/>
-                <constraint firstItem="i0X-rX-to2" firstAttribute="top" secondItem="Diz-PF-AmA" secondAttribute="bottom" constant="35" id="ECN-er-pSf"/>
                 <constraint firstItem="fnl-2z-Ty3" firstAttribute="trailing" secondItem="mh7-6F-0fC" secondAttribute="trailing" constant="16" id="Ufv-sg-HYJ"/>
                 <constraint firstItem="Diz-PF-AmA" firstAttribute="top" secondItem="sit-ag-Xzx" secondAttribute="bottom" constant="36" id="WaB-Rf-bKP"/>
                 <constraint firstItem="fnl-2z-Ty3" firstAttribute="trailing" secondItem="nws-8d-YRf" secondAttribute="trailing" constant="17" id="aE1-gw-zFc"/>
                 <constraint firstItem="kxe-I5-pOq" firstAttribute="top" secondItem="fnl-2z-Ty3" secondAttribute="top" constant="21" id="anw-mV-f3G"/>
                 <constraint firstItem="mh7-6F-0fC" firstAttribute="top" secondItem="Diz-PF-AmA" secondAttribute="bottom" constant="28" id="iRW-pl-4id"/>
-                <constraint firstItem="i0X-rX-to2" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" constant="54" id="lmD-bD-xXb"/>
                 <constraint firstItem="sDF-Wm-MPf" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" constant="73" id="pOj-Ui-Bxo"/>
                 <constraint firstItem="OBv-hm-oRL" firstAttribute="leading" secondItem="sDF-Wm-MPf" secondAttribute="trailing" constant="8" id="qUD-pd-2sF"/>
                 <constraint firstItem="kxe-I5-pOq" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" constant="35" id="r3K-zY-CRQ"/>
@@ -150,16 +130,14 @@
                 <constraint firstItem="Diz-PF-AmA" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" constant="27" id="wb1-WW-QoS"/>
                 <constraint firstItem="sit-ag-Xzx" firstAttribute="top" secondItem="kxe-I5-pOq" secondAttribute="bottom" constant="48" id="y22-nb-kYU"/>
                 <constraint firstItem="fnl-2z-Ty3" firstAttribute="trailing" secondItem="sit-ag-Xzx" secondAttribute="trailing" constant="17" id="z96-ey-KiT"/>
-                <constraint firstItem="YBJ-gg-Zaw" firstAttribute="leading" secondItem="fnl-2z-Ty3" secondAttribute="leading" constant="18" id="zPP-hs-c4b"/>
             </constraints>
             <point key="canvasLocation" x="136.64122137404578" y="126.7605633802817"/>
         </view>
     </objects>
     <resources>
-        <image name="square" catalog="system" width="128" height="114"/>
-        <systemColor name="linkColor">
-            <color red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </systemColor>
+        <namedColor name="onboarding green">
+            <color red="0.41960784313725491" green="0.63137254901960782" blue="0.49803921568627452" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

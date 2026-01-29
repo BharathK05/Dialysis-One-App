@@ -17,45 +17,16 @@ final class WatchDataManager: NSObject, ObservableObject {
     @Published var waterSummary: String? = nil
     @Published var medicationSummary: String? = nil
 
-    private let session: WCSession? = WCSession.isSupported() ? .default : nil
-
-    private override init() {
-        super.init()
-        session?.delegate = self
-        session?.activate()
-    }
-
-    private func applyContext(_ context: [String: Any]) {
-        // Using keys we set on iOS
-        DispatchQueue.main.async {
-            if let food = context["summary.food"] as? String { self.foodSummary = food }
-            if let water = context["summary.water"] as? String { self.waterSummary = water }
-            if let med = context["summary.medication"] as? String { self.medicationSummary = med }
+    func applySummary(_ context: [String: Any]) {
+        if let food = context["summary.food"] as? String {
+            foodSummary = food
         }
-    }
-}
-
-extension WatchDataManager: WCSessionDelegate {
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        // When the session activates, there may be a previously-sent applicationContext available:
-        if let ctx = session.receivedApplicationContext as? [String: Any] {
-            applyContext(ctx)
+        if let water = context["summary.water"] as? String {
+            waterSummary = water
+        }
+        if let med = context["summary.medication"] as? String {
+            medicationSummary = med
         }
     }
 
-    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
-        applyContext(applicationContext)
-    }
-
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
-        // fallback immediate messages (if you use sendMessage on phone)
-        applyContext(message)
-    }
-
-    #if os(watchOS)
-    // not required on watch side, but keep empty stubs to satisfy protocol
-    func sessionReachabilityDidChange(_ session: WCSession) {
-        // if needed, react to reachability
-    }
-    #endif
 }

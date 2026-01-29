@@ -1,4 +1,4 @@
-//
+
 //  WorkoutManager.swift
 //  Dialysis One Watch App
 //
@@ -91,5 +91,28 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
 extension WorkoutManager: HKLiveWorkoutBuilderDelegate {
     func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
     func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder,
-                        didCollectDataOf collectedTypes: Set<HKSampleType>) {}
+                        didCollectDataOf collectedTypes: Set<HKSampleType>) {
+
+        for type in collectedTypes {
+            guard let qType = type as? HKQuantityType else { continue }
+
+            if let stats = workoutBuilder.statistics(for: qType),
+               let quantity = stats.mostRecentQuantity() {
+
+                DispatchQueue.main.async {
+                    if qType.identifier == HKQuantityTypeIdentifier.heartRate.rawValue {
+                        let bpm = quantity.doubleValue(
+                            for: HKUnit.count().unitDivided(by: .minute())
+                        )
+                        HealthKitManager.shared.updateHeartRate(bpm)
+                    }
+
+                    if qType.identifier == HKQuantityTypeIdentifier.oxygenSaturation.rawValue {
+                        let sp = quantity.doubleValue(for: .percent()) * 100
+                        HealthKitManager.shared.updateSpO2(sp)
+                    }
+                }
+            }
+        }
+    }
 }

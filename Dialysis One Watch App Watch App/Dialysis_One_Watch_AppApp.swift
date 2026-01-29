@@ -8,10 +8,18 @@
 import SwiftUI
 
 @main
-struct Dialysis_One_Watch_App_Watch_AppApp: App {
+struct Dialysis_One_Watch_Watch_AppApp: App {
+
+    init() {
+        // Ensure WatchConnectivity starts immediately
+        _ = WatchConnectivityManager.shared
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationStack {
+                ContentView()
+            }
         }
     }
 }

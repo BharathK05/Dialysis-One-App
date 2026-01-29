@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24128" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24412" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
-        <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24405"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
@@ -12,7 +11,6 @@
     <objects>
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="ReliefGuideViewController" customModule="Dialysis_One_App" customModuleProvider="target">
             <connections>
-                <outlet property="searchTextField" destination="mGl-SK-KTp" id="U6J-8i-v2i"/>
                 <outlet property="tableView" destination="66H-ML-Iug" id="Zox-16-Hzq"/>
                 <outlet property="view" destination="iN0-l3-epB" id="cDc-aZ-ONL"/>
             </connections>
@@ -41,27 +39,14 @@
                             <color key="textColor" systemColor="secondaryLabelColor"/>
                             <nil key="highlightedColor"/>
                         </label>
-                        <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Search Symptoms" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="mGl-SK-KTp" customClass="UISearchTextField">
-                            <rect key="frame" x="16" y="129.66666666666666" width="361" height="44"/>
-                            <constraints>
-                                <constraint firstAttribute="height" constant="44" id="Xu9-94-wp1"/>
-                            </constraints>
-                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                            <textInputTraits key="textInputTraits"/>
-                            <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
-                                    <integer key="value" value="16"/>
-                                </userDefinedRuntimeAttribute>
-                            </userDefinedRuntimeAttributes>
-                        </textField>
                         <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Symptoms" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="UGf-05-5JQ">
-                            <rect key="frame" x="16" y="197.66666666666669" width="121" height="29"/>
+                            <rect key="frame" x="16" y="121" width="121" height="29"/>
                             <fontDescription key="fontDescription" type="boldSystem" pointSize="24"/>
                             <color key="textColor" name="onboarding green"/>
                             <nil key="highlightedColor"/>
                         </label>
                         <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="66H-ML-Iug">
-                            <rect key="frame" x="0.0" y="242.66666666666671" width="393" height="423.33333333333326"/>
+                            <rect key="frame" x="0.0" y="166" width="393" height="500"/>
                             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                             <color key="separatorColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                             <color key="sectionIndexBackgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -76,15 +61,12 @@
                         <constraint firstAttribute="bottom" secondItem="66H-ML-Iug" secondAttribute="bottom" id="13q-pR-Kf3"/>
                         <constraint firstItem="66H-ML-Iug" firstAttribute="leading" secondItem="8VU-ez-DeK" secondAttribute="leading" id="4Tt-ji-XEL"/>
                         <constraint firstItem="JbH-3W-Bdo" firstAttribute="top" secondItem="kOw-oz-3le" secondAttribute="bottom" constant="8" id="5P6-Dz-SNI"/>
-                        <constraint firstAttribute="trailing" secondItem="mGl-SK-KTp" secondAttribute="trailing" constant="16" id="ByB-Sv-140"/>
-                        <constraint firstItem="mGl-SK-KTp" firstAttribute="top" secondItem="JbH-3W-Bdo" secondAttribute="bottom" constant="16" id="D7d-XJ-hPF"/>
-                        <constraint firstItem="mGl-SK-KTp" firstAttribute="leading" secondItem="8VU-ez-DeK" secondAttribute="leading" constant="16" id="EbF-MQ-AyU"/>
-                        <constraint firstItem="UGf-05-5JQ" firstAttribute="top" secondItem="mGl-SK-KTp" secondAttribute="bottom" constant="24" id="JhW-00-SRY"/>
                         <constraint firstItem="UGf-05-5JQ" firstAttribute="leading" secondItem="8VU-ez-DeK" secondAttribute="leading" constant="16" id="KJ5-N2-bcR"/>
                         <constraint firstItem="kOw-oz-3le" firstAttribute="top" secondItem="8VU-ez-DeK" secondAttribute="top" constant="24" id="QoF-JW-q7P"/>
                         <constraint firstAttribute="trailing" secondItem="JbH-3W-Bdo" secondAttribute="trailing" constant="16" id="atB-65-QuG"/>
                         <constraint firstAttribute="leading" secondItem="JbH-3W-Bdo" secondAttribute="leading" constant="-16" id="cM6-7k-RAK"/>
                         <constraint firstItem="66H-ML-Iug" firstAttribute="top" secondItem="UGf-05-5JQ" secondAttribute="bottom" constant="16" id="hxm-CY-4Oo"/>
+                        <constraint firstItem="UGf-05-5JQ" firstAttribute="top" secondItem="JbH-3W-Bdo" secondAttribute="bottom" constant="7.3333333333333428" id="o35-Gp-vTC"/>
                         <constraint firstAttribute="trailing" secondItem="66H-ML-Iug" secondAttribute="trailing" id="tGq-zb-ueG"/>
                         <constraint firstItem="kOw-oz-3le" firstAttribute="leading" secondItem="8VU-ez-DeK" secondAttribute="leading" constant="16" id="wSG-5b-YnI"/>
                     </constraints>

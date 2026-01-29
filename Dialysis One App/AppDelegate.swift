@@ -7,18 +7,28 @@
 
 import UIKit
 import FirebaseCore
+import WatchConnectivity
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
-        
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+
         FirebaseApp.configure()
         print("✅ Firebase configured successfully")
-        
+
+        NotificationManager.shared.requestPermission()
+
+        // ✅ SINGLE SOURCE OF TRUTH
+        if WCSession.isSupported() {
+            _ = WatchConnectivityManager.shared
+        }
+
         return true
     }
 

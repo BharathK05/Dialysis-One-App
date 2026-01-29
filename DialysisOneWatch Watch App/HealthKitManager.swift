@@ -2,6 +2,14 @@
 //  HealthKitManager.swift
 //  Dialysis One App
 //
+//  Created by user@22 on 16/12/25.
+//
+
+
+//
+//  HealthKitManager.swift
+//  Dialysis One App
+//
 //  Created by user@22 on 15/12/25.
 //
 
@@ -29,28 +37,39 @@ final class HealthKitManager: ObservableObject {
 
     private init() {}
 
-    func requestAuthorization() {
+    func requestAuthorization(completion: @escaping (Bool) -> Void) {
         guard HKHealthStore.isHealthDataAvailable() else {
             statusMessage = "Health data unavailable"
+            completion(false)
             return
         }
 
-        let types: Set<HKObjectType> = [
+        let readTypes: Set<HKObjectType> = [
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
             HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!
         ]
 
-        healthStore.requestAuthorization(toShare: [], read: types) { [weak self] ok, err in
+        let shareTypes: Set<HKSampleType> = [
+            HKObjectType.workoutType() // ⭐ REQUIRED
+        ]
+
+        healthStore.requestAuthorization(
+            toShare: shareTypes,
+            read: readTypes
+        ) { [weak self] success, error in
             DispatchQueue.main.async {
-                if ok {
+                if success {
                     self?.statusMessage = "Live vitals active"
-                    WorkoutManager.shared.start()
+                    completion(true)
                 } else {
-                    self?.statusMessage = err?.localizedDescription ?? "Permission denied"
+                    print("❌ HealthKit auth failed:", error?.localizedDescription ?? "")
+                    self?.statusMessage = "Permission denied"
+                    completion(false)
                 }
             }
         }
     }
+
 
     func updateHeartRate(_ value: Double) {
         heartRate = value
@@ -63,6 +82,7 @@ final class HealthKitManager: ObservableObject {
         sendVitals()
         checkAlerts()
     }
+    
 
     private func sendVitals() {
         WatchConnectivityManager.shared.sendVitals(

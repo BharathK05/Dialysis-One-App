@@ -1,3 +1,11 @@
+//
+//  WatchConnectivityManager.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 16/12/25.
+//
+
+
 //  WatchConnectivityManagerWatch.swift
 //  Dialysis One Watch App
 //
@@ -50,6 +58,41 @@ final class WatchConnectivityManager: NSObject {
             }
         }
     }
+    
+    func sendAddWater(type: String, quantity: Int) {
+        guard let session = session else { return }
+
+        let payload: [String: Any] = [
+            "type": WatchMessageType.addWater.rawValue,
+            "fluidType": type,
+            "quantity": quantity,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil)
+        } else {
+            try? session.updateApplicationContext(payload)
+        }
+    }
+    
+    func sendAddMedication(medicationId: String, timeOfDay: String) {
+        guard let session = session else { return }
+
+        let payload: [String: Any] = [
+            "type": WatchMessageType.addMedication.rawValue,
+            "medicationId": medicationId,
+            "timeOfDay": timeOfDay,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil)
+        } else {
+            try? session.updateApplicationContext(payload)
+        }
+    }
+
 
     // MARK: - Immediate Alerts (Watch → iPhone)
 
@@ -92,6 +135,14 @@ final class WatchConnectivityManager: NSObject {
             }
             return
         }
+        
+        if payload["type"] as? String == "medication_list" {
+            DispatchQueue.main.async {
+                WatchDataManager.shared.applyMedicationList(payload)
+            }
+            return
+        }
+
     }
 
 }
@@ -115,4 +166,16 @@ extension WatchConnectivityManager: WCSessionDelegate {
                  error: Error?) {
         print("⌚️ WC activated:", activationState.rawValue, error?.localizedDescription ?? "")
     }
+    
+    // ADD THESE FOR iOS:
+        #if os(iOS)
+        func sessionDidBecomeInactive(_ session: WCSession) {
+            print("📱 WC became inactive")
+        }
+        
+        func sessionDidDeactivate(_ session: WCSession) {
+            print("📱 WC deactivated, reactivating...")
+            session.activate()
+        }
+        #endif
 }

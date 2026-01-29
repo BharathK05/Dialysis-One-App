@@ -464,19 +464,9 @@ class ProfileSheetViewController: UIViewController {
 
             // IMPORTANT: Do NOT dismiss the sheet first.
             // We directly replace the window root to avoid flicker.
-
-            guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let window = scene.windows.first else { return }
-
-            let signInVC = SignInViewController(nibName: "SignInViewController", bundle: nil)
-            signInVC.modalPresentationStyle = .fullScreen
-
-            UIView.transition(with: window,
-                              duration: 0.4,
-                              options: .transitionCrossDissolve,
-                              animations: {
-                window.rootViewController = signInVC
-            })
+            if let sceneDelegate = UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate {
+                sceneDelegate.switchToWelcome()
+            }
         }
     }
     

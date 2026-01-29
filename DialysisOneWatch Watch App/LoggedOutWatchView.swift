@@ -1,5 +1,13 @@
 //
 //  LoggedOutWatchView.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 16/12/25.
+//
+
+
+//
+//  LoggedOutWatchView.swift
 //  DialysisOne Watch App
 //
 

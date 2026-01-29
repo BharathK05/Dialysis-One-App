@@ -19,6 +19,8 @@ class SignInViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        navigationItem.largeTitleDisplayMode = .never
+        
         let emailPaddingView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: emailTextField.frame.height))
         emailTextField.leftView = emailPaddingView
         emailTextField.leftViewMode = .always
@@ -106,10 +108,10 @@ class SignInViewController: UIViewController {
 
     
     @IBAction func signUpButtonTapped(_ sender: UIButton) {
-        let SignUpVC = SignUpViewController(nibName: "SignUpViewController", bundle: nil)
-        SignUpVC.modalPresentationStyle = .fullScreen
-        present(SignUpVC, animated: true)
+        let signUpVC = SignUpViewController(nibName: "SignUpViewController", bundle: nil)
+        navigationController?.pushViewController(signUpVC, animated: true)
     }
+
     
     @IBAction func forgotPasswordButtonTapped(_ sender: UIButton) {
         let forgotPasswordVC = ForgotPasswordViewController(nibName: "ForgotPasswordViewController", bundle: nil)

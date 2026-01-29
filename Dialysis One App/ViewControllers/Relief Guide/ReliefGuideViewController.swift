@@ -102,27 +102,51 @@ final class ReliefGuideViewController: UIViewController, UITableViewDataSource, 
         ),
     ]
     
-    private func addTopGradientBackground() {
-            let gradient = CAGradientLayer()
-            let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)
-            let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1)
+//    private func addTopGradientBackground() {
+//            let gradient = CAGradientLayer()
+//            let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)
+//            let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1)
+//
+//            gradient.colors = [topColor.cgColor, bottomColor.cgColor]
+//            gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
+//            gradient.endPoint = CGPoint(x: 0.5, y: 1.0)
+//            gradient.locations = [0.0, 0.7]
+//            gradient.type = .axial
+//            gradient.frame = view.bounds
+//            gradient.zPosition = -1
+//
+//            view.layer.insertSublayer(gradient, at: 0)
+//        }
+    
+    private func addHealthStyleGradientBackground() {
+        let gradient = CAGradientLayer()
 
-            gradient.colors = [topColor.cgColor, bottomColor.cgColor]
-            gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
-            gradient.endPoint = CGPoint(x: 0.5, y: 1.0)
-            gradient.locations = [0.0, 0.7]
-            gradient.type = .axial
-            gradient.frame = view.bounds
-            gradient.zPosition = -1
+        let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)   // soft mint
+        let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1) // light teal
 
-            view.layer.insertSublayer(gradient, at: 0)
-        }
+        gradient.colors = [
+            topColor.cgColor,
+            bottomColor.cgColor
+        ]
+
+        gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
+        gradient.endPoint   = CGPoint(x: 0.5, y: 1.0)
+        gradient.locations  = [0.0, 0.7]
+        gradient.type       = .axial
+        gradient.frame      = view.bounds
+        gradient.zPosition  = -1
+
+        view.layer.insertSublayer(gradient, at: 0)
+    }
+
 
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         AppTourManager.shared.register(view: tableView, for: "relief.table")
+        addHealthStyleGradientBackground()
+
 
         // TABLE VIEW SETUP
         tableView.dataSource = self
@@ -138,13 +162,14 @@ final class ReliefGuideViewController: UIViewController, UITableViewDataSource, 
         tableView.register(nib, forCellReuseIdentifier: "SymptomCell")
 
         tableView.reloadData()
-        addTopGradientBackground()
+//        addTopGradientBackground()
 
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         view.layer.sublayers?.first?.frame = view.bounds
+        view.layer.sublayers?.first { $0 is CAGradientLayer }?.frame = view.bounds
 
 
         AppTourManager.shared.register(view: tableView, for: "relief.table")
