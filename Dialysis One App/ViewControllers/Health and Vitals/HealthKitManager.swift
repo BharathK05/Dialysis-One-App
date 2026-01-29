@@ -33,6 +33,35 @@ final class HealthKitManager {
             completion: completion
         )
     }
+    
+    func startObservingForBackground() {
+        observeWithObserverQuery(.heartRate, unit: HKUnit.count().unitDivided(by: .minute())) { value, date in
+            NotificationEvaluator.shared.evaluate(heartRate: value, spo2: nil, timestamp: date)
+        }
+        observeWithObserverQuery(.oxygenSaturation, unit: HKUnit.percent()) { value, date in
+            NotificationEvaluator.shared.evaluate(heartRate: nil, spo2: value, timestamp: date)
+        }
+    }
+
+    private func observeWithObserverQuery(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit, _ callback: @escaping (Double, Date) -> Void) {
+        guard let type = HKObjectType.quantityType(forIdentifier: identifier) else { return }
+        let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, _, error in
+            guard error == nil else {
+                print("Observer error: \(error!.localizedDescription)")
+                return
+            }
+            // When observer fires, run an anchored query to fetch new samples
+            let anchored = HKAnchoredObjectQuery(type: type, predicate: nil, anchor: nil, limit: 1) { _, samples, newAnchor, _, err in
+                if let sample = samples?.last as? HKQuantitySample {
+                    let val = sample.quantity.doubleValue(for: unit)
+                    DispatchQueue.main.async { callback(val, sample.endDate) }
+                }
+            }
+            self?.store.execute(anchored)
+        }
+        store.execute(query)
+    }
+
 
     // MARK: - Read Most Recent Value
     func readMostRecentSample(ofType identifier: HKQuantityTypeIdentifier,
@@ -72,45 +101,6 @@ final class HealthKitManager {
 
             let value = sample.quantity.doubleValue(for: unit)
             completion(value, sample.endDate, nil)
-        }
-
-        store.execute(query)
-    }
-
-    // MARK: - LIVE UPDATES (Apple Watch → App)
-    func observeHeartRate(_ update: @escaping (Double, Date) -> Void) {
-        guard let type = HKObjectType.quantityType(forIdentifier: .heartRate) else { return }
-
-        let query = HKAnchoredObjectQuery(
-            type: type,
-            predicate: nil,
-            anchor: nil,
-            limit: HKObjectQueryNoLimit
-        ) { _, samples, _, _, _ in
-            self.processSamples(samples, unit: HKUnit.count().unitDivided(by: .minute()), update)
-        }
-
-        query.updateHandler = { _, samples, _, _, _ in
-            self.processSamples(samples, unit: HKUnit.count().unitDivided(by: .minute()), update)
-        }
-
-        store.execute(query)
-    }
-
-    func observeOxygen(_ update: @escaping (Double, Date) -> Void) {
-        guard let type = HKObjectType.quantityType(forIdentifier: .oxygenSaturation) else { return }
-
-        let query = HKAnchoredObjectQuery(
-            type: type,
-            predicate: nil,
-            anchor: nil,
-            limit: HKObjectQueryNoLimit
-        ) { _, samples, _, _, _ in
-            self.processSamples(samples, unit: HKUnit.percent(), update)
-        }
-
-        query.updateHandler = { _, samples, _, _, _ in
-            self.processSamples(samples, unit: HKUnit.percent(), update)
         }
 
         store.execute(query)

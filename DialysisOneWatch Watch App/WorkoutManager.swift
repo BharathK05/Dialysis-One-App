@@ -1,8 +1,8 @@
-
-//  WorkoutManager.swift
-//  Dialysis One Watch App
 //
-//  Created by user@22 on 15/12/25.
+//  WorkoutManager.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 16/12/25.
 //
 
 import Foundation
@@ -21,7 +21,7 @@ final class WorkoutManager: NSObject {
         guard !isRunning else { return }
 
         let config = HKWorkoutConfiguration()
-        config.activityType = .other
+        config.activityType = .mindAndBody
         config.locationType = .unknown
 
         do {
@@ -31,6 +31,7 @@ final class WorkoutManager: NSObject {
             )
 
             builder = session?.associatedWorkoutBuilder()
+
             builder?.dataSource = HKLiveWorkoutDataSource(
                 healthStore: healthStore,
                 workoutConfiguration: config
@@ -41,13 +42,20 @@ final class WorkoutManager: NSObject {
 
             let startDate = Date()
             session?.startActivity(with: startDate)
-            builder?.beginCollection(withStart: startDate) { _, _ in }
+
+            builder?.beginCollection(withStart: startDate) { success, error in
+                print(success
+                      ? "✅ Workout collection started"
+                      : "❌ Failed to begin collection")
+            }
 
             isRunning = true
         } catch {
             print("❌ Workout start failed:", error)
         }
     }
+
+
 
     func stopIfNeeded() {
         guard isRunning else { return }
@@ -92,6 +100,7 @@ extension WorkoutManager: HKLiveWorkoutBuilderDelegate {
     func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
     func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder,
                         didCollectDataOf collectedTypes: Set<HKSampleType>) {
+        print("📡 Collected types:", collectedTypes.map { $0.identifier })
 
         for type in collectedTypes {
             guard let qType = type as? HKQuantityType else { continue }

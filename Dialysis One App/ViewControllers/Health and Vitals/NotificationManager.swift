@@ -1,4 +1,10 @@
-// NotificationManager.swift
+//
+//  NotificationManager.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 10/12/25.
+//
+
 import Foundation
 import UserNotifications
 

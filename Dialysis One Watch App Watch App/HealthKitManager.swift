@@ -9,170 +9,105 @@ import Foundation
 import HealthKit
 import Combine
 
-final class HealthKitManager: NSObject, ObservableObject {
-    private let healthStore = HKHealthStore()
-    
+final class HealthKitManager: ObservableObject {
+
+    static let shared = HealthKitManager()
+
     @Published var heartRate: Double?
     @Published var oxygenSaturation: Double?
-    @Published var statusMessage: String = "Requesting HealthKit access..."
-    
-    // MARK: - Alert thresholds & cooldown (tune these values)
-    private let HR_HIGH_THRESHOLD: Double = 120.0
-    private let HR_LOW_THRESHOLD: Double  = 40.0
-    private let SPO2_LOW_THRESHOLD: Double = 92.0
+    @Published var statusMessage: String = "Waiting for workout…"
 
-    // Simple cooldown so we don't spam alerts repeatedly
+    private let healthStore = HKHealthStore()
+
+    // Thresholds
+    private let HR_HIGH: Double = 120
+    private let HR_LOW: Double = 40
+    private let SPO2_LOW: Double = 92
+
     private var lastAlertTimes: [String: Date] = [:]
-    private let alertCooldown: TimeInterval = 5 * 60 // 5 minutes
-    
-    // MARK: - Health Types
-    
-    private var heartRateType: HKQuantityType {
-        HKObjectType.quantityType(forIdentifier: .heartRate)!
-    }
-    
-    private var oxygenType: HKQuantityType? {
-        HKObjectType.quantityType(forIdentifier: .oxygenSaturation)
-    }
-    
-    override init() {
-        super.init()
-        // If you want connectivity to start as soon as manager is instantiated,
-        // ensure WatchConnectivityManager.shared is initialized from App init.
-    }
-    
+    private let cooldown: TimeInterval = 5 * 60
+
+    private init() {}
+
     func requestAuthorization() {
         guard HKHealthStore.isHealthDataAvailable() else {
-            statusMessage = "Health data not available."
+            statusMessage = "Health data unavailable"
             return
         }
-        
-        var typesToShare: Set<HKSampleType> = []
-        var typesToRead: Set<HKObjectType> = [heartRateType]
-        
-        if let oxygenType = oxygenType {
-            typesToRead.insert(oxygenType)
-        }
-        
-        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { [weak self] success, error in
+
+        let types: Set<HKObjectType> = [
+            HKObjectType.quantityType(forIdentifier: .heartRate)!,
+            HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!
+        ]
+
+        healthStore.requestAuthorization(toShare: [], read: types) { [weak self] ok, err in
             DispatchQueue.main.async {
-                if let error = error {
-                    self?.statusMessage = "Auth error: \(error.localizedDescription)"
-                } else if success {
-                    self?.statusMessage = "Authorized. Starting live data..."
+                if ok {
+                    self?.statusMessage = "Live vitals active"
+                    WorkoutManager.shared.start()
                 } else {
-                    self?.statusMessage = "Authorization not granted."
+                    self?.statusMessage = err?.localizedDescription ?? "Permission denied"
                 }
             }
         }
     }
-    
-    func stopStreaming() {
-        // no-op, WorkoutManager owns the workout
+
+    func updateHeartRate(_ value: Double) {
+        heartRate = value
+        sendVitals()
+        checkAlerts()
     }
 
+    func updateSpO2(_ value: Double) {
+        oxygenSaturation = value
+        sendVitals()
+        checkAlerts()
+    }
 
-    
-    // MARK: - Alert cooldown helper
-    
-    private func shouldSendAlert(for key: String) -> Bool {
+    private func sendVitals() {
+        WatchConnectivityManager.shared.sendVitals(
+            heartRate: heartRate,
+            spo2: oxygenSaturation
+        )
+    }
+
+    private func checkAlerts() {
+        if let hr = heartRate,
+           (hr > HR_HIGH || hr < HR_LOW),
+           shouldAlert("hr") {
+
+            WatchConnectivityManager.shared.sendImmediateAlert(
+                heartRate: hr,
+                spo2: oxygenSaturation,
+                details: "Heart rate \(Int(hr)) bpm"
+            )
+        }
+
+        if let s = oxygenSaturation,
+           s < SPO2_LOW,
+           shouldAlert("spo2") {
+
+            WatchConnectivityManager.shared.sendImmediateAlert(
+                heartRate: heartRate,
+                spo2: s,
+                details: "SpO₂ \(Int(s))%"
+            )
+        }
+    }
+
+    private func shouldAlert(_ key: String) -> Bool {
         let now = Date()
-        if let last = lastAlertTimes[key], now.timeIntervalSince(last) < alertCooldown {
+        if let last = lastAlertTimes[key],
+           now.timeIntervalSince(last) < cooldown {
             return false
         }
         lastAlertTimes[key] = now
         return true
     }
-    
-    // MARK: - Statistics handler
-    
-    private func handleStatistics(_ statistics: HKStatistics) {
-        // quantityType is already HKQuantityType?
-        let quantityType = statistics.quantityType
-            guard let quantity = statistics.mostRecentQuantity() else { return }
-        
-        DispatchQueue.main.async {
-            switch quantityType {
-            case self.heartRateType:
-                let bpmUnit = HKUnit.count().unitDivided(by: HKUnit.minute())
-                let value = quantity.doubleValue(for: bpmUnit)
-                self.heartRate = value
-                self.statusMessage = "Live heart rate updated."
-                
-                // Send updated vitals to iPhone
-                WatchConnectivityManager.shared.sendVitals(heartRate: self.heartRate, spo2: self.oxygenSaturation)
-                
-                // Abnormal detection with cooldown
-                if let hr = self.heartRate {
-                    if hr >= self.HR_HIGH_THRESHOLD || hr <= self.HR_LOW_THRESHOLD {
-                        if self.shouldSendAlert(for: "hr") {
-                            let details = "Heart rate \(Int(hr)) bpm"
-                            WatchConnectivityManager.shared.sendImmediateAlert(heartRate: hr,
-                                                                              spo2: self.oxygenSaturation,
-                                                                              details: details)
-                            // Optionally post a local notification on watch here
-                        }
-                    }
-                }
-                
-            case self.oxygenType:
-                // Oxygen saturation is a percentage (0.0 - 1.0)
-                let percentUnit = HKUnit.percent()
-                let value = quantity.doubleValue(for: percentUnit) * 100.0
-                self.oxygenSaturation = value
-                self.statusMessage = "Live oxygen updated."
-                
-                // Send updated vitals to iPhone
-                WatchConnectivityManager.shared.sendVitals(heartRate: self.heartRate, spo2: self.oxygenSaturation)
-                
-                // Abnormal detection for SpO2 with cooldown
-                if let spo2 = self.oxygenSaturation {
-                    if spo2 <= self.SPO2_LOW_THRESHOLD {
-                        if self.shouldSendAlert(for: "spo2") {
-                            let details = "SpO₂ \(Int(spo2))%"
-                            WatchConnectivityManager.shared.sendImmediateAlert(heartRate: self.heartRate,
-                                                                              spo2: spo2,
-                                                                              details: details)
-                            // Optionally post a local notification on watch here
-                        }
-                    }
-                }
-                
-            default:
-                break
-            }
-        }
-    }
-}
 
-// MARK: - HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate
-
-extension HealthKitManager: HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
-    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState,
-                        from fromState: HKWorkoutSessionState, date: Date) {
-        DispatchQueue.main.async {
-            self.statusMessage = "Workout session state: \(toState.rawValue)"
-        }
-    }
-    
-    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        DispatchQueue.main.async {
-            self.statusMessage = "Workout error: \(error.localizedDescription)"
-        }
-    }
-    
-    func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
-        // Not used, but required by protocol
-    }
-    
-    func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder,
-                        didCollectDataOf collectedTypes: Set<HKSampleType>) {
-        for sampleType in collectedTypes {
-            guard let quantityType = sampleType as? HKQuantityType else { continue }
-            
-            if let statistics = workoutBuilder.statistics(for: quantityType) {
-                handleStatistics(statistics)
-            }
-        }
+    func stop() {
+        heartRate = nil
+        oxygenSaturation = nil
+        statusMessage = "Stopped"
     }
 }
