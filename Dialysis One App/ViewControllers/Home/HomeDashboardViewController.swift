@@ -48,6 +48,11 @@ class HomeDashboardViewController: UIViewController,
     private var fluidTypeLabel: UILabel?
     private var fluidQuantityDisplayLabel: UILabel?
     private var fluidEditButton: UIButton?
+    
+    private var appointmentHospitalLabel: UILabel?
+    private var appointmentDateLabel: UILabel?
+    private var appointmentTimeLabel: UILabel?
+
 
     // width constraint for the fluid/water button (used during expand/collapse)
     private var waterButtonWidthConstraint: NSLayoutConstraint?
@@ -141,34 +146,8 @@ class HomeDashboardViewController: UIViewController,
 
     private var weightValueLabel: UILabel?
 
-    // --- Fluid quick-add state & UI refs (stored properties) ---
-    private var fluidTypes: [String] = ["Water", "Coffee", "Tea", "Juice"]
-    private var selectedFluidTypeIndex: Int = 0
-    private var selectedFluidQuantity: Int = 0 // start at zero per your request
-
-    private var fluidStepper: UIStepper?
-    private var fluidTypeLabel: UILabel?
-    private var fluidQuantityDisplayLabel: UILabel?
-    private var fluidEditButton: UIButton?
-
-    // width constraint for the fluid/water button (used during expand/collapse)
-    private var waterButtonWidthConstraint: NSLayoutConstraint?
-    private var isFluidExpanded: Bool = false
-
-    // constraints to animate icon alignment
-    private var fluidIconCenterConstraint: NSLayoutConstraint?
-    private var fluidIconLeadingConstraint: NSLayoutConstraint?
-
-    // fluid editor popup references
-    private var fluidEditorOverlay: UIView?
-    private var fluidEditorCard: UIView?
+   
     
-    // Additional constraints to swap when fluid expands (so it can fill horizontal scope)
-    private var waterButtonLeadingToDietConstraint: NSLayoutConstraint?
-    private var waterButtonLeadingToContentConstraint: NSLayoutConstraint?
-
-    // Save button on the horizontal (expanded) fluid card
-    private var fluidQuickAddSaveButton: UIButton?
 
 
     // -------------------------------------------------------------------------
@@ -2082,11 +2061,7 @@ final class PreviewViewController: UIViewController {
         setupUI()
     }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        setupUI()
-    }
+    
 
     private func setupUI() {
         imageView.translatesAutoresizingMaskIntoConstraints = false
