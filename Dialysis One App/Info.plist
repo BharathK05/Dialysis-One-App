@@ -41,5 +41,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fontspring-DEMO-theseasons-bd.otf</string>
+	</array>
 </dict>
 </plist>
+
