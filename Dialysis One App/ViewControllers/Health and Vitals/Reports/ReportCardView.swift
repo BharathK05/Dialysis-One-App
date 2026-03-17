@@ -32,6 +32,7 @@ class ReportCardView: UIView {
 
     private let thumb = UIImageView()
     private let titleLabel = UILabel()
+    private let typeLabel = UILabel()
     private let dateLabel = UILabel()
 
     var onTap: (() -> Void)?
@@ -60,10 +61,12 @@ class ReportCardView: UIView {
         thumb.backgroundColor = UIColor(white: 0.95, alpha: 1)
 
         titleLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        typeLabel.font = UIFont.systemFont(ofSize: 13)
+        typeLabel.textColor = .gray
         dateLabel.font = UIFont.systemFont(ofSize: 13)
         dateLabel.textColor = .gray
-        
-        let vstack = UIStackView(arrangedSubviews: [titleLabel, dateLabel])
+
+        let vstack = UIStackView(arrangedSubviews: [titleLabel, typeLabel, dateLabel])
         vstack.axis = .vertical
         vstack.spacing = 4
         vstack.translatesAutoresizingMaskIntoConstraints = false
@@ -89,6 +92,7 @@ class ReportCardView: UIView {
     private func configure() {
         guard let r = report else { return }
         titleLabel.text = r.title
+        typeLabel.text = r.type
         let fmt = DateFormatter(); fmt.dateStyle = .medium
         dateLabel.text = fmt.string(from: r.date)
 

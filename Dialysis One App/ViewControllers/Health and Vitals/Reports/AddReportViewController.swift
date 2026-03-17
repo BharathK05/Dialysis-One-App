@@ -24,13 +24,13 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         return df.string(from: selectedDate)
     }
 
-
     weak var delegate: AddReportDelegate?
 
     private let scroll = UIScrollView()
     private let content = UIStackView()
 
     private let titleField = UITextField()
+    private let typeField = UITextField()
 
     private let dateButton = UIButton(type: .system)
     private let fileAddButton = UIButton(type: .system)
@@ -51,7 +51,8 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
 
     private func setupNav() {
         navigationItem.title = "Add Blood Report"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Add", style: .done, target: self, action: #selector(saveTapped))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(backTapped))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveTapped))
     }
 
     // MARK: - UI Setup
@@ -84,12 +85,16 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         styleTextField(titleField, placeholder: "Enter Report Title")
         content.addArrangedSubview(titleField)
 
+        // --- TYPE FIELD ---
+        content.addArrangedSubview(makeLabel("Type"))
+        styleTextField(typeField, placeholder: "Enter Report Type")
+        content.addArrangedSubview(typeField)
+
         // --- DATE SECTION ---
         content.addArrangedSubview(makeLabel("Date"))
         let dateRow = buildDateRow()
         dateRow.tag = 999
         content.addArrangedSubview(dateRow)
-
 
         // --- ATTACH SECTION ---
         content.addArrangedSubview(makeLabel("Attach Report"))
@@ -99,7 +104,6 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         configureAttachmentContainer()
         attachmentContainer.isHidden = true
         content.addArrangedSubview(attachmentContainer)
-
     }
 
     private func styleTextField(_ field: UITextField, placeholder: String) {
@@ -123,16 +127,11 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         dateButton.setTitle(DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .none), for: .normal)
         dateButton.setTitleColor(.systemBlue, for: .normal)
         dateButton.titleLabel?.font = .systemFont(ofSize: 16)
-
-        // NEW: Align text to right
         dateButton.contentHorizontalAlignment = .right
-
         dateButton.backgroundColor = UIColor(white: 0.95, alpha: 1)
         dateButton.layer.cornerRadius = 14
         dateButton.heightAnchor.constraint(equalToConstant: 52).isActive = true
-
         dateButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 15)
-
         dateButton.addTarget(self, action: #selector(openDatePicker), for: .touchUpInside)
     }
 
@@ -141,14 +140,10 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         fileAddButton.setTitle(nil, for: .normal)
         fileAddButton.setImage(UIImage(systemName: "plus"), for: .normal)
         fileAddButton.tintColor = .systemBlue
-
         fileAddButton.backgroundColor = UIColor(white: 0.95, alpha: 1)
         fileAddButton.layer.cornerRadius = 14
-
-        // Figma-like height + padding
         fileAddButton.heightAnchor.constraint(equalToConstant: 52).isActive = true
         fileAddButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-
         fileAddButton.addTarget(self, action: #selector(openFilePicker), for: .touchUpInside)
     }
     
@@ -218,19 +213,8 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
     // MARK: - Attach Options (Scan / Upload)
 
     private func buildAttachOptions() -> UIStackView {
-
-        let scanRow = makeActionRow(
-            icon: "camera.viewfinder",
-            title: "Scan Document",
-            selector: #selector(scanDocument)
-        )
-
-        let uploadRow = makeActionRow(
-            icon: "doc.fill",
-            title: "Upload PDF",
-            selector: #selector(openFilePicker)
-        )
-
+        let scanRow = makeActionRow(icon: "camera.viewfinder", title: "Scan Document", selector: #selector(scanDocument))
+        let uploadRow = makeActionRow(icon: "doc.fill", title: "Upload PDF", selector: #selector(openFilePicker))
         let stack = UIStackView(arrangedSubviews: [scanRow, uploadRow])
         stack.axis = .vertical
         stack.spacing = 12
@@ -238,7 +222,6 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
     }
 
     private func makeActionRow(icon: String, title: String, selector: Selector) -> UIView {
-
         let container = UIView()
         container.backgroundColor = UIColor(white: 0.95, alpha: 1)
         container.layer.cornerRadius = 14
@@ -267,7 +250,6 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
 
         let tap = UITapGestureRecognizer(target: self, action: selector)
         container.addGestureRecognizer(tap)
-
         return container
     }
     
@@ -276,12 +258,10 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
             alert("Document scanning is not supported on this device.")
             return
         }
-
         let scanner = VNDocumentCameraViewController()
         scanner.delegate = self
         present(scanner, animated: true)
     }
-
     
     private func buildDateRow() -> UIView {
         let container = UIView()
@@ -293,7 +273,7 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         label.text = formattedDate
         label.font = .systemFont(ofSize: 16)
         label.textColor = .systemBlue
-        label.textAlignment = .center   // ← CENTERED DATE
+        label.textAlignment = .center
         
         container.addSubview(label)
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -308,25 +288,23 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         
         return container
     }
-
     
     private func refreshDateRow() {
         let newRow = buildDateRow()
         newRow.tag = 999
-
         if let index = content.arrangedSubviews.firstIndex(where: { $0.tag == 999 }) {
             let oldRow = content.arrangedSubviews[index]
             content.removeArrangedSubview(oldRow)
             oldRow.removeFromSuperview()
-
             content.insertArrangedSubview(newRow, at: index)
         }
     }
 
-
-
-
     // MARK: - Actions
+
+    @objc private func backTapped() {
+        dismiss(animated: true)
+    }
 
     @objc private func openDatePicker() {
         let picker = UIDatePicker()
@@ -336,7 +314,6 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
 
         let alert = UIAlertController(title: "Select Date", message: "\n\n\n\n\n\n\n", preferredStyle: .actionSheet)
         alert.view.addSubview(picker)
-
         picker.frame = CGRect(x: 0, y: 40, width: alert.view.frame.width - 20, height: 150)
 
         alert.addAction(UIAlertAction(title: "Done", style: .default, handler: { _ in
@@ -344,10 +321,8 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
             self.refreshDateRow()
         }))
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-
         present(alert, animated: true)
     }
-
 
     @objc private func openFilePicker() {
         let types = [UTType.pdf]
@@ -360,46 +335,37 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let selected = urls.first else { return }
         selectedFileURL = selected
-
         attachmentLabel.text = selected.lastPathComponent
         attachmentContainer.isHidden = false
     }
 
     @objc private func removeAttachment() {
         selectedFileURL = nil
-        attachmentContainer.isHidden = true
+        attachmentContainer.isHidden = false
     }
     
     private func addKeyboardDoneButton() {
-
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
-
         let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let done = UIBarButtonItem(
-            title: "Done",
-            style: .done,
-            target: self,
-            action: #selector(doneTyping)
-        )
-
+        let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(doneTyping))
         toolbar.items = [flex, done]
-
         titleField.inputAccessoryView = toolbar
+        typeField.inputAccessoryView = toolbar
     }
 
     @objc private func doneTyping() {
         view.endEditing(true)
     }
 
-
     @objc private func saveTapped() {
-
-        guard let title = titleField.text, !title.isEmpty else {
-            alert("Please enter a report title")
+        guard let t = titleField.text, !t.isEmpty,
+              let tp = typeField.text, !tp.isEmpty else {
+            alert("Please fill Title & Type")
             return
         }
 
+        let date = selectedDate
         var filename: String? = nil
         var thumbnail: Data? = nil
 
@@ -410,24 +376,21 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
 
                 if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                     let fullURL = docs.appendingPathComponent(savedName)
-                    if let img = FileStorage.shared.generatePDFThumbnail(
-                        url: fullURL,
-                        size: CGSize(width: 80, height: 80)
-                    ),
-                    let d = img.pngData() {
+                    if let img = FileStorage.shared.generatePDFThumbnail(url: fullURL, size: CGSize(width: 80, height: 80)),
+                       let d = img.pngData() {
                         thumbnail = d
                     }
                 }
             } catch {
-                alert("File save failed")
+                alert("File save failed: \(error.localizedDescription)")
                 return
             }
         }
 
-        // ✅ NO EXTRACTION HERE
         let report = BloodReport(
-            title: title,
-            date: selectedDate,
+            title: t,
+            type: tp,
+            date: date,
             filename: filename,
             thumbnailData: thumbnail
         )
@@ -439,7 +402,6 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         delegate?.addReportDidSave(report)
         dismiss(animated: true)
     }
-
 
     private func alert(_ msg: String) {
         let a = UIAlertController(title: "Error", message: msg, preferredStyle: .alert)
@@ -457,22 +419,13 @@ extension UITextField {
 }
 
 extension AddReportViewController: VNDocumentCameraViewControllerDelegate {
-
-    func documentCameraViewController(
-        _ controller: VNDocumentCameraViewController,
-        didFinishWith scan: VNDocumentCameraScan
-    ) {
+    func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
         controller.dismiss(animated: true)
-
         do {
             let title = titleField.text?.isEmpty == false
                 ? titleField.text!
-                : "Scanned Report"
-
-            let pdfURL = try FileStorage.shared.saveScanAsPDF(
-                scan,
-                filename: title
-            )
+                : "Scanned_Report"
+            let pdfURL = try FileStorage.shared.saveScanAsPDF(scan, filename: title)
             selectedFileURL = pdfURL
             attachmentLabel.text = pdfURL.lastPathComponent
             attachmentContainer.isHidden = false
