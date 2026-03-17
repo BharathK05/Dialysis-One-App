@@ -2,11 +2,10 @@
 //  ProfileSheetViewController.swift
 //  Dialysis One App
 //
-//  Created by user@22 on 17/11/25.
+//  Updated for Guest + Apple ID flow (no Firebase required)
 //
 
 import UIKit
-import FirebaseAuth
 
 struct PinnedStorage {
     static let pinnedKey = "pinned_modules"
@@ -17,7 +16,6 @@ class ProfileSheetViewController: UIViewController {
     
     private var initialTouchPoint: CGPoint = .zero
 
-
     // MARK: UI ELEMENTS
     private let scroll = UIScrollView()
     private let content = UIStackView()
@@ -25,6 +23,7 @@ class ProfileSheetViewController: UIViewController {
     private let profileImage = UIImageView()
     private let nameLabel = UILabel()
     
+    private let userTypeLabel = UILabel()  // NEW: Show if Guest or Apple ID
     private let signOutButton = UIButton()
 
     override func viewDidLoad() {
@@ -34,7 +33,7 @@ class ProfileSheetViewController: UIViewController {
         loadUserInfo()
         
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
-        panGesture.cancelsTouchesInView = false   // FIXES button not firing
+        panGesture.cancelsTouchesInView = false
         view.addGestureRecognizer(panGesture)
     }
     
@@ -59,8 +58,6 @@ class ProfileSheetViewController: UIViewController {
             grabber.heightAnchor.constraint(equalToConstant: 4)
         ])
         
-        
-        
         scroll.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scroll)
         NSLayoutConstraint.activate([
@@ -69,7 +66,6 @@ class ProfileSheetViewController: UIViewController {
             scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-        
         
         content.axis = .vertical
         content.spacing = 20
@@ -95,15 +91,19 @@ class ProfileSheetViewController: UIViewController {
         profileImage.widthAnchor.constraint(equalToConstant: 90).isActive = true
         profileImage.heightAnchor.constraint(equalToConstant: 90).isActive = true
         
-        let profileStack = UIStackView(arrangedSubviews: [profileImage, nameLabel])
+        // User Type Label (Guest or Apple ID)
+        userTypeLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+        userTypeLabel.textColor = .systemGray
+        userTypeLabel.textAlignment = .center
+        userTypeLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        let profileStack = UIStackView(arrangedSubviews: [profileImage, nameLabel, userTypeLabel])
         profileStack.axis = .vertical
         profileStack.alignment = .center
-        profileStack.spacing = 12
-        profileStack.setCustomSpacing(20, after: profileImage)
+        profileStack.spacing = 8
+        profileStack.setCustomSpacing(12, after: profileImage)
         content.setCustomSpacing(30, after: profileStack)
         
-        nameLabel.font = UIFont.boldSystemFont(ofSize: 22)
-        profileStack.setCustomSpacing(16, after: profileImage)
         nameLabel.font = UIFont.systemFont(ofSize: 22, weight: .bold)
         nameLabel.text = "Your Name"
         
@@ -123,32 +123,30 @@ class ProfileSheetViewController: UIViewController {
         content.addArrangedSubview(makeMultiOptionCard(["Privacy Policy", "Terms and Conditions"], startTag: &globalRowTag))
         
         
-        
-        // MARK: - Sign Out Button (Working + Styled)
+        // MARK: - Sign Out / Reset Button
         let signOutContainer = UIView()
         signOutContainer.backgroundColor = .white
         signOutContainer.layer.cornerRadius = 12
         signOutContainer.translatesAutoresizingMaskIntoConstraints = false
         signOutContainer.heightAnchor.constraint(equalToConstant: 55).isActive = true
         
-        // Optional small shadow
         signOutContainer.layer.shadowColor = UIColor.black.cgColor
         signOutContainer.layer.shadowOpacity = 0.07
         signOutContainer.layer.shadowRadius = 4
         signOutContainer.layer.shadowOffset = CGSize(width: 0, height: 2)
         
-        signOutButton.setTitle("Sign Out", for: .normal)
+        // Button text changes based on user type
+        let buttonTitle = LocalUserManager.shared.hasAppleID() ? "Sign Out" : "Reset App Data"
+        signOutButton.setTitle(buttonTitle, for: .normal)
         signOutButton.setTitleColor(.systemRed, for: .normal)
         signOutButton.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
         signOutButton.translatesAutoresizingMaskIntoConstraints = false
         
-        // IMPORTANT: Add button target again
-        signOutButton.addTarget(self, action: #selector(signOutTapped), for: .touchUpInside)
+        signOutButton.addTarget(self, action: #selector(signOutOrResetTapped), for: .touchUpInside)
         
         signOutContainer.addSubview(signOutButton)
         content.addArrangedSubview(signOutContainer)
         
-        // Center the button inside the container
         NSLayoutConstraint.activate([
             signOutButton.centerXAnchor.constraint(equalTo: signOutContainer.centerXAnchor),
             signOutButton.centerYAnchor.constraint(equalTo: signOutContainer.centerYAnchor)
@@ -169,7 +167,7 @@ class ProfileSheetViewController: UIViewController {
 
     private func openEditHealthDetails() {
         let vc = EditHealthDetailsViewController()
-        vc.delegate = self   // <--- IMPORTANT
+        vc.delegate = self
         let nav = UINavigationController(rootViewController: vc)
         nav.modalPresentationStyle = .pageSheet
         if let sheet = nav.sheetPresentationController {
@@ -185,7 +183,6 @@ class ProfileSheetViewController: UIViewController {
     private func openEditPinned() {
         let vc = EditPinnedViewController()
 
-        // Load saved modules (or defaults if empty)
         vc.pinned = UserDefaults.standard.stringArray(forKey: PinnedStorage.pinnedKey) ?? ["Fluid Tracker"]
         vc.others = UserDefaults.standard.stringArray(forKey: PinnedStorage.othersKey) ??
                     ["Calorie Tracker", "Medication"]
@@ -193,8 +190,6 @@ class ProfileSheetViewController: UIViewController {
         vc.delegate = self
         presentSheet(vc)
     }
-
-
 
     private func openNotifications() {
         let vc = NotificationsViewController()
@@ -211,7 +206,6 @@ class ProfileSheetViewController: UIViewController {
         presentSheet(vc)
     }
 
-    /// Reusable sheet presenter
     private func presentSheet(_ vc: UIViewController) {
         let nav = UINavigationController(rootViewController: vc)
         nav.modalPresentationStyle = .pageSheet
@@ -238,20 +232,17 @@ class ProfileSheetViewController: UIViewController {
             row.backgroundColor = .white
             container.addSubview(row)
 
-            // Label
             let label = UILabel()
             label.text = title
             label.font = UIFont.systemFont(ofSize: 17)
             label.translatesAutoresizingMaskIntoConstraints = false
             row.addSubview(label)
 
-            // Chevron
             let arrow = UIImageView(image: UIImage(systemName: "chevron.right"))
             arrow.tintColor = .systemGray3
             arrow.translatesAutoresizingMaskIntoConstraints = false
             row.addSubview(arrow)
 
-            // Layout
             NSLayoutConstraint.activate([
                 row.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
                 row.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
@@ -272,14 +263,12 @@ class ProfileSheetViewController: UIViewController {
 
             lastRow = row
 
-            // Assign a unique tag
             row.tag = startTag
             startTag += 1
 
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleCardTap(_:)))
             row.addGestureRecognizer(tap)
 
-            // Divider except last one
             if title != titles.last {
                 let divider = UIView()
                 divider.backgroundColor = UIColor.systemGray5
@@ -305,25 +294,22 @@ class ProfileSheetViewController: UIViewController {
         print("Tapped row tag: \(row.tag)")
 
         switch row.tag {
-        case 0: openEditHealthDetails()          // FIRST CARD → row 0
-        case 1: openEditLimits()                 // FIRST CARD → row 1
-
-        case 2: openEditPinned()                 // SECOND CARD (App Settings) → row 0
-        case 3: openNotifications()              // SECOND CARD → row 1
-
-        case 4: openPrivacyPolicy()              // THIRD CARD (Privacy) → row 0
-        case 5: openTerms()                      // THIRD CARD → row 1
-
+        case 0: openEditHealthDetails()
+        case 1: openEditLimits()
+        case 2: openEditPinned()
+        case 3: openNotifications()
+        case 4: openPrivacyPolicy()
+        case 5: openTerms()
         default: break
         }
     }
 
     
-    private func showSignOutLoader(completion: @escaping () -> Void) {
+    private func showActionLoader(message: String, completion: @escaping () -> Void) {
         let loaderView = UIView(frame: view.bounds)
         loaderView.backgroundColor = UIColor.black.withAlphaComponent(0.3)
         loaderView.alpha = 0
-        loaderView.isUserInteractionEnabled = true  // Prevents taps during transition
+        loaderView.isUserInteractionEnabled = true
 
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
         blur.frame = loaderView.bounds
@@ -341,7 +327,7 @@ class ProfileSheetViewController: UIViewController {
         container.addSubview(spinner)
 
         let label = UILabel()
-        label.text = "Signing Out…"
+        label.text = message
         label.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
         label.textColor = .darkGray
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -366,7 +352,7 @@ class ProfileSheetViewController: UIViewController {
             loaderView.alpha = 1
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {  // Adjust delay here
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             completion()
             UIView.animate(withDuration: 0.3, animations: {
                 loaderView.alpha = 0
@@ -400,74 +386,90 @@ class ProfileSheetViewController: UIViewController {
         
         return container
     }
-
-    
-    private func makeOption(title: String) -> UIView {
-        let button = UIButton(type: .system)
-        button.setTitle(title, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 17)
-        button.contentHorizontalAlignment = .left
-        
-        let container = UIView()
-        container.backgroundColor = .white
-        container.layer.cornerRadius = 12
-        container.heightAnchor.constraint(equalToConstant: 55).isActive = true
-        
-        button.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(button)
-        
-        NSLayoutConstraint.activate([
-            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-            button.topAnchor.constraint(equalTo: container.topAnchor),
-            button.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
-        
-        return container
-    }
-    
     
     private func loadUserInfo() {
-        let email = Auth.auth().currentUser?.email ?? ""
-        nameLabel.text = email.components(separatedBy: "@").first?.capitalized
+        // Get name from UserDefaults
+        let savedName = UserDefaults.standard.string(forKey: "userFullName") ?? "User"
+        nameLabel.text = savedName
+        
+        // Show user type
+        let userType = LocalUserManager.shared.getUserType()
+        switch userType {
+        case .guest:
+            userTypeLabel.text = "Guest User"
+        case .appleID:
+            userTypeLabel.text = "🍎 Signed in with Apple"
+        }
+        
+        // Load profile image if saved
+        let localID = LocalUserManager.shared.getLocalUserID()
+        if let imageData = UserDefaults.standard.data(forKey: "profileImage_\(localID)"),
+           let image = UIImage(data: imageData) {
+            profileImage.image = image
+        }
     }
     
     
-    // MARK: - Sign Out
-    @objc func signOutTapped() {
+    // MARK: - Sign Out / Reset
+    @objc func signOutOrResetTapped() {
+        let hasAppleID = LocalUserManager.shared.hasAppleID()
+        
+        let title = hasAppleID ? "Sign Out" : "Reset App Data"
+        let message = hasAppleID
+            ? "Are you sure you want to sign out? Your data is backed up to iCloud."
+            : "This will clear all your app data and return you to the welcome screen. Are you sure?"
+        let actionTitle = hasAppleID ? "Sign Out" : "Reset"
 
         let alert = UIAlertController(
-            title: "Sign Out",
-            message: "Are you sure you want to sign out?",
+            title: title,
+            message: message,
             preferredStyle: .alert
         )
 
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
 
-        alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive, handler: { _ in
-            self.performSignOut()
+        alert.addAction(UIAlertAction(title: actionTitle, style: .destructive, handler: { _ in
+            self.performSignOutOrReset()
         }))
 
         present(alert, animated: true)
     }
 
     
-    private func performSignOut() {
-        showSignOutLoader { [weak self] in
+    private func performSignOutOrReset() {
+        let hasAppleID = LocalUserManager.shared.hasAppleID()
+        let message = hasAppleID ? "Signing Out…" : "Resetting…"
+        
+        showActionLoader(message: message) { [weak self] in
             guard let self = self else { return }
 
-            do {
-                try Auth.auth().signOut()
-            } catch {
-                print("Sign out failed:", error.localizedDescription)
-            }
-
-            // IMPORTANT: Do NOT dismiss the sheet first.
-            // We directly replace the window root to avoid flicker.
+            // Clear user data
+            self.clearUserData()
+            
+            // Navigate back to welcome screen
             if let sceneDelegate = UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate {
-                sceneDelegate.switchToWelcome()
+                sceneDelegate.returnToWelcome()
             }
         }
+    }
+    
+    private func clearUserData() {
+        // Get current user ID before clearing
+        let localID = LocalUserManager.shared.getLocalUserID()
+        
+        // Clear onboarding flag
+        UserDefaults.standard.removeObject(forKey: "onboardingCompleted_\(localID)")
+        
+        // Clear Apple ID if exists
+        if LocalUserManager.shared.hasAppleID() {
+            UserDefaults.standard.removeObject(forKey: "appleUserID")
+            UserDefaults.standard.removeObject(forKey: "hasSignedInWithApple")
+        }
+        
+        // Optionally clear all user data
+        // UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
+        
+        print("✅ User data cleared")
     }
     
     @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
@@ -481,18 +483,17 @@ class ProfileSheetViewController: UIViewController {
         case .changed:
             let offset = touchPoint.y - initialTouchPoint.y
             
-            if offset > 0 { // drag down only
+            if offset > 0 {
                 view.frame.origin.y = offset
-                view.alpha = max(1 - (offset / 350), 0.4) // fade effect
+                view.alpha = max(1 - (offset / 350), 0.4)
             }
 
         case .ended, .cancelled:
             let offset = touchPoint.y - initialTouchPoint.y
             
-            if offset > 140 {  // threshold to dismiss
+            if offset > 140 {
                 dismissWithDissolve()
             } else {
-                // cancel restore
                 UIView.animate(withDuration: 0.25) {
                     self.view.frame.origin.y = 0
                     self.view.alpha = 1
@@ -511,15 +512,10 @@ class ProfileSheetViewController: UIViewController {
             self.dismiss(animated: false)
         }
     }
-
-
-
 }
 
 extension ProfileSheetViewController: EditPinnedDelegate {
     func didUpdatePinned(pinned: [String], others: [String]) {
-
-        // Save permanently
         UserDefaults.standard.set(pinned, forKey: PinnedStorage.pinnedKey)
         UserDefaults.standard.set(others, forKey: PinnedStorage.othersKey)
 
@@ -527,8 +523,6 @@ extension ProfileSheetViewController: EditPinnedDelegate {
         print("Saved others:", others)
     }
 }
-
-
 
 extension ProfileSheetViewController: EditHealthDetailsDelegate {
     func editHealthDetailsDidSave(firstName: String?,
@@ -545,19 +539,25 @@ extension ProfileSheetViewController: EditHealthDetailsDelegate {
             DispatchQueue.main.async {
                 self.profileImage.image = img
             }
-        }
-
-        // Optionally update name label if first/last name provided
-        if let f = firstName, !f.isEmpty {
-            var display = f
-            if let l = lastName, !l.isEmpty { display += " " + l }
-            DispatchQueue.main.async {
-                self.nameLabel.text = display
+            
+            // Save to UserDefaults
+            let localID = LocalUserManager.shared.getLocalUserID()
+            if let imageData = img.jpegData(compressionQuality: 0.8) {
+                UserDefaults.standard.set(imageData, forKey: "profileImage_\(localID)")
             }
         }
 
-        // If you want to persist to local model / firebase, do it here.
+        // Update name label
+        if let f = firstName, !f.isEmpty {
+            var display = f
+            if let l = lastName, !l.isEmpty { display += " " + l }
+            
+            DispatchQueue.main.async {
+                self.nameLabel.text = display
+            }
+            
+            // Save full name
+            UserDefaults.standard.set(display, forKey: "userFullName")
+        }
     }
 }
-
-

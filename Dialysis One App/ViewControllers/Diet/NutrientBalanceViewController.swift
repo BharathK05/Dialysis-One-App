@@ -41,21 +41,7 @@ final class NutrientBalanceViewController: UIViewController {
         return v
     }()
 
-    private let backButton: UIButton = {
-        let b = UIButton(type: .system)
-
-        let config = UIImage.SymbolConfiguration(
-            pointSize: 17,
-            weight: .semibold
-        )
-
-        let image = UIImage(systemName: "chevron.left", withConfiguration: config)
-        b.setImage(image, for: .normal)
-
-        b.tintColor = .black
-        b.translatesAutoresizingMaskIntoConstraints = false
-        return b
-    }()
+    
 
     private let titleLabel: UILabel = {
         let l = UILabel()
@@ -180,9 +166,7 @@ final class NutrientBalanceViewController: UIViewController {
     }
     
     // MARK: - Actions
-    @objc private func backTapped() {
-        navigationController?.popViewController(animated: true)
-    }
+    
     
     @objc private func editButtonTapped() {
         isEditMode.toggle()
@@ -270,26 +254,22 @@ final class NutrientBalanceViewController: UIViewController {
         ])
 
         // Add all nav bar elements
-        gradientView.addSubview(backButton)
-        gradientView.addSubview(titleLabel)
+                gradientView.addSubview(titleLabel)
         gradientView.addSubview(editButton)
         
         // Setup targets
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        
         editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
         mealsSegmented.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
 
         NSLayoutConstraint.activate([
-            backButton.leadingAnchor.constraint(equalTo: gradientView.leadingAnchor, constant: 16),
-            backButton.topAnchor.constraint(equalTo: gradientView.safeAreaLayoutGuide.topAnchor, constant: Spacing.topNav),
-            backButton.widthAnchor.constraint(equalToConstant: 40),
-            backButton.heightAnchor.constraint(equalToConstant: 40),
+            
 
             titleLabel.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
-            
+            titleLabel.topAnchor.constraint(equalTo: gradientView.safeAreaLayoutGuide.topAnchor, constant: Spacing.topNav),
+
             editButton.trailingAnchor.constraint(equalTo: gradientView.trailingAnchor, constant: -16),
-            editButton.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
+            editButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
             editButton.heightAnchor.constraint(equalToConstant: 40)
         ])
 
@@ -485,6 +465,7 @@ final class NutrientBalanceViewController: UIViewController {
         leftLabel.text = left
         leftLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         leftLabel.translatesAutoresizingMaskIntoConstraints = false
+        leftLabel.lineBreakMode = .byTruncatingTail
 
         let centerLabel = UILabel()
         centerLabel.text = center
@@ -501,52 +482,55 @@ final class NutrientBalanceViewController: UIViewController {
         container.addSubview(leftLabel)
         container.addSubview(centerLabel)
         container.addSubview(rightLabel)
-        
-        // Add delete button if in edit mode
+
+        var leftAnchor = container.leadingAnchor
+        var leftPadding: CGFloat = 18
+
+        // ✅ DELETE BUTTON (only in edit mode)
         if isEditMode, let meal = meal {
-        let deleteButton = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        deleteButton.setImage(UIImage(systemName: "trash", withConfiguration: config), for: .normal)
-        deleteButton.tintColor = .systemRed
-        deleteButton.backgroundColor = UIColor.white.withAlphaComponent(0.9)
-        deleteButton.layer.cornerRadius = 14
-        deleteButton.translatesAutoresizingMaskIntoConstraints = false
-        deleteButton.addAction(UIAction { [weak self] _ in
-                        // Haptic feedback on tap
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-                        
-            self?.deleteMeal(meal)
-        }, for: .touchUpInside)
-        container.addSubview(deleteButton)
-                    
-        NSLayoutConstraint.activate([
-            deleteButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 14),
-            deleteButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            deleteButton.widthAnchor.constraint(equalToConstant: 28),
-            deleteButton.heightAnchor.constraint(equalToConstant: 28),
-                
-            leftLabel.leadingAnchor.constraint(equalTo: deleteButton.trailingAnchor, constant: 10),
-            leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            leftLabel.trailingAnchor.constraint(lessThanOrEqualTo: centerLabel.leadingAnchor, constant: -8)
-        ])
-        } else {
+            let deleteButton = UIButton(type: .system)
+            let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+            deleteButton.setImage(UIImage(systemName: "trash", withConfiguration: config), for: .normal)
+            deleteButton.tintColor = .systemRed
+            deleteButton.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+            deleteButton.layer.cornerRadius = 14
+            deleteButton.translatesAutoresizingMaskIntoConstraints = false
+
+            deleteButton.addAction(UIAction { [weak self] _ in
+                let generator = UIImpactFeedbackGenerator(style: .medium)
+                generator.impactOccurred()
+                self?.deleteMeal(meal)
+            }, for: .touchUpInside)
+
+            container.addSubview(deleteButton)
+
             NSLayoutConstraint.activate([
-                leftLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
-                leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+                deleteButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 14),
+                deleteButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                deleteButton.widthAnchor.constraint(equalToConstant: 28),
+                deleteButton.heightAnchor.constraint(equalToConstant: 28)
             ])
+
+            leftAnchor = deleteButton.trailingAnchor
+            leftPadding = 10
         }
 
         NSLayoutConstraint.activate([
-            centerLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            leftLabel.leadingAnchor.constraint(equalTo: leftAnchor, constant: leftPadding),
+            leftLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            leftLabel.trailingAnchor.constraint(lessThanOrEqualTo: centerLabel.leadingAnchor, constant: -12),
+
             centerLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            centerLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
             rightLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
-            rightLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+            rightLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            rightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: centerLabel.trailingAnchor, constant: 12)
         ])
 
         return container
     }
-    
+
     private func deleteMeal(_ meal: SavedMeal) {
         print("🗑️ Delete tapped for: \(meal.dishName)")
         

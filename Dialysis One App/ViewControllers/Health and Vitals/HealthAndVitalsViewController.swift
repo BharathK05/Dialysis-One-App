@@ -390,11 +390,15 @@ class HealthAndVitalsViewController: UIViewController {
 
             // maintain tap behavior if you have onTap
             card.onTap = { [weak self] in
-                guard let url = r.attachmentURL else { return }
-                let vc = ReportPreviewViewController()
-                vc.fileURL = url
-                vc.reportTitle = r.title
-                self?.navigationController?.pushViewController(vc, animated: true)
+                guard let self = self else { return }
+
+                let allReports = FileStorage.shared.loadReports()
+                let detail = ReportDetailViewController(
+                    report: r,
+                    allReports: allReports
+                )
+
+                self.navigationController?.pushViewController(detail, animated: true)
             }
         }
     }
@@ -569,6 +573,24 @@ class HealthAndVitalsViewController: UIViewController {
         // Persist current reports array (already removed earlier)
         FileStorage.shared.saveReports(reports)
     }
+    
+    private func runExtraction(for report: BloodReport) {
+
+        guard let url = report.attachmentURL else { return }
+
+        PDFTextPipeline.extractText(from: url) { text in
+            guard let text = text else { return }
+
+            var reports = FileStorage.shared.loadReports()
+            guard let index = reports.firstIndex(where: { $0.id == report.id }) else { return }
+
+            reports[index].extractedText = text
+            FileStorage.shared.saveReports(reports)
+
+            print("✅ Extracted text saved for report:", report.title)
+        }
+    }
+
 
 
 }
@@ -576,8 +598,11 @@ class HealthAndVitalsViewController: UIViewController {
 
 extension HealthAndVitalsViewController: AddReportDelegate {
     func addReportDidSave(_ report: BloodReport) {
-        // reload full list
-        loadReports()
+        // Reload list / add card (existing logic)
+            loadReports()
+
+            // 🔥 Start background extraction
+            runExtraction(for: report)
     }
 }
 

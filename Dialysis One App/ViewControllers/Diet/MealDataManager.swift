@@ -121,19 +121,32 @@ class MealDataManager {
     
     // MARK: - Delete Meal
     
+    // Add this property to track Supabase IDs (optional for now)
+    // Later you can extend SavedMeal to include supabaseId
+
     func deleteMeal(id: UUID) {
         var meals = getAllMeals()
-        meals.removeAll { $0.id == id }
-        saveMeals(meals)
         
-        // Update nutrient totals
-        updateUserNutrientTotals()
-        
-        NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
-        
-        print("🗑️ Meal deleted for user: \(uid)")
+        // Find the meal before deleting (for Supabase sync)
+        if let mealIndex = meals.firstIndex(where: { $0.id == id }) {
+            let meal = meals[mealIndex]
+            
+            // Delete from local storage
+            meals.remove(at: mealIndex)
+            saveMeals(meals)
+            
+            // Update nutrient totals
+            updateUserNutrientTotals()
+            
+            // Delete from Supabase in background
+            // Note: This requires storing Supabase UUID in SavedMeal
+            // For now, we'll skip this - implement later when extending SavedMeal
+            
+            NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
+            
+            print("🗑️ Meal deleted for user: \(uid)")
+        }
     }
-    
     // MARK: - Private Helpers
     
     private func saveMeals(_ meals: [SavedMeal]) {

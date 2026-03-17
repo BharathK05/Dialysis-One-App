@@ -109,6 +109,7 @@ final class EditHealthDetailsViewController: UIViewController {
 
         // persist locally for demo (UserDefaults)
         saveLocally()
+        LimitsDiet.shared.refreshFromSavedProfile()
         dismiss(animated: true)
     }
 

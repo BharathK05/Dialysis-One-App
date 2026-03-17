@@ -278,7 +278,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = 3DXUA7RP32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
@@ -286,13 +286,13 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.iOS.DialysisOneAppp;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.srmist.DialysisOneApp;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = NO;
@@ -316,7 +316,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = 3DXUA7RP32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
@@ -324,13 +324,13 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.iOS.DialysisOneAppp;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.srmist.DialysisOneApp;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = NO;
@@ -354,13 +354,15 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = 3DXUA7RP32;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to capture photos for your dialysis records";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Dialysis One reads your Blood Pressure and Blood Oxygen data to display your vitals.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need microphone access for voice-based food search";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access to select images";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need speech recognition to convert your voice to text";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -371,7 +373,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -397,13 +399,15 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = 3DXUA7RP32;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to capture photos for your dialysis records";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Dialysis One reads your Blood Pressure and Blood Oxygen data to display your vitals.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need microphone access for voice-based food search";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access to select images";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need speech recognition to convert your voice to text";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -414,7 +418,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
