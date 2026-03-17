@@ -1,3 +1,11 @@
+//
+//  ReportDetailViewController.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 31/01/26.
+//
+
+
 import UIKit
 
 final class ReportDetailViewController: UIViewController {
@@ -17,9 +25,17 @@ final class ReportDetailViewController: UIViewController {
         self.previewVC = p
 
         // Insights
-        self.insightsVC = ReportInsightsViewController(reports: allReports)
+
+        self.insightsVC = ReportInsightsViewController(
+            report: report,
+            allReports: allReports
+        )
 
         super.init(nibName: nil, bundle: nil)
+        
+        self.hidesBottomBarWhenPushed = true
+        
+        print("🧠 Stored extracted text length:", report.extractedText?.count ?? 0)
     }
 
     required init?(coder: NSCoder) {

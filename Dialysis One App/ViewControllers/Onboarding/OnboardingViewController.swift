@@ -7,13 +7,16 @@
 
 import UIKit
 
-class OnboardingViewController: UIViewController {
+class OnboardingViewController: UIViewController , UITextFieldDelegate{
     
     @IBOutlet weak var femaleCard: UIView!
     @IBOutlet weak var maleCard: UIView!
     @IBOutlet weak var nextButton: UIButton!
     @IBOutlet weak var femaleLabel: UILabel!
     @IBOutlet weak var maleLabel: UILabel!
+    @IBOutlet weak var nameTextField: UITextField!
+    
+    private var selectedGender: String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,58 +35,107 @@ class OnboardingViewController: UIViewController {
 
         femaleCard.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(selectFemale)))
         maleCard.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(selectMale)))
+        nextButton.isEnabled = false
+        nextButton.backgroundColor = .lightGray
+
+        nameTextField.delegate = self
+        nameTextField.addTarget(
+            self,
+            action: #selector(nameDidChange),
+            for: .editingChanged
+        )
+        DispatchQueue.main.async {
+            self.nameTextField.becomeFirstResponder()
+        }
+        let tapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(dismissKeyboard)
+        )
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
         
     }
 
     @objc func selectFemale() {
+        view.endEditing(true)
+        selectedGender = "female"
+        femaleCard.isUserInteractionEnabled = false
+        maleCard.isUserInteractionEnabled = false
         femaleCard.layer.borderColor = UIColor(named: "onboarding green")?.cgColor
         femaleCard.backgroundColor = UIColor(named: "onboarding green")
         femaleLabel.textColor = .black
 
-                // Unselected state - white background, black text, gray border
         maleCard.layer.borderColor = UIColor.lightGray.cgColor
         maleCard.backgroundColor = .white
         maleLabel.textColor = .black
-        enableNextButton()
-        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
-            self.view.layoutIfNeeded()
-        }
 
-
-        
+        validateNextButton()
     }
     @objc func selectMale() {
-        print("Male card tapped")
-        print("Male label text color before: \(maleLabel.textColor ?? .clear)")
-            
+        view.endEditing(true)
+        selectedGender = "male"
+        femaleCard.isUserInteractionEnabled = false
+        maleCard.isUserInteractionEnabled = false
         maleCard.layer.borderColor = UIColor(named: "onboarding green")?.cgColor
         maleCard.backgroundColor = UIColor(named: "onboarding green")
         maleLabel.textColor = .black
-            
-        print("Male label text color after: \(maleLabel.textColor ?? .clear)")
-            
+
         femaleCard.layer.borderColor = UIColor.lightGray.cgColor
         femaleCard.backgroundColor = .white
         femaleLabel.textColor = .black
 
-        enableNextButton()
-        
-        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut) {
-            self.view.layoutIfNeeded()
-        }
-        
-        
-
+        validateNextButton()
+    }
+    @objc func nameDidChange() {
+        validateNextButton()
     }
     
-    func enableNextButton() {
-        nextButton.isEnabled = true
-        nextButton.backgroundColor = UIColor(named: "onboarding green")
-    }
+    
     @IBAction func nextButtonTapped(_ sender: UIButton) {
-        let ageVC = AgePickerViewController()       // Programmatic age picker screen
+
+        guard
+            let name = nameTextField.text?.trimmingCharacters(in: .whitespaces),
+            !name.isEmpty,
+            let gender = selectedGender
+        else { return }
+
+        let localID = LocalUserManager.shared.getLocalUserID()
+
+        UserDefaults.standard.set(name, forKey: "name_\(localID)")
+        UserDefaults.standard.set(gender, forKey: "gender_\(localID)")
+
+        let ageVC = AgePickerViewController()
         navigationController?.pushViewController(ageVC, animated: true)
     }
+    @objc func dismissKeyboard() {
+        view.endEditing(true)
+    }
+    func validateNextButton() {
+        let nameValid = !(nameTextField.text?.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
+        let genderValid = selectedGender != nil
+
+        if nameValid && genderValid {
+            nextButton.isEnabled = true
+            nextButton.backgroundColor = UIColor(named: "onboarding green")
+        } else {
+            nextButton.isEnabled = false
+            nextButton.backgroundColor = .lightGray
+        }
+    }
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
+    }
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        textField.layer.borderColor = UIColor(named: "onboarding green")?.cgColor
+        textField.layer.borderWidth = 1.5
+    }
+
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        textField.layer.borderColor = UIColor.lightGray.cgColor
+        textField.layer.borderWidth = 1
+    }
+    
 
     /*
     // MARK: - Navigation

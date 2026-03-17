@@ -1,3 +1,11 @@
+//
+//  SummaryStyle.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 05/02/26.
+//
+
+
 import Foundation
 
 enum SummaryStyle {

@@ -28,9 +28,18 @@ final class InsightCardView: UIView {
         layer.shadowRadius = 8
         layer.shadowOffset = CGSize(width: 0, height: 4)
 
-        let title = UILabel()
-        title.text = insight.title
-        title.font = .boldSystemFont(ofSize: 17)
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        // ✅ Title ONLY for vital insights
+        if insight.section == .vital {
+            let title = UILabel()
+            title.text = insight.title
+            title.font = .boldSystemFont(ofSize: 17)
+            stack.addArrangedSubview(title)
+        }
 
         let message = UILabel()
         message.text = insight.message
@@ -38,10 +47,7 @@ final class InsightCardView: UIView {
         message.textColor = .secondaryLabel
         message.numberOfLines = 0
 
-        let stack = UIStackView(arrangedSubviews: [title, message])
-        stack.axis = .vertical
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(message)
 
         addSubview(stack)
 
@@ -52,4 +58,5 @@ final class InsightCardView: UIView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16)
         ])
     }
+
 }

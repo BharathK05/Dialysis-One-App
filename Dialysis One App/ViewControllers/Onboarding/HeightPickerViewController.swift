@@ -329,13 +329,18 @@ class HeightPickerViewController: UIViewController {
     }
     
     @objc private func nextButtonTapped() {
+        // Save height
+        let localID = LocalUserManager.shared.getLocalUserID()
+        
         if isFeetMode {
+            let totalInches = selectedFeet * 12 + selectedInches
+            UserDefaults.standard.set(totalInches, forKey: "height_inches_\(localID)")
             print("Selected height: \(selectedFeet) ft \(selectedInches) in")
         } else {
+            UserDefaults.standard.set(selectedCm, forKey: "height_cm_\(localID)")
             print("Selected height: \(selectedCm) cm")
         }
         
-        // Navigate to WeightPickerViewController
         let weightVC = WeightPickerViewController()
         navigationController?.pushViewController(weightVC, animated: true)
     }

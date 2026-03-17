@@ -1,54 +1,71 @@
+//
+//  ClinicalSummaryEngine.swift
+//  Dialysis One App
+//
+//  Created by user@22 on 05/02/26.
+//
+
+
 import Foundation
 import NaturalLanguage
 
 final class ClinicalSummaryEngine {
 
-    static func generateSummary(from text: String, maxSentences: Int = 3) -> String {
+    static func generateBullets(from text: String, maxBullets: Int = 3) -> [String] {
 
-        // 1️⃣ Break text into sentences
         let tokenizer = NLTokenizer(unit: .sentence)
         tokenizer.string = text
 
-        var sentences: [String] = []
+        var candidates: [String] = []
+
         tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
-            let sentence = String(text[range]).trimmingCharacters(in: .whitespacesAndNewlines)
-            if sentence.count > 20 {
-                sentences.append(sentence)
+            let sentence = String(text[range]).lowercased()
+
+            // Apple-style filtering (no regex hacks)
+            if isClinicallyRelevant(sentence) {
+                candidates.append(sentence)
             }
             return true
         }
 
-        guard !sentences.isEmpty else {
-            return "No clinically relevant summary could be generated from this report."
-        }
+        let ranked = rankSentences(candidates)
+        let selected = ranked.prefix(maxBullets)
 
-        // 2️⃣ Rank sentences by clinical relevance
-        let ranked = rankSentences(sentences)
-
-        // 3️⃣ Pick top N
-        let selected = ranked.prefix(maxSentences)
-
-        return selected.joined(separator: " ")
+        // 🔑 Controlled rewriting (this is the key)
+        return selected.map { rewriteToUserBullet($0) }
     }
 
-    // MARK: - Sentence ranking
-    private static func rankSentences(_ sentences: [String]) -> [String] {
-
+    // MARK: - Apple-style relevance check
+    private static func isClinicallyRelevant(_ sentence: String) -> Bool {
         let keywords = [
-            "potassium", "sodium", "chloride", "creatinine",
-            "elevated", "normal", "high", "low",
-            "dialysis", "renal", "electrolyte"
+            "potassium", "sodium", "chloride",
+            "creatinine", "bun", "egfr",
+            "high", "low", "normal", "elevated"
         ]
-
-        return sentences.sorted { a, b in
-            score(a, keywords) > score(b, keywords)
-        }
+        return keywords.contains { sentence.contains($0) }
     }
 
-    private static func score(_ sentence: String, _ keywords: [String]) -> Int {
-        let lower = sentence.lowercased()
-        return keywords.reduce(0) { acc, key in
-            acc + (lower.contains(key) ? 2 : 0)
-        } + sentence.count / 40
+    // MARK: - Ranking
+    private static func rankSentences(_ sentences: [String]) -> [String] {
+        sentences.sorted { $0.count < $1.count }
+    }
+
+    // MARK: - Rewrite (UX layer)
+    private static func rewriteToUserBullet(_ sentence: String) -> String {
+
+        if sentence.contains("bun") && sentence.contains("creatinine") {
+            return "• Kidney-related markers (BUN and creatinine) were assessed in this report."
+        }
+
+        if sentence.contains("egfr") {
+            return "• Estimated kidney filtration (eGFR) was calculated to assess kidney function."
+        }
+
+        if sentence.contains("potassium") {
+            return "• Potassium levels were reviewed for electrolyte balance."
+        }
+
+        return "• Key laboratory values were reviewed as part of this report."
     }
 }
+

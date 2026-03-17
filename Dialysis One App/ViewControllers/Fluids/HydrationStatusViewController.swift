@@ -387,7 +387,7 @@ class HydrationStatusViewController: UIViewController {
     private let contentView = UIView()
     private let waveView = WaveView()
     
-    private let backButton = UIButton(type: .system)
+   
     private let titleLabel = UILabel()
     private let dateButton = UIButton(type: .system)
     private let progressView = CircularProgressView()
@@ -545,10 +545,7 @@ class HydrationStatusViewController: UIViewController {
     }
     
     private func setupHeader() {
-        backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        backButton.tintColor = UIColor(hex: 0x152B3C)
-        backButton.translatesAutoresizingMaskIntoConstraints = false
-        backButton.addTarget(self, action: #selector(backButtonTapped), for: .touchUpInside)
+        
         
         titleLabel.text = "Hydration Status"
         titleLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
@@ -565,19 +562,14 @@ class HydrationStatusViewController: UIViewController {
         dateButton.translatesAutoresizingMaskIntoConstraints = false
         dateButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 16, bottom: 6, right: 16)
         
-        contentView.addSubview(backButton)
+        //contentView.addSubview(backButton)
         contentView.addSubview(titleLabel)
         contentView.addSubview(dateButton)
         
         NSLayoutConstraint.activate([
-            backButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            backButton.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor, constant: 10),
-            backButton.widthAnchor.constraint(equalToConstant: 28),
-            backButton.heightAnchor.constraint(equalToConstant: 28),
-            
+            titleLabel.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor, constant: 10),
             titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
-            
+
             dateButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             dateButton.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16)
         ])
@@ -865,9 +857,7 @@ class HydrationStatusViewController: UIViewController {
         navigationController?.pushViewController(vc, animated: true)
     }
     
-    @objc private func backButtonTapped() {
-        navigationController?.popViewController(animated: true)
-    }
+    
 }
 
 // MARK: - Shared fluid log store (in-memory for this run)

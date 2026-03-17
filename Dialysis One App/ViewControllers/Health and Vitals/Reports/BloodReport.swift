@@ -12,9 +12,9 @@ struct BloodReport: Codable {
     var title: String
     var type: String
     var date: Date
-    var filename: String?        // stored inside Documents
-    var thumbnailData: Data?     // small jpg/png
-    
+    var filename: String?
+    var thumbnailData: Data?
+    var extractedText: String? = nil
     var extractedMetrics: [ReportMetric]? = nil
 
     var attachmentURL: URL? {
@@ -23,7 +23,13 @@ struct BloodReport: Codable {
         return docs.appendingPathComponent(fname)
     }
 
-    init(title: String, type: String, date: Date, filename: String? = nil, thumbnailData: Data? = nil) {
+    init(
+        title: String,
+        type: String,
+        date: Date,
+        filename: String? = nil,
+        thumbnailData: Data? = nil
+    ) {
         self.id = UUID().uuidString
         self.title = title
         self.type = type
@@ -32,4 +38,3 @@ struct BloodReport: Codable {
         self.thumbnailData = thumbnailData
     }
 }
-

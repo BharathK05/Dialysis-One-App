@@ -2,7 +2,7 @@ import Foundation
 import SQLite3
 
 /// Nutritional information for a food item
-struct DishNutrients {
+struct DishNutrients: Codable {
     let dishName: String
     let calories: Double
     let protein: Double
@@ -11,6 +11,7 @@ struct DishNutrients {
     let ckdTag: String?
     let confidence: String?
     let servingSize: String?
+    let isCompositeFinal: Bool
     
     // CKD safety flags - REVISED based on Stage 3-4 CKD guidelines
     var sodiumLevel: SafetyLevel {
@@ -36,7 +37,7 @@ struct DishNutrients {
 }
 
 /// Safety level for CKD monitoring
-enum SafetyLevel: String {
+enum SafetyLevel: String, Codable {
     case low = "Low"
     case moderate = "Moderate"
     case high = "High"
@@ -170,7 +171,8 @@ final class NutritionDatabase {
                 sodium: sodium,
                 ckdTag: ckdTag,
                 confidence: confidence,
-                servingSize: nil
+                servingSize: nil,
+                isCompositeFinal: false
             )
         }
         
@@ -219,7 +221,8 @@ final class NutritionDatabase {
                 sodium: sodium,
                 ckdTag: ckdTag,
                 confidence: confidence,
-                servingSize: nil
+                servingSize: nil,
+                isCompositeFinal: false
             ))
         }
         
