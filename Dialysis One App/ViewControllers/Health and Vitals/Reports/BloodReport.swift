@@ -10,10 +10,10 @@ import Foundation
 struct BloodReport: Codable {
     let id: String
     var title: String
-    var type: String
     var date: Date
-    var filename: String?        // stored inside Documents
-    var thumbnailData: Data?     // small jpg/png
+    var filename: String?
+    var thumbnailData: Data?
+    var extractedText: String? = nil
 
     var attachmentURL: URL? {
         guard let fname = filename else { return nil }
@@ -21,10 +21,14 @@ struct BloodReport: Codable {
         return docs.appendingPathComponent(fname)
     }
 
-    init(title: String, type: String, date: Date, filename: String? = nil, thumbnailData: Data? = nil) {
+    init(
+        title: String,
+        date: Date,
+        filename: String? = nil,
+        thumbnailData: Data? = nil
+    ) {
         self.id = UUID().uuidString
         self.title = title
-        self.type = type
         self.date = date
         self.filename = filename
         self.thumbnailData = thumbnailData

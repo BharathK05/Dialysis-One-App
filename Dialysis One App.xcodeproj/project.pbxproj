@@ -278,7 +278,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = 3DXUA7RP32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
@@ -286,13 +286,13 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.iOS.DialysisOneAppp;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.srmist.DialysisOneApp;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = NO;
@@ -316,7 +316,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = 3DXUA7RP32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
@@ -324,13 +324,13 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.iOS.DialysisOneAppp;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.srmist.DialysisOneApp;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = NO;
@@ -354,7 +354,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = 3DXUA7RP32;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
@@ -373,7 +373,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -399,7 +399,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = 3DXUA7RP32;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
@@ -418,7 +418,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneAppp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

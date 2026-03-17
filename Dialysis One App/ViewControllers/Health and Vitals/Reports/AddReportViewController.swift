@@ -8,6 +8,7 @@
 import UIKit
 import UniformTypeIdentifiers
 import PDFKit
+import VisionKit
 
 protocol AddReportDelegate: AnyObject {
     func addReportDidSave(_ report: BloodReport)
@@ -30,7 +31,6 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
     private let content = UIStackView()
 
     private let titleField = UITextField()
-    private let typeField = UITextField()
 
     private let dateButton = UIButton(type: .system)
     private let fileAddButton = UIButton(type: .system)
@@ -46,12 +46,12 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         view.backgroundColor = .white
         buildUI()
         setupNav()
+        addKeyboardDoneButton()
     }
 
     private func setupNav() {
         navigationItem.title = "Add Blood Report"
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(backTapped))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveTapped))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Add", style: .done, target: self, action: #selector(saveTapped))
     }
 
     // MARK: - UI Setup
@@ -84,11 +84,6 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         styleTextField(titleField, placeholder: "Enter Report Title")
         content.addArrangedSubview(titleField)
 
-        // --- TYPE FIELD ---
-        content.addArrangedSubview(makeLabel("Type"))
-        styleTextField(typeField, placeholder: "Enter Report Type")
-        content.addArrangedSubview(typeField)
-
         // --- DATE SECTION ---
         content.addArrangedSubview(makeLabel("Date"))
         let dateRow = buildDateRow()
@@ -98,7 +93,7 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
 
         // --- ATTACH SECTION ---
         content.addArrangedSubview(makeLabel("Attach Report"))
-        content.addArrangedSubview(buildAttachRow())
+        content.addArrangedSubview(buildAttachOptions())
 
         // attachment preview container (hidden until file selected)
         configureAttachmentContainer()
@@ -219,6 +214,73 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         
         return container
     }
+    
+    // MARK: - Attach Options (Scan / Upload)
+
+    private func buildAttachOptions() -> UIStackView {
+
+        let scanRow = makeActionRow(
+            icon: "camera.viewfinder",
+            title: "Scan Document",
+            selector: #selector(scanDocument)
+        )
+
+        let uploadRow = makeActionRow(
+            icon: "doc.fill",
+            title: "Upload PDF",
+            selector: #selector(openFilePicker)
+        )
+
+        let stack = UIStackView(arrangedSubviews: [scanRow, uploadRow])
+        stack.axis = .vertical
+        stack.spacing = 12
+        return stack
+    }
+
+    private func makeActionRow(icon: String, title: String, selector: Selector) -> UIView {
+
+        let container = UIView()
+        container.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        container.layer.cornerRadius = 14
+        container.heightAnchor.constraint(equalToConstant: 52).isActive = true
+
+        let iconView = UIImageView(image: UIImage(systemName: icon))
+        iconView.tintColor = .systemBlue
+
+        let label = UILabel()
+        label.text = title
+        label.font = .systemFont(ofSize: 16, weight: .medium)
+        label.textColor = .systemBlue
+
+        let hStack = UIStackView(arrangedSubviews: [iconView, label])
+        hStack.axis = .horizontal
+        hStack.spacing = 10
+        hStack.alignment = .center
+
+        container.addSubview(hStack)
+        hStack.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            hStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+            hStack.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+
+        let tap = UITapGestureRecognizer(target: self, action: selector)
+        container.addGestureRecognizer(tap)
+
+        return container
+    }
+    
+    @objc private func scanDocument() {
+        guard VNDocumentCameraViewController.isSupported else {
+            alert("Document scanning is not supported on this device.")
+            return
+        }
+
+        let scanner = VNDocumentCameraViewController()
+        scanner.delegate = self
+        present(scanner, animated: true)
+    }
 
     
     private func buildDateRow() -> UIView {
@@ -266,10 +328,6 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
 
     // MARK: - Actions
 
-    @objc private func backTapped() {
-        dismiss(animated: true)
-    }
-
     @objc private func openDatePicker() {
         let picker = UIDatePicker()
         picker.datePickerMode = .date
@@ -311,16 +369,37 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         selectedFileURL = nil
         attachmentContainer.isHidden = true
     }
+    
+    private func addKeyboardDoneButton() {
+
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+
+        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let done = UIBarButtonItem(
+            title: "Done",
+            style: .done,
+            target: self,
+            action: #selector(doneTyping)
+        )
+
+        toolbar.items = [flex, done]
+
+        titleField.inputAccessoryView = toolbar
+    }
+
+    @objc private func doneTyping() {
+        view.endEditing(true)
+    }
+
 
     @objc private func saveTapped() {
 
-        guard let t = titleField.text, !t.isEmpty,
-              let tp = typeField.text, !tp.isEmpty else {
-            alert("Please fill Title & Type")
+        guard let title = titleField.text, !title.isEmpty else {
+            alert("Please enter a report title")
             return
         }
 
-        let date = Date()
         var filename: String? = nil
         var thumbnail: Data? = nil
 
@@ -331,26 +410,36 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
 
                 if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                     let fullURL = docs.appendingPathComponent(savedName)
-                    if let img = FileStorage.shared.generatePDFThumbnail(url: fullURL, size: CGSize(width: 80, height: 80)),
-                       let d = img.pngData() {
+                    if let img = FileStorage.shared.generatePDFThumbnail(
+                        url: fullURL,
+                        size: CGSize(width: 80, height: 80)
+                    ),
+                    let d = img.pngData() {
                         thumbnail = d
                     }
                 }
-
             } catch {
-                alert("File save failed: \(error.localizedDescription)")
+                alert("File save failed")
+                return
             }
         }
 
-        let report = BloodReport(title: t, type: tp, date: date, filename: filename, thumbnailData: thumbnail)
+        // ✅ NO EXTRACTION HERE
+        let report = BloodReport(
+            title: title,
+            date: selectedDate,
+            filename: filename,
+            thumbnailData: thumbnail
+        )
 
-        var arr = FileStorage.shared.loadReports()
-        arr.append(report)
-        FileStorage.shared.saveReports(arr)
+        var reports = FileStorage.shared.loadReports()
+        reports.append(report)
+        FileStorage.shared.saveReports(reports)
 
         delegate?.addReportDidSave(report)
         dismiss(animated: true)
     }
+
 
     private func alert(_ msg: String) {
         let a = UIAlertController(title: "Error", message: msg, preferredStyle: .alert)
@@ -364,5 +453,35 @@ extension UITextField {
         let pad = UIView(frame: CGRect(x: 0, y: 0, width: value, height: self.frame.height))
         leftView = pad
         leftViewMode = .always
+    }
+}
+
+extension AddReportViewController: VNDocumentCameraViewControllerDelegate {
+
+    func documentCameraViewController(
+        _ controller: VNDocumentCameraViewController,
+        didFinishWith scan: VNDocumentCameraScan
+    ) {
+        controller.dismiss(animated: true)
+
+        do {
+            let title = titleField.text?.isEmpty == false
+                ? titleField.text!
+                : "Scanned Report"
+
+            let pdfURL = try FileStorage.shared.saveScanAsPDF(
+                scan,
+                filename: title
+            )
+            selectedFileURL = pdfURL
+            attachmentLabel.text = pdfURL.lastPathComponent
+            attachmentContainer.isHidden = false
+        } catch {
+            alert("Failed to save scanned document.")
+        }
+    }
+
+    func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
+        controller.dismiss(animated: true)
     }
 }

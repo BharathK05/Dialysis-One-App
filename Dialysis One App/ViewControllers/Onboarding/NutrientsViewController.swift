@@ -296,30 +296,26 @@ class NutrientsViewController: UIViewController {
     }
     
     private func saveNutrientValues(calories: Int, water: Double) {
-        guard let uid = FirebaseAuthManager.shared.getUserID() else { return }
+        let localID = LocalUserManager.shared.getLocalUserID()
         
-        // Save to UserDefaults or your data manager
-        UserDataManager.shared.save("totalCalories", value: calories, uid: uid)
-        UserDataManager.shared.save("waterGoal", value: Int(water * 1000), uid: uid) // Convert to ml
-        
-        // You can add more nutrient values here if needed
-        UserDataManager.shared.save("potassiumGoal", value: 90, uid: uid)
-        UserDataManager.shared.save("sodiumGoal", value: 70, uid: uid)
-        UserDataManager.shared.save("proteinGoal", value: 110, uid: uid)
+        // Save using local user ID
+        UserDataManager.shared.save("totalCalories", value: calories, uid: localID)
+        UserDataManager.shared.save("waterGoal", value: Int(water * 1000), uid: localID)
+        UserDataManager.shared.save("potassiumGoal", value: 90, uid: localID)
+        UserDataManager.shared.save("sodiumGoal", value: 70, uid: localID)
+        UserDataManager.shared.save("proteinGoal", value: 110, uid: localID)
     }
-    
+
     private func finishOnboarding() {
-        // Mark onboarding as completed
-        if let uid = FirebaseAuthManager.shared.getUserID() {
-            UserDefaults.standard.set(true, forKey: "onboardingCompleted_\(uid)")
-        }
-        
+        // Mark onboarding as completed using LocalUserManager
+        LocalUserManager.shared.markOnboardingCompleted()
         goToHome()
     }
-    
+
     private func goToHome() {
         if let sceneDelegate = UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate {
-            sceneDelegate.window?.rootViewController = MainTabBarController()
+            let main = MainTabBarController()
+            sceneDelegate.window?.rootViewController = main
             sceneDelegate.window?.makeKeyAndVisible()
         }
     }

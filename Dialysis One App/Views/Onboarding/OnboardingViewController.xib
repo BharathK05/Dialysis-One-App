@@ -2,7 +2,6 @@
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24412" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
-        <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24405"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
@@ -16,6 +15,7 @@
                 <outlet property="femaleLabel" destination="yT9-HB-8k3" id="CxQ-oO-c1b"/>
                 <outlet property="maleCard" destination="BRC-lo-uDb" id="50w-O5-X0i"/>
                 <outlet property="maleLabel" destination="xFT-cJ-UYA" id="4Vl-NB-q0r"/>
+                <outlet property="nameTextField" destination="CCg-jw-lZG" id="3Vs-de-Z3j"/>
                 <outlet property="nextButton" destination="cRs-dg-yxK" id="l4C-WR-iLe"/>
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
             </connections>
@@ -36,20 +36,63 @@
                             <color key="progressTintColor" red="0.46666666666666667" green="0.62745098039215685" blue="0.50588235294117645" alpha="1" colorSpace="calibratedRGB"/>
                             <color key="trackTintColor" systemColor="systemGray5Color"/>
                         </progressView>
-                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="999" text="Tell Us About Yourself" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tdN-Yr-FTE" userLabel="TitleLabel">
-                            <rect key="frame" x="0.0" y="13" width="345" height="53"/>
+                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="999" verticalCompressionResistancePriority="1000" text="Tell Us About Yourself" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tdN-Yr-FTE" userLabel="TitleLabel">
+                            <rect key="frame" x="0.0" y="13.000000000000002" width="345" height="28.666666666666671"/>
                             <fontDescription key="fontDescription" type="boldSystem" pointSize="24"/>
                             <color key="textColor" name="onboarding green"/>
                             <nil key="highlightedColor"/>
                         </label>
-                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="1000" text="We'll use this to personalize your experience" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="baT-dq-XDe" userLabel="SubtitleLabel">
-                            <rect key="frame" x="0.0" y="74" width="345" height="18"/>
+                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="1000" verticalCompressionResistancePriority="1000" text="We'll use this to personalize your experience" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="baT-dq-XDe" userLabel="SubtitleLabel">
+                            <rect key="frame" x="0.0" y="49.666666666666657" width="345" height="18"/>
                             <fontDescription key="fontDescription" type="system" pointSize="15"/>
                             <color key="textColor" systemColor="secondaryLabelColor"/>
                             <nil key="highlightedColor"/>
                         </label>
+                        <view contentMode="scaleToFill" verticalHuggingPriority="1" verticalCompressionResistancePriority="1" translatesAutoresizingMaskIntoConstraints="NO" id="NZ1-QZ-l2R" userLabel="SpacerView">
+                            <rect key="frame" x="0.0" y="75.666666666666657" width="345" height="28"/>
+                            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="28" id="7OB-rL-GVN" userLabel="height = 38"/>
+                            </constraints>
+                        </view>
+                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xOi-Lp-KLA" userLabel="NameContainer">
+                            <rect key="frame" x="0.0" y="111.66666666666666" width="345" height="60"/>
+                            <subviews>
+                                <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Enter your name" textAlignment="natural" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="CCg-jw-lZG">
+                                    <rect key="frame" x="0.0" y="0.0" width="345" height="60"/>
+                                    <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                    <textInputTraits key="textInputTraits"/>
+                                    <userDefinedRuntimeAttributes>
+                                        <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
+                                            <integer key="value" value="12"/>
+                                        </userDefinedRuntimeAttribute>
+                                        <userDefinedRuntimeAttribute type="number" keyPath="layer.borderWidth">
+                                            <integer key="value" value="1"/>
+                                        </userDefinedRuntimeAttribute>
+                                        <userDefinedRuntimeAttribute type="color" keyPath="layer.borderColor">
+                                            <color key="value" white="0.66666666666666663" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </userDefinedRuntimeAttribute>
+                                    </userDefinedRuntimeAttributes>
+                                </textField>
+                            </subviews>
+                            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            <constraints>
+                                <constraint firstItem="CCg-jw-lZG" firstAttribute="top" secondItem="xOi-Lp-KLA" secondAttribute="top" id="9mV-I8-I2F"/>
+                                <constraint firstAttribute="height" constant="60" id="Ez6-Cy-Ylc"/>
+                                <constraint firstAttribute="bottom" secondItem="CCg-jw-lZG" secondAttribute="bottom" id="Npq-qm-cQ8"/>
+                                <constraint firstItem="CCg-jw-lZG" firstAttribute="leading" secondItem="xOi-Lp-KLA" secondAttribute="leading" id="dKA-yi-2Kq"/>
+                                <constraint firstAttribute="trailing" secondItem="CCg-jw-lZG" secondAttribute="trailing" id="dWm-1e-4Sr"/>
+                            </constraints>
+                        </view>
+                        <view contentMode="scaleToFill" verticalHuggingPriority="1" verticalCompressionResistancePriority="1" translatesAutoresizingMaskIntoConstraints="NO" id="obg-W1-P8z" userLabel="SpacerView">
+                            <rect key="frame" x="0.0" y="179.66666666666669" width="345" height="28"/>
+                            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="28" id="OYj-LX-eyQ" userLabel="height = 38"/>
+                            </constraints>
+                        </view>
                         <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" spacing="16" translatesAutoresizingMaskIntoConstraints="NO" id="3eZ-IY-gpW" userLabel="CardsStack">
-                            <rect key="frame" x="0.0" y="100" width="345" height="220"/>
+                            <rect key="frame" x="0.0" y="215.66666666666669" width="345" height="220"/>
                             <subviews>
                                 <view clipsSubviews="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g2G-on-hpV" userLabel="FemaleCard">
                                     <rect key="frame" x="0.0" y="0.0" width="164.66666666666666" height="220"/>
@@ -135,15 +178,12 @@
                                 </view>
                             </subviews>
                             <constraints>
-                                <constraint firstAttribute="height" constant="220" id="vuS-Ad-82Z"/>
+                                <constraint firstAttribute="height" constant="220" id="vuS-Ad-82Z" userLabel="height = 180"/>
                             </constraints>
                         </stackView>
                         <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="aK9-PX-SRM">
-                            <rect key="frame" x="0.0" y="328" width="345" height="230"/>
+                            <rect key="frame" x="0.0" y="443.66666666666663" width="345" height="114.33333333333337"/>
                             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                            <constraints>
-                                <constraint firstAttribute="height" constant="230" id="u69-Da-Mnt"/>
-                            </constraints>
                         </view>
                         <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cRs-dg-yxK">
                             <rect key="frame" x="0.0" y="566" width="345" height="52"/>

@@ -260,12 +260,11 @@ class WeightPickerViewController: UIViewController {
     }
     
     @objc private func nextButtonTapped() {
-
-        if let uid = FirebaseAuthManager.shared.getUserID() {
-            UserDefaults.standard.set(currentWeight, forKey: "weight_\(uid)")
-        }
-
-        let nutrientVC = NutrientsViewController()   // <-- FIXED
+        // Save weight using local user ID
+        let localID = LocalUserManager.shared.getLocalUserID()
+        UserDefaults.standard.set(currentWeight, forKey: "weight_\(localID)")
+        
+        let nutrientVC = NutrientsViewController()
         navigationController?.pushViewController(nutrientVC, animated: true)
     }
 

@@ -17,14 +17,12 @@ class HomeDashboardViewController: UIViewController,
     
     private var didRunTour = false
     
-    private var appointmentHospitalLabel: UILabel?
-    private var appointmentDateLabel: UILabel?
-    private var appointmentTimeLabel: UILabel?
+   
 
     
     // MARK: - Properties
-    private let scrollView = UIScrollView()
-    private let contentView = UIView()
+    let scrollView = UIScrollView()
+    let contentView = UIView()
     private var dietButton: UIView!
     private var dietButtonWidthConstraint: NSLayoutConstraint!
     private var isExpanded = false
@@ -54,9 +52,14 @@ class HomeDashboardViewController: UIViewController,
     private var fluidQuantityDisplayLabel: UILabel?
     private var fluidEditButton: UIButton?
     
-    private var appointmentHospitalLabel: UILabel?
-    private var appointmentDateLabel: UILabel?
-    private var appointmentTimeLabel: UILabel?
+    // Add to MARK: - Properties section
+    var highlightsLabel: UILabel?
+    var highlightsContainer: HighlightsContainerView?
+    var summaryCardsStackView: UIStackView? // Reference to summary section bottom
+    
+//    private var appointmentHospitalLabel: UILabel?
+//    private var appointmentDateLabel: UILabel?
+//    private var appointmentTimeLabel: UILabel?
 
 
     // width constraint for the fluid/water button (used during expand/collapse)
@@ -100,15 +103,15 @@ class HomeDashboardViewController: UIViewController,
     // MARK: - Nutrient tracking
 
     // Consumed values (stored properties with didSet)
-    private var potassiumConsumed: Int = 78 {
+    private var potassiumConsumed: Int = 0 {
         didSet { updateNutrientCard() }
     }
 
-    private var sodiumConsumed: Int = 45 {
+    private var sodiumConsumed: Int = 0 {
         didSet { updateNutrientCard() }
     }
 
-    private var proteinConsumed: Int = 95 {
+    private var proteinConsumed: Int = 0 {
         didSet { updateNutrientCard() }
     }
 
@@ -162,7 +165,7 @@ class HomeDashboardViewController: UIViewController,
         loadUserValues()
         addTopGradientBackground()
         setupUI()
-        refreshAppointmentCard()
+       // refreshAppointmentCard()
         updateSegmentedMedicationCard()
         loadTodayNutrients()
         
@@ -195,15 +198,10 @@ class HomeDashboardViewController: UIViewController,
         super.viewWillAppear(animated)
         updateSegmentedMedicationCard()
         loadTodayNutrients()
-        
+        refreshHighlights()
         // Keep it fresh every time the screen appears
        // updateSegmentedMedicationCard()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(refreshAppointmentCard),
-            name: .appointmentsChanged,
-            object: nil
-        )
+        
     }
     
     
@@ -247,6 +245,7 @@ class HomeDashboardViewController: UIViewController,
         )
 
         updateWaterCard()
+        refreshHighlights()
         
     }
     
@@ -288,6 +287,7 @@ class HomeDashboardViewController: UIViewController,
             waterText: "\(waterConsumed) / \(waterGoal) ml",
             medicationText: "\(dosesConsumed) / \(dosesGoal) doses"
         )
+        NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
 
 
         updateNutrientCard()
@@ -450,6 +450,7 @@ class HomeDashboardViewController: UIViewController,
     }
     @objc private func mealsDidUpdate() {
         loadTodayNutrients()
+        refreshHighlights()
     }
     @objc private func limitsDidUpdate() {
         // Reload nutrient card with new limits
@@ -464,7 +465,10 @@ class HomeDashboardViewController: UIViewController,
         setupHeader()
         setupQuickAddSection()
         setupSummarySection()
-        setupWeightSection()
+       
+        setupHighlightsSection()
+        setupHighlightsObservers()
+        
     }
     
     private func setupScrollView() {
@@ -527,6 +531,9 @@ class HomeDashboardViewController: UIViewController,
         }
 
         present(sheetVC, animated: true)
+    }
+    private func findSummaryBottomView() -> UIView {
+        return summaryCardsStackView ?? contentView
     }
     
     private func setupQuickAddSection() {
@@ -730,6 +737,7 @@ class HomeDashboardViewController: UIViewController,
             hideMedicationPopup()
         }
     }
+    
 
     private func showMedicationPopup() {
         if medicationPopup == nil {
@@ -846,10 +854,7 @@ class HomeDashboardViewController: UIViewController,
         present(navController, animated: true)
     }
     
-    @objc private func weightCardTapped() {
-        let weightCheckVC = WeightCheckViewController()
-        navigationController?.pushViewController(weightCheckVC, animated: true)
-    }
+    
 
     private func requestCameraAccessAndPresentPicker() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -986,6 +991,8 @@ class HomeDashboardViewController: UIViewController,
         cardsStack.distribution = .fillEqually
         cardsStack.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(cardsStack)
+        
+        self.summaryCardsStackView = cardsStack
 
         let waterProgress = CGFloat(waterConsumed) / CGFloat(waterGoal)
         let waterCard = createProgressCard(
@@ -1013,10 +1020,38 @@ class HomeDashboardViewController: UIViewController,
             cardsStack.heightAnchor.constraint(equalToConstant: 150)
         ])
     }
+    // MARK: - Highlights Section Setup
+
+    
+
+    @objc private func handleDataUpdate() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.refreshHighlights()
+        }
+    }
+
+    
+
+    private func navigateToHighlightScreen(_ destination: HealthInsight.DestinationScreen) {
+        let viewController: UIViewController
+        
+        switch destination {
+        case .nutrientBalance:
+            viewController = NutrientBalanceViewController()
+        case .hydrationStatus:
+            viewController = HydrationStatusViewController()
+        case .medicationAdherence:
+            viewController = MedicationAdherenceViewController()
+        case .healthAndVitals:
+            viewController = HealthAndVitalsViewController()
+        }
+        
+        navigationController?.pushViewController(viewController, animated: true)
+    }
     
     @objc private func openNutrientBalance() {
         let vc = NutrientBalanceViewController()
-        vc.hidesBottomBarWhenPushed = true
+       
         navigationController?.pushViewController(vc, animated: true)
     }
     
@@ -1422,6 +1457,7 @@ class HomeDashboardViewController: UIViewController,
         ])
         
         updateSegmentedMedicationCard()
+        refreshHighlights()
         
         // Add tap gesture
         container.isUserInteractionEnabled = true
@@ -1653,7 +1689,7 @@ class HomeDashboardViewController: UIViewController,
 
         let type = fluidTypes[selectedFluidTypeIndex]
         FluidLogStore.shared.addLog(type: type, quantity: selectedFluidQuantity)
-
+        NotificationCenter.default.post(name: NSNotification.Name("fluidDidUpdate"), object: nil)
         // collapse after save
         fluidButtonTapped()
     }
@@ -1826,7 +1862,7 @@ class HomeDashboardViewController: UIViewController,
     
     @objc private func openHydrationStatus() {
         let hydrationVC = HydrationStatusViewController()
-        hydrationVC.hidesBottomBarWhenPushed = true
+       
         navigationController?.pushViewController(hydrationVC, animated: true)
     }
     
@@ -1846,211 +1882,11 @@ class HomeDashboardViewController: UIViewController,
         view.layer.insertSublayer(gradient, at: 0)
     }
     
-    private func setupWeightSection() {
-        let weightCard = UIView()
-        weightCard.backgroundColor = UIColor.white.withAlphaComponent(0.5)
-        weightCard.layer.cornerRadius = 20
-        weightCard.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(weightCard)
-        
-        let blurEffect = UIBlurEffect(style: .light)
-        let blurView = UIVisualEffectView(effect: blurEffect)
-        blurView.translatesAutoresizingMaskIntoConstraints = false
-        blurView.layer.cornerRadius = 20
-        blurView.clipsToBounds = true
-        weightCard.insertSubview(blurView, at: 0)
-        
-        NSLayoutConstraint.activate([
-            blurView.topAnchor.constraint(equalTo: weightCard.topAnchor),
-            blurView.leadingAnchor.constraint(equalTo: weightCard.leadingAnchor),
-            blurView.trailingAnchor.constraint(equalTo: weightCard.trailingAnchor),
-            blurView.bottomAnchor.constraint(equalTo: weightCard.bottomAnchor)
-        ])
-        
-        let iconConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-        let iconView = UIImageView(image: UIImage(systemName: "scalemass", withConfiguration: iconConfig))
-        iconView.tintColor = .systemGreen
-        iconView.translatesAutoresizingMaskIntoConstraints = false
-        weightCard.addSubview(iconView)
-        
-        let titleLabel = UILabel()
-        titleLabel.text = "Weight"
-        titleLabel.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        weightCard.addSubview(titleLabel)
-        
-        let valueLabel = UILabel()
-        valueLabel.text = "\(Int(currentWeight)) Kg"
-        valueLabel.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        valueLabel.textColor = .darkGray
-        valueLabel.translatesAutoresizingMaskIntoConstraints = false
-        weightCard.addSubview(valueLabel)
-        
-        weightValueLabel = valueLabel
-        
-        let chevronImageView = UIImageView(image: UIImage(systemName: "chevron.right"))
-        chevronImageView.tintColor = .gray
-        chevronImageView.translatesAutoresizingMaskIntoConstraints = false
-        weightCard.addSubview(chevronImageView)
-        
-        guard let lastView = contentView.subviews.last(where: { $0 !== weightCard }) else { return }
-        
-        NSLayoutConstraint.activate([
-            weightCard.topAnchor.constraint(equalTo: lastView.bottomAnchor, constant: 12),
-            weightCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            weightCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            weightCard.heightAnchor.constraint(equalToConstant: 65),
-            
-            iconView.leadingAnchor.constraint(equalTo: weightCard.leadingAnchor, constant: 16),
-            iconView.centerYAnchor.constraint(equalTo: weightCard.centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 24),
-            iconView.heightAnchor.constraint(equalToConstant: 24),
-            
-            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
-            titleLabel.centerYAnchor.constraint(equalTo: weightCard.centerYAnchor),
-            
-            valueLabel.trailingAnchor.constraint(equalTo: chevronImageView.leadingAnchor, constant: -8),
-            valueLabel.centerYAnchor.constraint(equalTo: weightCard.centerYAnchor),
-            
-            chevronImageView.trailingAnchor.constraint(equalTo: weightCard.trailingAnchor, constant: -16),
-            chevronImageView.centerYAnchor.constraint(equalTo: weightCard.centerYAnchor)
-        ])
-        
-        // Upcoming Appointments Section
-        let upcomingTitle = UILabel()
-        upcomingTitle.text = "Upcoming Appointments"
-        upcomingTitle.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
-        upcomingTitle.textColor = UIColor(hex: 0x152B3C)
-        upcomingTitle.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(upcomingTitle)
-
-        let appointmentCard = UIView()
-        appointmentCard.backgroundColor = UIColor.white.withAlphaComponent(0.5)
-        appointmentCard.layer.cornerRadius = 20
-        appointmentCard.translatesAutoresizingMaskIntoConstraints = false
-        appointmentCard.isUserInteractionEnabled = true
-        contentView.addSubview(appointmentCard)
-
-        let blurEffect2 = UIBlurEffect(style: .light)
-        let blurView2 = UIVisualEffectView(effect: blurEffect2)
-        blurView2.translatesAutoresizingMaskIntoConstraints = false
-        blurView2.layer.cornerRadius = 20
-        blurView2.clipsToBounds = true
-        appointmentCard.insertSubview(blurView2, at: 0)
-
-        let clockIcon = UIImageView(image: UIImage(systemName: "clock"))
-        clockIcon.tintColor = .systemGreen
-        clockIcon.translatesAutoresizingMaskIntoConstraints = false
-
-        let hospitalLabel = UILabel()
-        hospitalLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        hospitalLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let dateLabel = UILabel()
-        dateLabel.font = UIFont.systemFont(ofSize: 14)
-        dateLabel.textColor = .darkGray
-        dateLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let timeLabel = UILabel()
-        timeLabel.font = UIFont.systemFont(ofSize: 14)
-        timeLabel.textColor = .darkGray
-        timeLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Fetch next upcoming appointment from UserDefaults
-        let next = AppointmentStore.shared.nextUpcoming()
-
-        if let appointment = next {
-            hospitalLabel.text = appointment.hospitalName
-            dateLabel.text = appointment.date.formatted(date: .long, time: .omitted)
-            timeLabel.text = appointment.date.formatted(date: .omitted, time: .shortened)
-        } else {
-            hospitalLabel.text = "No Appointments"
-            dateLabel.text = "Tap to add your first one"
-            timeLabel.text = ""
-        }
-        
-        appointmentHospitalLabel = hospitalLabel
-        appointmentDateLabel = dateLabel
-        appointmentTimeLabel = timeLabel
-
-
-        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
-        chevron.tintColor = .gray
-        chevron.translatesAutoresizingMaskIntoConstraints = false
-
-        appointmentCard.addSubview(clockIcon)
-        appointmentCard.addSubview(hospitalLabel)
-        appointmentCard.addSubview(dateLabel)
-        appointmentCard.addSubview(timeLabel)
-        appointmentCard.addSubview(chevron)
-
-        NSLayoutConstraint.activate([
-            upcomingTitle.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            upcomingTitle.topAnchor.constraint(equalTo: weightCard.bottomAnchor, constant: 32),
-
-            appointmentCard.topAnchor.constraint(equalTo: upcomingTitle.bottomAnchor, constant: 14),
-            appointmentCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            appointmentCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            appointmentCard.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
-            
-            blurView2.topAnchor.constraint(equalTo: appointmentCard.topAnchor),
-            blurView2.bottomAnchor.constraint(equalTo: appointmentCard.bottomAnchor),
-            blurView2.leadingAnchor.constraint(equalTo: appointmentCard.leadingAnchor),
-            blurView2.trailingAnchor.constraint(equalTo: appointmentCard.trailingAnchor),
-
-            clockIcon.leadingAnchor.constraint(equalTo: appointmentCard.leadingAnchor, constant: 16),
-            clockIcon.topAnchor.constraint(equalTo: appointmentCard.topAnchor, constant: 20),
-            clockIcon.widthAnchor.constraint(equalToConstant: 32),
-            clockIcon.heightAnchor.constraint(equalToConstant: 32),
-
-            hospitalLabel.leadingAnchor.constraint(equalTo: clockIcon.trailingAnchor, constant: 16),
-            hospitalLabel.topAnchor.constraint(equalTo: appointmentCard.topAnchor, constant: 18),
-
-            dateLabel.leadingAnchor.constraint(equalTo: hospitalLabel.leadingAnchor),
-            dateLabel.topAnchor.constraint(equalTo: hospitalLabel.bottomAnchor, constant: 6),
-
-            timeLabel.leadingAnchor.constraint(equalTo: hospitalLabel.leadingAnchor),
-            timeLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 4),
-            timeLabel.bottomAnchor.constraint(equalTo: appointmentCard.bottomAnchor, constant: -18),
-
-            chevron.trailingAnchor.constraint(equalTo: appointmentCard.trailingAnchor, constant: -16),
-            chevron.centerYAnchor.constraint(equalTo: appointmentCard.centerYAnchor)
-        ])
-
-
-        let tap2 = UITapGestureRecognizer(target: self, action: #selector(openAppointmentDetails))
-        appointmentCard.addGestureRecognizer(tap2)
-        
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(weightCardTapped))
-        weightCard.addGestureRecognizer(tapGesture)
-        weightCard.isUserInteractionEnabled = true
-        
-        blurView.isUserInteractionEnabled = false
-        iconView.isUserInteractionEnabled = false
-        titleLabel.isUserInteractionEnabled = false
-        valueLabel.isUserInteractionEnabled = false
-        chevronImageView.isUserInteractionEnabled = false
-    }
     
-    @objc func refreshAppointmentCard() {
-        let next = AppointmentStore.shared.nextUpcoming()
-
-        if let appointment = next {
-            appointmentHospitalLabel?.text = appointment.hospitalName
-            appointmentDateLabel?.text = appointment.date.formatted(date: .long, time: .omitted)
-            appointmentTimeLabel?.text = appointment.date.formatted(date: .omitted, time: .shortened)
-        } else {
-            appointmentHospitalLabel?.text = "No Appointments"
-            appointmentDateLabel?.text = "Tap to add"
-            appointmentTimeLabel?.text = ""
-        }
-    }
     
-    @objc private func openAppointmentDetails() {
-        let vc = AppointmentDetailsViewController()
-        vc.hidesBottomBarWhenPushed = true
-        navigationController?.pushViewController(vc, animated: true)
-    }
+    
+    
+    
     
     private func saveImageToTemp(_ image: UIImage) -> URL? {
         guard let data = image.jpegData(compressionQuality: 0.9) else { return nil }
@@ -2307,6 +2143,7 @@ extension HomeDashboardViewController: CameraCaptureDelegate {
 extension HomeDashboardViewController: MedicationPopupDelegate {
     func medicationPopupDidToggleMedication(_ medicationId: UUID, timeOfDay: TimeOfDay) {
         updateMedicationCard()
+        NotificationCenter.default.post(name: NSNotification.Name("medicationsDidUpdate"), object: nil)
     }
 }
 

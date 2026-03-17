@@ -175,7 +175,11 @@ final class AgePickerViewController: UIViewController {
     @objc private func nextTapped() {
         let age = ages[selectedIndex]
         print("Age selected:", age)
-        // navigate next screen here...
+        
+        // Save using local user ID
+        let localID = LocalUserManager.shared.getLocalUserID()
+        UserDefaults.standard.set(age, forKey: "age_\(localID)")
+        
         let heightVC = HeightPickerViewController()
         navigationController?.pushViewController(heightVC, animated: true)
     }

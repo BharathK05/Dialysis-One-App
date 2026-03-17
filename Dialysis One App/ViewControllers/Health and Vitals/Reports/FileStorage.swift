@@ -8,6 +8,7 @@
 import Foundation
 import UIKit
 import PDFKit
+import VisionKit
 
 final class FileStorage {
     static let shared = FileStorage()
@@ -100,6 +101,37 @@ final class FileStorage {
         existing.append(report)
         saveReports(existing)
     }
+    
+    func saveScanAsPDF(
+        _ scan: VNDocumentCameraScan,
+        filename: String
+    ) throws -> URL {
+
+        let pdf = PDFDocument()
+
+        for i in 0..<scan.pageCount {
+            let image = scan.imageOfPage(at: i)
+            if let page = PDFPage(image: image) {
+                pdf.insert(page, at: pdf.pageCount)
+            }
+        }
+
+        let safeName = filename
+            .replacingOccurrences(of: "[^a-zA-Z0-9_ ]", with: "", options: .regularExpression)
+            .replacingOccurrences(of: " ", with: "_")
+
+        let finalName = "\(safeName).pdf"
+
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let url = docs.appendingPathComponent(finalName)
+
+        guard pdf.write(to: url) else {
+            throw NSError(domain: "PDFWriteError", code: 0)
+        }
+
+        return url
+    }
+
 
 }
 

@@ -1405,53 +1405,34 @@ class DishDetailViewController: UIViewController {
         present(thankYou, animated: true)
     }
     private func navigateToHome() {
-        print("🏠 Navigating to home dashboard")
-        
-        if let nav = navigationController {
-            print("   Has navigation controller")
+        print("🏠 Force navigating to Home (root tab)")
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let root = window.rootViewController else { return }
+
+        // If app root is TabBar → go Home tab
+        if let tabBar = root as? UITabBarController {
+            tabBar.selectedIndex = 0
             
-            // Check if we're in a tab bar
-            if let tabBar = nav.tabBarController {
-                print("   Found tab bar - dismissing and selecting home")
-                nav.dismiss(animated: true) {
-                    tabBar.selectedIndex = 0
-                    if let homeNav = tabBar.selectedViewController as? UINavigationController {
-                        homeNav.popToRootViewController(animated: false)
-                    }
-                }
-            } else if let presentingNav = nav.presentingViewController as? UINavigationController {
-                print("   Inside presented modal nav - dismissing to presenting nav")
-                nav.dismiss(animated: true) {
-                    presentingNav.popToRootViewController(animated: false)
-                }
-            } else if nav.presentingViewController != nil {
-                print("   Modal nav - dismissing")
-                nav.dismiss(animated: true)
-            } else {
-                print("   Regular nav - popping to root")
-                nav.popToRootViewController(animated: true)
+            if let homeNav = tabBar.selectedViewController as? UINavigationController {
+                homeNav.popToRootViewController(animated: false)
             }
-        } else if let presentingVC = presentingViewController {
-            print("   Directly presented - dismissing")
-            presentingVC.dismiss(animated: true)
-        } else {
-            print("   ⚠️ No navigation context - trying window root")
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let window = windowScene.windows.first,
-               let rootVC = window.rootViewController {
-                
-                if let tabBar = rootVC as? UITabBarController {
-                    print("   Found tab bar - selecting home tab")
-                    tabBar.selectedIndex = 0
-                    if let homeNav = tabBar.selectedViewController as? UINavigationController {
-                        homeNav.popToRootViewController(animated: true)
-                    }
-                } else if let nav = rootVC as? UINavigationController {
-                    print("   Found nav - popping to root")
-                    nav.popToRootViewController(animated: true)
-                }
-            }
+            
+            root.dismiss(animated: true)
+            return
         }
+
+        // If root is Navigation
+        if let nav = root as? UINavigationController {
+            nav.popToRootViewController(animated: false)
+            root.dismiss(animated: true)
+            return
+        }
+
+        // Fallback
+        root.dismiss(animated: true)
     }
+
 
 }
