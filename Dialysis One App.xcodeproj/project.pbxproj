@@ -19,7 +19,6 @@
 		37F0FAC62EC2EC3F00859256 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 37F0FAC52EC2EC3F00859256 /* FirebaseAuth */; };
 		37F0FAC82EC2EC3F00859256 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 37F0FAC72EC2EC3F00859256 /* FirebaseCore */; };
 		37F0FACC2EC2EE4600859256 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */; };
-		37F0FAD22EC2EE4600859257 /* Fontspring-DEMO-theseasons-bd.otf in Resources */ = {isa = PBXBuildFile; fileRef = 37F0FAD12EC2EE4600859257 /* Fontspring-DEMO-theseasons-bd.otf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,7 +50,6 @@
 		37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMessageType.swift; sourceTree = "<group>"; };
 		373BB7A22EBF0F1000E4D6BE /* Dialysis One App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dialysis One App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		37F0FAD12EC2EE4600859257 /* Fontspring-DEMO-theseasons-bd.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fontspring-DEMO-theseasons-bd.otf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -112,9 +110,8 @@
 				37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */,
 				373BB7A42EBF0F1000E4D6BE /* Dialysis One App */,
 				37000D902EF1392600DCC20E /* DialysisOneWatch Watch App */,
-				37BB7A32EBF0F1000E4D6BE /* Products */,
+				373BB7A32EBF0F1000E4D6BE /* Products */,
 				37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */,
-				37F0FAD12EC2EE4600859257 /* Fontspring-DEMO-theseasons-bd.otf */,
 			);
 			sourceTree = "<group>";
 		};
@@ -239,7 +236,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				37F0FACC2EC2EE4600859256 /* GoogleService-Info.plist in Resources */,
-				37F0FAD22EC2EE4600859257 /* Fontspring-DEMO-theseasons-bd.otf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
