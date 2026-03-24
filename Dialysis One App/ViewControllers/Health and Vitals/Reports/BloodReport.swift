@@ -15,7 +15,6 @@ struct BloodReport: Codable {
     var filename: String?
     var thumbnailData: Data?
     var extractedText: String? = nil
-    var extractedMetrics: [ReportMetric]? = nil
 
     var attachmentURL: URL? {
         guard let fname = filename else { return nil }

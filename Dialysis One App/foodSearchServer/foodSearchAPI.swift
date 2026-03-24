@@ -6,7 +6,7 @@
 //
 
 import Foundation
-
+import SwiftUI
 
 struct SearchDishResponse: Codable {
     let confidence: Double

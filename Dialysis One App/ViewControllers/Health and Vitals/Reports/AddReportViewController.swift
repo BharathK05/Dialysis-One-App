@@ -121,7 +121,7 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
         lbl.font = UIFont.boldSystemFont(ofSize: 18)
         return lbl
     }
-
+    
     // --- DATE BUTTON (Right side button) ---
     private func configureDateButton() {
         dateButton.setTitle(DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .none), for: .normal)
@@ -341,7 +341,7 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
 
     @objc private func removeAttachment() {
         selectedFileURL = nil
-        attachmentContainer.isHidden = false
+        attachmentContainer.isHidden = true
     }
     
     private func addKeyboardDoneButton() {
@@ -387,6 +387,7 @@ class AddReportViewController: UIViewController, UIDocumentPickerDelegate {
             }
         }
 
+        // ✅ PROPER WORKFLOW: No extraction on save. Extraction happens when viewing Insights.
         let report = BloodReport(
             title: t,
             type: tp,
@@ -424,7 +425,7 @@ extension AddReportViewController: VNDocumentCameraViewControllerDelegate {
         do {
             let title = titleField.text?.isEmpty == false
                 ? titleField.text!
-                : "Scanned_Report"
+                : "Scanned Report"
             let pdfURL = try FileStorage.shared.saveScanAsPDF(scan, filename: title)
             selectedFileURL = pdfURL
             attachmentLabel.text = pdfURL.lastPathComponent
