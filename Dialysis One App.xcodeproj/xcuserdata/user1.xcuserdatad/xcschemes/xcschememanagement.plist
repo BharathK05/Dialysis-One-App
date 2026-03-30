@@ -7,7 +7,7 @@
 		<key>Dialysis One App.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>1</integer>
+			<integer>0</integer>
 		</dict>
 		<key>DialysisOneWatch Watch App (Notification).xcscheme_^#shared#^_</key>
 		<dict>
@@ -16,8 +16,28 @@
 		</dict>
 		<key>DialysisOneWatch Watch App.xcscheme_^#shared#^_</key>
 		<dict>
+			<key>isShown</key>
+			<true/>
 			<key>orderHint</key>
-			<integer>0</integer>
+			<integer>1</integer>
+		</dict>
+		<key>Promises (Playground).xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>37000D8E2EF1392600DCC20E</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>373BB7A12EBF0F1000E4D6BE</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>
