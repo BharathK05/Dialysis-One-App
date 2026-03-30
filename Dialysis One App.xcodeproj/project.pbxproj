@@ -156,12 +156,10 @@
 				373BB79E2EBF0F1000E4D6BE /* Sources */,
 				373BB79F2EBF0F1000E4D6BE /* Frameworks */,
 				373BB7A02EBF0F1000E4D6BE /* Resources */,
-				37000D9A2EF1392700DCC20E /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				37000D982EF1392700DCC20E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				373BB7A42EBF0F1000E4D6BE /* Dialysis One App */,
@@ -218,7 +216,6 @@
 			projectRoot = "";
 			targets = (
 				373BB7A12EBF0F1000E4D6BE /* Dialysis One App */,
-				37000D8E2EF1392600DCC20E /* DialysisOneWatch Watch App */,
 			);
 		};
 /* End PBXProject section */
@@ -278,7 +275,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3DXUA7RP32;
+				DEVELOPMENT_TEAM = K75YG36RDS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
@@ -295,11 +292,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
-				SKIP_INSTALL = NO;
+				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -316,7 +313,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3DXUA7RP32;
+				DEVELOPMENT_TEAM = K75YG36RDS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
@@ -333,11 +330,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
-				SKIP_INSTALL = NO;
+				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -354,12 +351,13 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3DXUA7RP32;
+				DEVELOPMENT_TEAM = K75YG36RDS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to capture photos for your dialysis records";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Dialysis One reads your Blood Pressure and Blood Oxygen data to display your vitals.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Dialysis One saves and manages your recorded dialysis vitals in Apple Health.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need microphone access for voice-based food search";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access to select images";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need speech recognition to convert your voice to text";
@@ -383,7 +381,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -399,12 +397,13 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2XF95KUMBG;
+				DEVELOPMENT_TEAM = K75YG36RDS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to capture photos for your dialysis records";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Dialysis One reads your Blood Pressure and Blood Oxygen data to display your vitals.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Dialysis One saves and manages your recorded dialysis vitals in Apple Health.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need microphone access for voice-based food search";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access to select images";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We need speech recognition to convert your voice to text";
@@ -428,7 +427,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
