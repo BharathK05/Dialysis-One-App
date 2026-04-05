@@ -3,9 +3,16 @@
 //  Dialysis One App
 //
 //  Complete implementation with unified Quantity/Portion control
+//  v2 - Added ingredient mode support
 //
 
 import UIKit
+
+// MARK: - Ingredient Selection Delegate
+
+protocol IngredientSelectionDelegate: AnyObject {
+    func didConfirmIngredient(_ ingredient: IngredientItem)
+}
 
 class DishDetailViewController: UIViewController {
     
@@ -37,9 +44,15 @@ class DishDetailViewController: UIViewController {
     var allDetectedFoods: [DetectedFood] = []
     var foodImage: UIImage?
     private var isFromSearch: Bool = false
-    // ADD AFTER LINE 31 (after var foodImage: UIImage?)
+    
+    // MARK: - Ingredient Mode
+    var isIngredientMode: Bool = false
+    weak var ingredientDelegate: IngredientSelectionDelegate?
+    /// When editing an existing ingredient, holds its index in FoodBuilderManager
+    var editingIngredientIndex: Int? = nil
+    
     private var classifiedFood: ClassifiedFood?
-    private var baseNutrients: DishNutrients?          // Keep only ONE
+    private var baseNutrients: DishNutrients?
     private var currentPortion: AdaptivePortionOption?
     private var portionType: PortionType = .weight
 
@@ -188,7 +201,7 @@ class DishDetailViewController: UIViewController {
         let button = UIButton(type: .system)
         button.setTitle("Save Changes", for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
-        button.backgroundColor = UIColor(red: 0.4, green: 0.7, blue: 0.5, alpha: 1.0)
+        button.backgroundColor = UIColor(red: 0.0, green: 0.5, blue: 0.45, alpha: 1.0)
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 12
         return button
@@ -209,6 +222,12 @@ class DishDetailViewController: UIViewController {
         view.backgroundColor = .systemBackground
         setupUI()
         setupAdaptivePortionCallback()
+        
+        // Configure button text for ingredient mode
+        if isIngredientMode {
+            saveButton.setTitle("ADD", for: .normal)
+            saveButton.backgroundColor = UIColor(red: 0.0, green: 0.5, blue: 0.45, alpha: 1.0)
+        }
         
         // 🔥 NEW FLOW
         executeNewFlow()
@@ -1138,7 +1157,45 @@ class DishDetailViewController: UIViewController {
             print("⚠️ No nutrients to save")
             return
         }
+        
+        // MARK: - Ingredient Mode: return ingredient to caller
+        if isIngredientMode {
+            let dishName = classifiedFood?.canonical_food_name ?? detectedFood?.name ?? "Unknown"
+            let portionLabel = currentPortion?.label ?? "serving"
+            
+            let ingredient = IngredientItem(
+                name: dishName,
+                calories: Double(scaled.calories),
+                protein: scaled.protein,
+                potassium: Double(scaled.potassium),
+                sodium: Double(scaled.sodium),
+                quantity: quantity,
+                unit: portionLabel
+            )
+            
+            // If editing, update in builder directly
+            if let editIndex = editingIngredientIndex {
+                FoodBuilderManager.shared.updateIngredient(at: editIndex, with: ingredient)
+            } else {
+                FoodBuilderManager.shared.addIngredient(ingredient)
+            }
+            
+            ingredientDelegate?.didConfirmIngredient(ingredient)
+            
+            // Pop back to CreateFoodViewController
+            if let navVCs = navigationController?.viewControllers {
+                for vc in navVCs {
+                    if vc is CreateFoodViewController {
+                        navigationController?.popToViewController(vc, animated: true)
+                        return
+                    }
+                }
+            }
+            navigationController?.popViewController(animated: true)
+            return
+        }
 
+        // MARK: - Normal Mode: save meal
         let alert = UIAlertController(
             title: "Select Meal Type",
             message: "When did you have this meal?",

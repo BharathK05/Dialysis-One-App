@@ -421,9 +421,8 @@ final class DishConfirmationViewController: UIViewController {
     
     @objc private func searchTapped() {
         let searchVC = EnhancedFoodSearchViewController()
-        let nav = UINavigationController(rootViewController: searchVC)
-        nav.modalPresentationStyle = .fullScreen
-        present(nav, animated: true)
+        searchVC.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(searchVC, animated: true)
     }
     
     

@@ -779,13 +779,9 @@ class HomeDashboardViewController: UIViewController,
     @objc private func searchButtonTapped() {
         print("🔍 Search button tapped - opening FoodSearchViewController")
         
-        let searchVC = EnhancedFoodSearchViewController()  // ← Use new one // ← This stays the same!
+        let searchVC = EnhancedFoodSearchViewController()
         searchVC.hidesBottomBarWhenPushed = true
-        
-        let navController = UINavigationController(rootViewController: searchVC)
-        navController.modalPresentationStyle = .fullScreen
-        
-        present(navController, animated: true)
+        navigationController?.pushViewController(searchVC, animated: true)
     }
     
     

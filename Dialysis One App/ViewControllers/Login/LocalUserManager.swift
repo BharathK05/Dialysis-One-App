@@ -58,7 +58,20 @@ class LocalUserManager {
     func hasAppleID() -> Bool {
         return UserDefaults.standard.bool(forKey: "hasSignedInWithApple")
     }
-    
+
+    // MARK: - Guest Flag
+
+    /// Mark the current session as a guest (no Apple ID) or clear that mark.
+    func setGuestUser(_ isGuest: Bool) {
+        UserDefaults.standard.set(isGuest, forKey: "isGuestUser")
+        print(isGuest ? "👤 Marked as guest user" : "🍎 Cleared guest flag (Apple user)")
+    }
+
+    /// Returns true when the user explicitly chose "Continue as Guest".
+    func isGuestUser() -> Bool {
+        return UserDefaults.standard.bool(forKey: "isGuestUser")
+    }
+
     // MARK: - User Type
     
     enum UserType {

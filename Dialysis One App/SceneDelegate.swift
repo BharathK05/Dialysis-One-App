@@ -70,23 +70,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     
     // MARK: - 🎯 ROOT SELECTION LOGIC
-    
+
     private func showAppRoot() {
         DispatchQueue.main.async {
             guard let window = self.window else { return }
 
-            // ✅ Check onboarding status (local-only, no Firebase)
+            // Onboarding-complete flag is the canonical "user has been through setup" signal.
+            // It is set by LocalUserManager.markOnboardingCompleted() at the end of onboarding,
+            // regardless of whether the user signed in with Apple or chose Guest.
             let isOnboardingDone = LocalUserManager.shared.isOnboardingCompleted()
 
-            if isOnboardingDone {
-                // User has completed onboarding → Go to main app
+            // Belt-and-suspenders: also respect an existing Apple ID or guest flag so that
+            // users who updated the app mid-session are never stuck on the welcome screen.
+            let hasSession = LocalUserManager.shared.hasAppleID()
+                          || LocalUserManager.shared.isGuestUser()
+
+            if isOnboardingDone || hasSession {
+                // Returning user → skip welcome, go directly to the main app
                 self.showMainApp(in: window)
             } else {
-                // First-time user → Show welcome screen
+                // First-time user → show welcome / auth screen
                 self.showWelcome(in: window)
             }
         }
     }
+
     
     // MARK: - Navigation Methods
     
