@@ -2,410 +2,316 @@
 //  HighlightCardView.swift
 //  Dialysis One App
 //
-//  Smart Highlights System - Apple Health Style (Translucent Theme)
-//  UPDATED: Frosted glass background matching Summary section
+//  Apple Health–style home insight cards.
+//  Powered by InsightReport — all values computed, none hardcoded.
 //
 
 import UIKit
 
-class HighlightCardView: UIView {
-    
-    // MARK: - Properties
-    
-    private let insight: HealthInsight
+// MARK: - HighlightCardView (InsightReport-powered)
+
+final class HighlightCardView: UIView {
+
+    // MARK: - Data
+
+    private let report: InsightReport
     private var onTap: (() -> Void)?
-    
-    private let containerView = UIView()
-    private let iconBackgroundView = UIView()
-    private let iconView = UIImageView()
-    private let titleLabel = UILabel()
-    private let messageLabel = UILabel()
-    private let detailLabel = UILabel()
-    private let chevronView = UIImageView()
-    private let miniGraphContainer = UIView()
-    
-    // MARK: - Initialization
-    
-    init(insight: HealthInsight, onTap: (() -> Void)? = nil) {
-        self.insight = insight
-        self.onTap = onTap
+
+    // MARK: - Subviews
+
+    private let containerView   = UIView()
+    private let accentBar       = UIView()
+    private let iconBg          = UIView()
+    private let iconView        = UIImageView()
+    private let categoryLabel   = UILabel()
+    private let chevronView     = UIImageView()
+    private let metricLabel     = UILabel()
+    private let trendLabel      = UILabel()
+    private let timeLabel       = UILabel()
+    private let sparklineView   = InsightSparklineView()
+
+    // MARK: - Init
+
+    init(report: InsightReport, onTap: (() -> Void)? = nil) {
+        self.report = report
+        self.onTap  = onTap
         super.init(frame: .zero)
-        setupView()
+        build()
+        populate()
     }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+
+    /// Legacy init — auto-converts HealthInsight into InsightReport
+    convenience init(insight: HealthInsight, onTap: (() -> Void)? = nil) {
+        let engine = InsightDataEngine.shared
+        let report: InsightReport
+        switch insight.category {
+        case .medication: report = engine.medicationReport(window: .week)
+        case .fluids:     report = engine.fluidReport(window: .week)
+        default:          report = engine.nutrientReport(window: .week, focus: insight.category)
+        }
+        self.init(report: report, onTap: onTap)
     }
-    
-    // MARK: - Setup
-    
-    private func setupView() {
-        // Main container - Translucent frosted glass style (matching Summary cards)
-        containerView.backgroundColor = UIColor.white.withAlphaComponent(0.5)
-        containerView.layer.cornerRadius = 18
-        
-        // Add blur effect for frosted glass look
-        let blurEffect = UIBlurEffect(style: .systemUltraThinMaterialLight)
-        let blurView = UIVisualEffectView(effect: blurEffect)
-        blurView.layer.cornerRadius = 18
-        blurView.clipsToBounds = true
-        blurView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(blurView)
-        containerView.sendSubviewToBack(blurView)
-        
-        // Very subtle border
-        containerView.layer.borderWidth = 0.5
-        containerView.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
-        
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    // MARK: - Build
+
+    private func build() {
+        // ── Container ──────────────────────────────────────────────────────
+        containerView.backgroundColor    = .secondarySystemGroupedBackground
+        containerView.layer.cornerRadius = 20
+        containerView.layer.shadowColor  = UIColor.black.cgColor
+        containerView.layer.shadowOpacity = 0.07
+        containerView.layer.shadowOffset  = CGSize(width: 0, height: 4)
+        containerView.layer.shadowRadius  = 12
+        containerView.layer.masksToBounds = false
         containerView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(containerView)
-        
-        // Pin blur view to container
-        NSLayoutConstraint.activate([
-            blurView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            blurView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            blurView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            blurView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
-        ])
-        
-        // Icon background circle (colored circle with slight transparency)
-        iconBackgroundView.backgroundColor = insight.category.color.withAlphaComponent(0.2)
-        iconBackgroundView.layer.cornerRadius = 16
-        iconBackgroundView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(iconBackgroundView)
-        
-        // Icon
-        let iconConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
-        iconView.image = UIImage(systemName: insight.category.icon, withConfiguration: iconConfig)
-        iconView.tintColor = insight.category.color
+
+        // ── Left accent bar ──────────────────────────────────────────────
+        accentBar.layer.cornerRadius  = 3
+        accentBar.layer.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner]
+        accentBar.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(accentBar)
+
+        // ── Icon circle ────────────────────────────────────────────────────
+        iconBg.layer.cornerRadius = 18
+        iconBg.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(iconBg)
+
+        let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
         iconView.contentMode = .scaleAspectFit
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconBackgroundView.addSubview(iconView)
-        
-        // Title
-        titleLabel.text = insight.title
-        titleLabel.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        titleLabel.textColor = insight.category.color
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(titleLabel)
-        
-        // Chevron (only if actionable)
-        if insight.actionScreen != nil {
-            let chevronConfig = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
-            chevronView.image = UIImage(systemName: "chevron.right", withConfiguration: chevronConfig)
-            chevronView.tintColor = UIColor.systemGray3
-            chevronView.contentMode = .scaleAspectFit
-            chevronView.translatesAutoresizingMaskIntoConstraints = false
-            containerView.addSubview(chevronView)
-        }
-        
-        // Message (main headline)
-        messageLabel.text = insight.message
-        messageLabel.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        messageLabel.textColor = .label
-        messageLabel.numberOfLines = 2
-        messageLabel.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(messageLabel)
-        
-        // Detail (optional subtext)
-        if let detail = insight.detail {
-            detailLabel.text = detail
-            detailLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-            detailLabel.textColor = .secondaryLabel
-            detailLabel.numberOfLines = 2
-            detailLabel.translatesAutoresizingMaskIntoConstraints = false
-            containerView.addSubview(detailLabel)
-        }
-        
-        // Mini graph/visualization if trend data exists
-        if let trendData = insight.trendData {
-            setupMiniGraph(with: trendData)
-        }
-        
-        setupConstraints()
-        setupGestureRecognizer()
-        
-        // Add subtle entrance animation
-        setupEntranceAnimation()
-    }
-    
-    private func setupConstraints() {
-        var constraints: [NSLayoutConstraint] = [
+        iconBg.addSubview(iconView)
+
+        // ── Category label (uppercase tracked) ─────────────────────────────
+        categoryLabel.font = UIFont.systemFont(ofSize: 10, weight: .semibold)
+        categoryLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(categoryLabel)
+
+        // ── Chevron ────────────────────────────────────────────────────────
+        let chevrCfg = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+        chevronView.image       = UIImage(systemName: "chevron.right", withConfiguration: chevrCfg)
+        chevronView.tintColor   = .tertiaryLabel
+        chevronView.contentMode = .scaleAspectFit
+        chevronView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(chevronView)
+
+        // ── Sparkline ──────────────────────────────────────────────────────
+        sparklineView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(sparklineView)
+
+        // ── Bold metric label ──────────────────────────────────────────────
+        metricLabel.font          = UIFont.systemFont(ofSize: 22, weight: .bold)
+        metricLabel.numberOfLines = 1
+        metricLabel.adjustsFontSizeToFitWidth = true
+        metricLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(metricLabel)
+
+        // ── Trend subtext ──────────────────────────────────────────────────
+        trendLabel.font          = UIFont.systemFont(ofSize: 12, weight: .medium)
+        trendLabel.numberOfLines = 1
+        trendLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(trendLabel)
+
+        // ── Footer time range ──────────────────────────────────────────────
+        timeLabel.font          = UIFont.systemFont(ofSize: 11, weight: .regular)
+        timeLabel.textColor     = .tertiaryLabel
+        timeLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(timeLabel)
+
+        // ── Constraints ────────────────────────────────────────────────────
+        NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: topAnchor),
             containerView.leadingAnchor.constraint(equalTo: leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            
-            // Icon background circle
-            iconBackgroundView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16),
-            iconBackgroundView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            iconBackgroundView.widthAnchor.constraint(equalToConstant: 32),
-            iconBackgroundView.heightAnchor.constraint(equalToConstant: 32),
-            
-            // Icon inside circle
-            iconView.centerXAnchor.constraint(equalTo: iconBackgroundView.centerXAnchor),
-            iconView.centerYAnchor.constraint(equalTo: iconBackgroundView.centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 18),
-            iconView.heightAnchor.constraint(equalToConstant: 18),
-            
-            // Title label
-            titleLabel.centerYAnchor.constraint(equalTo: iconBackgroundView.centerYAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: iconBackgroundView.trailingAnchor, constant: 10),
-            
-            // Message label
-            messageLabel.topAnchor.constraint(equalTo: iconBackgroundView.bottomAnchor, constant: 14),
-            messageLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            messageLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-        ]
-        
-        // Chevron constraints (if present)
-        if insight.actionScreen != nil {
-            constraints += [
-                chevronView.centerYAnchor.constraint(equalTo: iconBackgroundView.centerYAnchor),
-                chevronView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-                chevronView.widthAnchor.constraint(equalToConstant: 13),
-                chevronView.heightAnchor.constraint(equalToConstant: 13),
-                titleLabel.trailingAnchor.constraint(equalTo: chevronView.leadingAnchor, constant: -8)
-            ]
-        } else {
-            constraints.append(
-                titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16)
-            )
-        }
-        
-        // Detail label or mini graph constraints
-        if insight.detail != nil {
-            constraints += [
-                detailLabel.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 6),
-                detailLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-                detailLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-                detailLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16)
-            ]
-        } else if insight.trendData != nil {
-            constraints += [
-                miniGraphContainer.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 12),
-                miniGraphContainer.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-                miniGraphContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-                miniGraphContainer.heightAnchor.constraint(equalToConstant: 40),
-                miniGraphContainer.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16)
-            ]
-        } else {
-            constraints.append(
-                messageLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16)
-            )
-        }
-        
-        NSLayoutConstraint.activate(constraints)
-    }
-    
-    private func setupMiniGraph(with trendData: HealthInsight.TrendData) {
-        miniGraphContainer.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(miniGraphContainer)
-        
-        // Simple sparkline-style graph
-        let graphView = MiniSparklineView(data: trendData.values, color: insight.category.color)
-        graphView.translatesAutoresizingMaskIntoConstraints = false
-        miniGraphContainer.addSubview(graphView)
-        
-        NSLayoutConstraint.activate([
-            graphView.topAnchor.constraint(equalTo: miniGraphContainer.topAnchor),
-            graphView.leadingAnchor.constraint(equalTo: miniGraphContainer.leadingAnchor),
-            graphView.trailingAnchor.constraint(equalTo: miniGraphContainer.trailingAnchor),
-            graphView.bottomAnchor.constraint(equalTo: miniGraphContainer.bottomAnchor)
+
+            accentBar.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 10),
+            accentBar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10),
+            accentBar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            accentBar.widthAnchor.constraint(equalToConstant: 4),
+
+            iconBg.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 14),
+            iconBg.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 12),
+            iconBg.widthAnchor.constraint(equalToConstant: 36),
+            iconBg.heightAnchor.constraint(equalToConstant: 36),
+
+            iconView.centerXAnchor.constraint(equalTo: iconBg.centerXAnchor),
+            iconView.centerYAnchor.constraint(equalTo: iconBg.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 15),
+            iconView.heightAnchor.constraint(equalToConstant: 15),
+
+            categoryLabel.centerYAnchor.constraint(equalTo: iconBg.centerYAnchor),
+            categoryLabel.leadingAnchor.constraint(equalTo: iconBg.trailingAnchor, constant: 10),
+
+            chevronView.centerYAnchor.constraint(equalTo: iconBg.centerYAnchor),
+            chevronView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -14),
+            chevronView.widthAnchor.constraint(equalToConstant: 11),
+            chevronView.heightAnchor.constraint(equalToConstant: 11),
+            categoryLabel.trailingAnchor.constraint(lessThanOrEqualTo: chevronView.leadingAnchor, constant: -8),
+
+            sparklineView.topAnchor.constraint(equalTo: iconBg.bottomAnchor, constant: 12),
+            sparklineView.leadingAnchor.constraint(equalTo: iconBg.leadingAnchor),
+            sparklineView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -14),
+            sparklineView.heightAnchor.constraint(equalToConstant: 36),
+
+            metricLabel.topAnchor.constraint(equalTo: sparklineView.bottomAnchor, constant: 10),
+            metricLabel.leadingAnchor.constraint(equalTo: iconBg.leadingAnchor),
+            metricLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -14),
+
+            trendLabel.topAnchor.constraint(equalTo: metricLabel.bottomAnchor, constant: 4),
+            trendLabel.leadingAnchor.constraint(equalTo: iconBg.leadingAnchor),
+            trendLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -14),
+
+            timeLabel.topAnchor.constraint(equalTo: trendLabel.bottomAnchor, constant: 6),
+            timeLabel.leadingAnchor.constraint(equalTo: iconBg.leadingAnchor),
+            timeLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -14),
         ])
+
+        // Gesture
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        addGestureRecognizer(tap)
+        isUserInteractionEnabled = true
+
+        // Start hidden for entrance animation
+        alpha     = 0
+        transform = CGAffineTransform(translationX: 0, y: 8)
     }
-    
-    private func setupGestureRecognizer() {
-        if insight.actionScreen != nil || onTap != nil {
-            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-            addGestureRecognizer(tapGesture)
-            isUserInteractionEnabled = true
-        }
+
+    // MARK: - Populate
+
+    private func populate() {
+        let color = report.accentColor
+
+        accentBar.backgroundColor = color
+        iconBg.backgroundColor    = color.withAlphaComponent(0.15)
+
+        let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+        iconView.image    = UIImage(systemName: report.category.icon, withConfiguration: iconCfg)
+        iconView.tintColor = color
+
+        // Category label with letter spacing
+        let categoryAttrs = NSAttributedString(
+            string: report.title.uppercased(),
+            attributes: [
+                .kern: 0.8,
+                .font: UIFont.systemFont(ofSize: 10, weight: .semibold),
+                .foregroundColor: color
+            ])
+        categoryLabel.attributedText = categoryAttrs
+
+        // Sparkline
+        sparklineView.configure(values: report.graphData.values, color: color)
+
+        // Bold metric
+        metricLabel.text      = "\(report.primaryValue) \(report.primaryLabel)"
+        metricLabel.textColor = color
+
+        // Trend subtext
+        let trendSymbol = report.trend.symbol
+        trendLabel.text      = "\(trendSymbol) \(report.comparisonText)"
+        trendLabel.textColor = report.trend.color
+
+        // Time label
+        timeLabel.text = report.timeRangeLabel
     }
-    
-    private func setupEntranceAnimation() {
-        // Start slightly below and transparent
-        self.transform = CGAffineTransform(translationX: 0, y: 10)
-        self.alpha = 0
-    }
-    
+
+    // MARK: - Entrance Animation
+
     func animateIn(delay: TimeInterval = 0) {
         UIView.animate(
-            withDuration: 0.6,
-            delay: delay,
-            usingSpringWithDamping: 0.85,
-            initialSpringVelocity: 0.3,
+            withDuration: 0.55, delay: delay,
+            usingSpringWithDamping: 0.82, initialSpringVelocity: 0.2,
             options: [.curveEaseOut, .allowUserInteraction]
         ) {
             self.transform = .identity
-            self.alpha = 1
+            self.alpha     = 1
         }
     }
-    
-    // MARK: - Actions
-    
+
+    // MARK: - Tap
+
     @objc private func handleTap() {
-        // Apple-style haptic feedback
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.prepare()
-        generator.impactOccurred()
-        
-        // Smooth scale animation (like Apple Health cards)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
         UIView.animate(
-            withDuration: 0.12,
-            delay: 0,
-            options: [.curveEaseOut, .allowUserInteraction],
-            animations: {
-                self.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
-                self.containerView.backgroundColor = UIColor.white.withAlphaComponent(0.7)
-            }
-        ) { _ in
+            withDuration: 0.10, delay: 0,
+            options: [.curveEaseOut, .allowUserInteraction]
+        ) {
+            self.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
+            self.containerView.backgroundColor = UIColor.tertiarySystemGroupedBackground
+        } completion: { _ in
             UIView.animate(
-                withDuration: 0.12,
-                delay: 0,
-                options: [.curveEaseIn, .allowUserInteraction],
-                animations: {
-                    self.transform = .identity
-                    self.containerView.backgroundColor = UIColor.white.withAlphaComponent(0.5)
-                }
-            )
+                withDuration: 0.18, delay: 0,
+                usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5,
+                options: [.curveEaseIn, .allowUserInteraction]
+            ) {
+                self.transform = .identity
+                self.containerView.backgroundColor = .secondarySystemGroupedBackground
+            }
         }
-        
-        // Trigger action after animation starts
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             self.onTap?()
         }
     }
 }
 
-// MARK: - Mini Sparkline Graph View
+// MARK: - HighlightsContainerView
 
-class MiniSparklineView: UIView {
-    
-    private let data: [Double]
-    private let color: UIColor
-    
-    init(data: [Double], color: UIColor) {
-        self.data = data
-        self.color = color
-        super.init(frame: .zero)
-        backgroundColor = .clear
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func draw(_ rect: CGRect) {
-        guard !data.isEmpty else { return }
-        
-        let path = UIBezierPath()
-        let maxValue = data.max() ?? 1
-        let minValue = data.min() ?? 0
-        let range = maxValue - minValue
-        
-        let spacing = rect.width / CGFloat(data.count - 1)
-        
-        for (index, value) in data.enumerated() {
-            let x = CGFloat(index) * spacing
-            let normalizedValue = range > 0 ? (value - minValue) / range : 0.5
-            let y = rect.height - (CGFloat(normalizedValue) * rect.height)
-            
-            if index == 0 {
-                path.move(to: CGPoint(x: x, y: y))
-            } else {
-                path.addLine(to: CGPoint(x: x, y: y))
-            }
-        }
-        
-        // Stroke the line
-        color.setStroke()
-        path.lineWidth = 2.0
-        path.lineCapStyle = .round
-        path.lineJoinStyle = .round
-        path.stroke()
-        
-        // Fill area under line with gradient
-        path.addLine(to: CGPoint(x: rect.width, y: rect.height))
-        path.addLine(to: CGPoint(x: 0, y: rect.height))
-        path.close()
-        
-        color.withAlphaComponent(0.15).setFill()
-        path.fill()
-    }
-}
+final class HighlightsContainerView: UIView {
 
-// MARK: - Highlights Container with Apple-style animations
-
-class HighlightsContainerView: UIView {
-    
     private let stackView = UIStackView()
-    private var insights: [HealthInsight] = []
     private var cardViews: [HighlightCardView] = []
-    
-    var onCardTapped: ((HealthInsight.DestinationScreen) -> Void)?
-    
+
+    var onCardTapped: ((InsightReport) -> Void)?
+
     init() {
         super.init(frame: .zero)
-        setupView()
+        setup()
     }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    private func setupView() {
-        stackView.axis = .vertical
-        stackView.spacing = 12
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setup() {
+        stackView.axis    = .vertical
+        stackView.spacing = 14
         stackView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stackView)
-        
         NSLayoutConstraint.activate([
             stackView.topAnchor.constraint(equalTo: topAnchor),
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            stackView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
-    
-    func configure(with insights: [HealthInsight]) {
-        self.insights = insights
-        
-        // Remove old cards with fade out
-        let oldCards = cardViews
+
+    func configure(with reports: [InsightReport]) {
+        let old = cardViews
         cardViews.removeAll()
-        
-        UIView.animate(withDuration: 0.25) {
-            oldCards.forEach { $0.alpha = 0 }
-        } completion: { _ in
-            oldCards.forEach { $0.removeFromSuperview() }
+
+        UIView.animate(withDuration: 0.15) { old.forEach { $0.alpha = 0 } } completion: { _ in
+            old.forEach { self.stackView.removeArrangedSubview($0); $0.removeFromSuperview() }
         }
-        
-        // Add new cards with staggered animation
-        for (index, insight) in insights.enumerated() {
-            let card = HighlightCardView(insight: insight) { [weak self] in
-                guard let screen = insight.actionScreen else { return }
-                self?.onCardTapped?(screen)
+
+        for (i, rep) in reports.enumerated() {
+            let card = HighlightCardView(report: rep) { [weak self] in
+                self?.onCardTapped?(rep)
             }
-            
             stackView.addArrangedSubview(card)
             cardViews.append(card)
-            
-            // Staggered entrance animation (Apple Health style)
-            card.animateIn(delay: Double(index) * 0.08)
+            card.animateIn(delay: Double(i) * 0.07)
         }
-        
-        // Haptic feedback for important alerts
-        if insights.contains(where: { $0.priority == .critical }) {
+
+        if reports.contains(where: { $0.trend == .decreased && $0.category == .medication }) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                let generator = UINotificationFeedbackGenerator()
-                generator.notificationOccurred(.warning)
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
             }
         }
     }
-    
+
     func refresh() {
-        let newInsights = HighlightsInsightEngine.shared.generateInsights()
-        configure(with: newInsights)
+        let reports = InsightDataEngine.shared.generateHomeInsightReports()
+        configure(with: reports)
     }
 }

@@ -26,6 +26,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         let window = UIWindow(windowScene: windowScene)
         self.window = window
+        
+        ProfileManager.shared.initializeContainer()
 
         // Initialize local user ID immediately (creates if doesn't exist)
         let _ = LocalUserManager.shared.getOrCreateLocalUserID()

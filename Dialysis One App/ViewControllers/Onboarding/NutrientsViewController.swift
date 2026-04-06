@@ -2,6 +2,8 @@ import UIKit
 
 class NutrientsViewController: UIViewController {
     
+    var profileBuilder: ProfileBuilder!
+
     // MARK: - UI Elements
     private let scrollView = UIScrollView()
     private let contentView = UIView()
@@ -85,9 +87,9 @@ class NutrientsViewController: UIViewController {
     private func setupCaloriesField() {
         let container = createInputContainer(
             icon: "flame.fill",
-            iconColor: UIColor(red: 255/255, green: 149/255, blue: 0/255, alpha: 1.0),
+            iconColor: UIColor.systemOrange,
             label: "Total Calories",
-            placeholder: "e.g., 2000",
+            placeholder: "2000",
             unit: "Kcal",
             textField: caloriesTextField
         )
@@ -95,19 +97,18 @@ class NutrientsViewController: UIViewController {
         contentView.addSubview(container)
         
         NSLayoutConstraint.activate([
-            container.topAnchor.constraint(equalTo: contentView.subviews[1].bottomAnchor, constant: 50),
-            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            container.heightAnchor.constraint(equalToConstant: 80)
+            container.topAnchor.constraint(equalTo: contentView.subviews[1].bottomAnchor, constant: 40),
+            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20)
         ])
     }
     
     private func setupWaterField() {
         let container = createInputContainer(
             icon: "drop.fill",
-            iconColor: UIColor(red: 0/255, green: 122/255, blue: 255/255, alpha: 1.0),
+            iconColor: UIColor.systemBlue,
             label: "Water Intake",
-            placeholder: "e.g., 2.5",
+            placeholder: "2.5",
             unit: "L",
             textField: waterTextField
         )
@@ -115,10 +116,9 @@ class NutrientsViewController: UIViewController {
         contentView.addSubview(container)
         
         NSLayoutConstraint.activate([
-            container.topAnchor.constraint(equalTo: contentView.subviews[contentView.subviews.count - 2].bottomAnchor, constant: 20),
-            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            container.heightAnchor.constraint(equalToConstant: 80),
+            container.topAnchor.constraint(equalTo: contentView.subviews[contentView.subviews.count - 2].bottomAnchor, constant: 24),
+            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -200)
         ])
     }
@@ -128,88 +128,83 @@ class NutrientsViewController: UIViewController {
         container.backgroundColor = .white
         container.layer.cornerRadius = 20
         container.layer.shadowColor = UIColor.black.cgColor
-        container.layer.shadowOffset = CGSize(width: 0, height: 2)
-        container.layer.shadowRadius = 8
-        container.layer.shadowOpacity = 0.08
+        container.layer.shadowOffset = CGSize(width: 0, height: 4)
+        container.layer.shadowRadius = 16
+        container.layer.shadowOpacity = 0.04
         container.translatesAutoresizingMaskIntoConstraints = false
         
         // Icon background circle
         let iconBackground = UIView()
-        iconBackground.backgroundColor = iconColor.withAlphaComponent(0.15)
-        iconBackground.layer.cornerRadius = 22
+        iconBackground.backgroundColor = iconColor.withAlphaComponent(0.12)
+        iconBackground.layer.cornerRadius = 24 // 48x48
         iconBackground.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(iconBackground)
         
         // Icon
-        let iconConfig = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+        let iconConfig = UIImage.SymbolConfiguration(pointSize: 22, weight: .regular)
         let iconView = UIImageView(image: UIImage(systemName: icon, withConfiguration: iconConfig))
         iconView.tintColor = iconColor
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.contentMode = .scaleAspectFit
+        iconView.contentMode = .center
         iconBackground.addSubview(iconView)
         
         // Label
         let labelView = UILabel()
         labelView.text = label
-        labelView.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        labelView.textColor = .darkGray
+        labelView.font = UIFont.systemFont(ofSize: 15, weight: .semibold)
+        labelView.textColor = .label
         labelView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(labelView)
         
         // Text Field
         textField.placeholder = placeholder
-        textField.font = UIFont.systemFont(ofSize: 18, weight: .medium)
-        textField.textAlignment = .left
-        textField.textColor = .black
+        textField.font = UIFont.systemFont(ofSize: 17, weight: .regular)
+        textField.textColor = .label
         textField.keyboardType = .decimalPad
-        textField.backgroundColor = UIColor(red: 248/255, green: 248/255, blue: 250/255, alpha: 1.0)
-        textField.layer.cornerRadius = 12
-        textField.layer.borderWidth = 1
-        textField.layer.borderColor = UIColor(red: 230/255, green: 230/255, blue: 235/255, alpha: 1.0).cgColor
+        textField.backgroundColor = UIColor.systemGray6
+        textField.layer.cornerRadius = 10
+        textField.clipsToBounds = true
         textField.translatesAutoresizingMaskIntoConstraints = false
         
         // Add padding to text field
-        let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 40))
-        textField.leftView = paddingView
+        let leftPaddingView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 44))
+        textField.leftView = leftPaddingView
         textField.leftViewMode = .always
+        
+        // Unit as trailing label inside text field
+        let unitLabel = UILabel()
+        unitLabel.text = unit
+        unitLabel.font = UIFont.systemFont(ofSize: 15, weight: .regular)
+        unitLabel.textColor = .secondaryLabel
+        unitLabel.sizeToFit()
+        
+        let rightPaddingView = UIView(frame: CGRect(x: 0, y: 0, width: unitLabel.bounds.width + 24, height: 44))
+        unitLabel.center = CGPoint(x: rightPaddingView.bounds.midX - 5, y: rightPaddingView.bounds.midY)
+        rightPaddingView.addSubview(unitLabel)
+        
+        textField.rightView = rightPaddingView
+        textField.rightViewMode = .always
         
         container.addSubview(textField)
         
-        // Unit Label
-        let unitLabel = UILabel()
-        unitLabel.text = unit
-        unitLabel.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        unitLabel.textColor = .darkGray
-        unitLabel.backgroundColor = UIColor(red: 240/255, green: 240/255, blue: 245/255, alpha: 1.0)
-        unitLabel.textAlignment = .center
-        unitLabel.layer.cornerRadius = 10
-        unitLabel.clipsToBounds = true
-        unitLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(unitLabel)
-        
         NSLayoutConstraint.activate([
-            iconBackground.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            iconBackground.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            iconBackground.widthAnchor.constraint(equalToConstant: 44),
-            iconBackground.heightAnchor.constraint(equalToConstant: 44),
+            iconBackground.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
+            iconBackground.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            iconBackground.widthAnchor.constraint(equalToConstant: 48),
+            iconBackground.heightAnchor.constraint(equalToConstant: 48),
             
             iconView.centerXAnchor.constraint(equalTo: iconBackground.centerXAnchor),
             iconView.centerYAnchor.constraint(equalTo: iconBackground.centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 22),
-            iconView.heightAnchor.constraint(equalToConstant: 22),
             
             labelView.leadingAnchor.constraint(equalTo: iconBackground.trailingAnchor, constant: 16),
-            labelView.topAnchor.constraint(equalTo: container.topAnchor, constant: 14),
+            labelView.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            labelView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
             
             textField.leadingAnchor.constraint(equalTo: labelView.leadingAnchor),
             textField.topAnchor.constraint(equalTo: labelView.bottomAnchor, constant: 8),
-            textField.trailingAnchor.constraint(equalTo: unitLabel.leadingAnchor, constant: -10),
-            textField.heightAnchor.constraint(equalToConstant: 40),
-            
-            unitLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-            unitLabel.centerYAnchor.constraint(equalTo: textField.centerYAnchor),
-            unitLabel.widthAnchor.constraint(equalToConstant: 50),
-            unitLabel.heightAnchor.constraint(equalToConstant: 32)
+            textField.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            textField.heightAnchor.constraint(equalToConstant: 44),
+            textField.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -20)
         ])
         
         return container
@@ -281,29 +276,32 @@ class NutrientsViewController: UIViewController {
     
     // MARK: - Actions
     @objc private func nextButtonTapped() {
-        // Validate and save user input
-        let calories = Int(caloriesTextField.text ?? "") ?? 2000
+        let calories = Double(caloriesTextField.text ?? "") ?? 2000
         let water = Double(waterTextField.text ?? "") ?? 2.5
         
-        saveNutrientValues(calories: calories, water: water)
+        saveProfile(calories: calories, water: water, isDefault: false)
         finishOnboarding()
     }
     
     @objc private func useDefaultValues() {
-        // Use default values
-        saveNutrientValues(calories: 2000, water: 2.5)
+        saveProfile(calories: 0, water: 0, isDefault: true)
         finishOnboarding()
     }
     
-    private func saveNutrientValues(calories: Int, water: Double) {
-        let localID = LocalUserManager.shared.getLocalUserID()
+    private func saveProfile(calories: Double, water: Double, isDefault: Bool) {
+        let profile = UserProfile(
+            name: profileBuilder.name ?? "",
+            gender: profileBuilder.gender ?? "",
+            age: profileBuilder.age ?? 0,
+            heightCm: profileBuilder.heightCm ?? 0,
+            weightKg: profileBuilder.weightKg ?? 0,
+            calorieTarget: calories,
+            waterTarget: water,
+            isUsingDefaultTargets: isDefault
+        )
         
-        // Save using local user ID
-        UserDataManager.shared.save("totalCalories", value: calories, uid: localID)
-        UserDataManager.shared.save("waterGoal", value: Int(water * 1000), uid: localID)
-        UserDataManager.shared.save("potassiumGoal", value: 90, uid: localID)
-        UserDataManager.shared.save("sodiumGoal", value: 70, uid: localID)
-        UserDataManager.shared.save("proteinGoal", value: 110, uid: localID)
+        ProfileManager.shared.recalculateTargets(for: profile)
+        ProfileManager.shared.saveProfile(profile)
     }
 
     private func finishOnboarding() {

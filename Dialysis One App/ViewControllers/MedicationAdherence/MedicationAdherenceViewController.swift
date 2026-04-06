@@ -24,47 +24,46 @@ class MedicationAdherenceViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Use system navigation bar (provides single native back button)
+        self.title = "Medication Adherence"
+        navigationItem.largeTitleDisplayMode = .never
         setupUI()
         updateStatus()
         loadMedications()
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
+        navigationController?.setNavigationBarHidden(false, animated: animated)
         updateStatus()
         loadMedications()
-        
-        // 📤 Send medication list to Watch (default: current time)
-            let time = TimeOfDay.current()
 
-            WatchConnectivityManager.shared.sendMedicationList(
-                MedicationStore.shared.medicationsFor(
-                    timeOfDay: time,
-                    date: Date()
-                ),
-                timeOfDay: time
-            )
+        // Send medication list to Watch
+        let time = TimeOfDay.current()
+        WatchConnectivityManager.shared.sendMedicationList(
+            MedicationStore.shared.medicationsFor(timeOfDay: time, date: Date()),
+            timeOfDay: time
+        )
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // Restore home's hidden nav bar on pop
+        if isMovingFromParent {
+            navigationController?.setNavigationBarHidden(true, animated: animated)
+        }
     }
     
     private func setupUI() {
         addTopGradientBackground()
-        
-        // Title Label
-        let titleLabel = UILabel()
-        titleLabel.text = "Medication Adherence"
-        titleLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(titleLabel)
-        
-        // Back button
-        let backButton = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
-        backButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
-        backButton.tintColor = .black
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        backButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(backButton)
+
+        // Edit button goes into navigation bar right item
+        let editConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
+        editButton.setImage(UIImage(systemName: "pencil.circle", withConfiguration: editConfig), for: .normal)
+        editButton.setImage(UIImage(systemName: "checkmark.circle.fill", withConfiguration: editConfig), for: .selected)
+        editButton.tintColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
+        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: editButton)
         
         // Scroll view
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -89,14 +88,7 @@ class MedicationAdherenceViewController: UIViewController {
         dateFormatter.dateFormat = "MMM dd, yyyy"
         dateLabel.text = dateFormatter.string(from: currentDate)
         
-        // Edit button with smaller icon
-        let editConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-        editButton.setImage(UIImage(systemName: "pencil.circle", withConfiguration: editConfig), for: .normal)
-        editButton.setImage(UIImage(systemName: "checkmark.circle.fill", withConfiguration: editConfig), for: .selected)
-        editButton.tintColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
-        editButton.translatesAutoresizingMaskIntoConstraints = false
-        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
-        dateEditContainer.addSubview(editButton)
+        // (editButton is configured in nav bar right item above)
         
         // Status label
         statusLabel.font = MedicationDesignTokens.Typography.statusBadge
@@ -164,21 +156,8 @@ class MedicationAdherenceViewController: UIViewController {
             yourMedicationsCard!.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
         ]
 
-        // Replace the NSLayoutConstraint.activate section in setupUI() with this:
-
         NSLayoutConstraint.activate([
-            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            backButton.widthAnchor.constraint(equalToConstant: 44),
-            backButton.heightAnchor.constraint(equalToConstant: 44),
-            
-            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: backButton.trailingAnchor, constant: 8),
-            
-            scrollView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
@@ -439,10 +418,6 @@ class MedicationAdherenceViewController: UIViewController {
     private func updateStatus() {
         let progress = store.takenCount(for: selectedTimeOfDay, date: currentDate)
         statusLabel.text = "\(progress.taken) out of \(progress.total) Dose taken"
-    }
-    
-    @objc private func backTapped() {
-        navigationController?.popViewController(animated: true)
     }
     
     @objc private func addMedicationTapped() {

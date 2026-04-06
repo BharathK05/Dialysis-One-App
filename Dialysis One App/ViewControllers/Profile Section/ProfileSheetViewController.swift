@@ -388,9 +388,12 @@ class ProfileSheetViewController: UIViewController {
     }
     
     private func loadUserInfo() {
-        // Get name from UserDefaults
-        let savedName = UserDefaults.standard.string(forKey: "userFullName") ?? "User"
-        nameLabel.text = savedName
+        if let profile = ProfileManager.shared.currentProfile {
+            nameLabel.text = profile.name
+        } else {
+            let savedName = UserDefaults.standard.string(forKey: "userFullName") ?? "User"
+            nameLabel.text = savedName
+        }
         
         // Show user type
         let userType = LocalUserManager.shared.getUserType()

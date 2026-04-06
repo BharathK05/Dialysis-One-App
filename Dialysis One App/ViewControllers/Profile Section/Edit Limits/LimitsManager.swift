@@ -18,65 +18,87 @@ class LimitsManager {
     }
     
     // MARK: - Keys
-    private let caloriesKey = "limit_calories"
+    // Keeping for migration reference
     private let potassiumKey = "limit_potassium"
     private let sodiumKey = "limit_sodium"
     private let proteinKey = "limit_protein"
-    private let fluidKey = "limit_fluid"
     
     // MARK: - Default Values
-    private let defaultCalories = 2000
     private let defaultPotassium = 2000
     private let defaultSodium = 2000
     private let defaultProtein = 84 // 70 * 1.2
-    private let defaultFluid = 250
+    
+    private var profile: UserProfile? {
+        ProfileManager.shared.currentProfile
+    }
     
     // MARK: - Get Limits
     
     func getCalorieLimit() -> Int {
-        return UserDataManager.shared.loadInt(caloriesKey, uid: uid, defaultValue: defaultCalories)
+        return Int(profile?.calorieTarget ?? 2000)
     }
     
     func getPotassiumLimit() -> Int {
-        return UserDataManager.shared.loadInt(potassiumKey, uid: uid, defaultValue: defaultPotassium)
+        return Int(profile?.potassiumTarget ?? Double(defaultPotassium))
     }
     
     func getSodiumLimit() -> Int {
-        return UserDataManager.shared.loadInt(sodiumKey, uid: uid, defaultValue: defaultSodium)
+        return Int(profile?.sodiumTarget ?? Double(defaultSodium))
     }
     
     func getProteinLimit() -> Int {
-        return UserDataManager.shared.loadInt(proteinKey, uid: uid, defaultValue: defaultProtein)
+        return Int(profile?.proteinTarget ?? Double(defaultProtein))
     }
     
     func getFluidLimit() -> Int {
-        return UserDataManager.shared.loadInt(fluidKey, uid: uid, defaultValue: defaultFluid)
+        // Return water target in ml (L * 1000)
+        return Int((profile?.waterTarget ?? 2.5) * 1000)
     }
     
     // MARK: - Set Limits
     
     func setCalorieLimit(_ value: Int) {
-        UserDataManager.shared.save(caloriesKey, value: value, uid: uid)
+        if let profile = profile {
+            profile.calorieTarget = Double(value)
+            profile.isUsingDefaultTargets = false
+            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+        }
         postUpdateNotification()
     }
     
     func setPotassiumLimit(_ value: Int) {
-        UserDataManager.shared.save(potassiumKey, value: value, uid: uid)
+        if let profile = profile {
+            profile.potassiumTarget = Double(value)
+            profile.isUsingDefaultTargets = false
+            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+        }
         postUpdateNotification()
     }
     
     func setSodiumLimit(_ value: Int) {
-        UserDataManager.shared.save(sodiumKey, value: value, uid: uid)
+        if let profile = profile {
+            profile.sodiumTarget = Double(value)
+            profile.isUsingDefaultTargets = false
+            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+        }
         postUpdateNotification()
     }
     
     func setProteinLimit(_ value: Int) {
-        UserDataManager.shared.save(proteinKey, value: value, uid: uid)
+        if let profile = profile {
+            profile.proteinTarget = Double(value)
+            profile.isUsingDefaultTargets = false
+            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+        }
         postUpdateNotification()
     }
     
     func setFluidLimit(_ value: Int) {
-        UserDataManager.shared.save(fluidKey, value: value, uid: uid)
+        if let profile = profile {
+            profile.waterTarget = Double(value) / 1000.0
+            profile.isUsingDefaultTargets = false
+            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+        }
         postUpdateNotification()
     }
     

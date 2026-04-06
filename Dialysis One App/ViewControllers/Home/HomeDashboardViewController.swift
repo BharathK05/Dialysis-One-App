@@ -55,7 +55,7 @@ class HomeDashboardViewController: UIViewController,
     
     // Add to MARK: - Properties section
     var highlightsLabel: UILabel?
-    var highlightsContainer: HighlightsContainerView?
+    var highlightsHostingController: UIViewController?
     var summaryCardsStackView: UIView? // Reference to summary section bottom
     
 //    private var appointmentHospitalLabel: UILabel?
@@ -93,7 +93,9 @@ class HomeDashboardViewController: UIViewController,
     private var waterConsumed: Int = 150 {
         didSet { updateWaterCard() }
     }
-    private var waterGoal: Int = 250
+    private var waterGoal: Int {
+        return LimitsManager.shared.getFluidLimit()
+    }
     
     // Medication tracking
     private var dosesConsumed: Int = 2 {
@@ -212,35 +214,26 @@ class HomeDashboardViewController: UIViewController,
     // MARK: - Public Update Methods
     // MARK: - Public Update Methods
     private func loadUserValues() {
-        // Default values for NEW users
-        waterConsumed = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
-        waterGoal = UserDataManager.shared.loadInt("waterGoal", uid: uid, defaultValue: 250)
+        // Water: computed from persisted FluidLog entries
+        waterConsumed = ActivityLogManager.shared.todayFluidTotal()
 
-        dosesConsumed = UserDataManager.shared.loadInt("dosesConsumed", uid: uid, defaultValue: 0)
-        dosesGoal = UserDataManager.shared.loadInt("dosesGoal", uid: uid, defaultValue: 3)
+        // Medication adherence: computed from MedicationLog entries
+        let adherence = MedicationStore.shared.totalProgress()
+        dosesConsumed = adherence.taken
+        dosesGoal     = adherence.total
 
-        // ❌ REMOVE THESE THREE LINES - goals now come from LimitsManager
-        // potassiumGoal = UserDataManager.shared.loadInt("potassiumGoal", uid: uid, defaultValue: 90)
-        // sodiumGoal = UserDataManager.shared.loadInt("sodiumGoal", uid: uid, defaultValue: 70)
-        // proteinGoal = UserDataManager.shared.loadInt("proteinGoal", uid: uid, defaultValue: 110)
-
-        // Load consumed nutrients
-        potassiumConsumed = UserDataManager.shared.loadInt("potassiumConsumed", uid: uid, defaultValue: 0)
-        sodiumConsumed = UserDataManager.shared.loadInt("sodiumConsumed", uid: uid, defaultValue: 0)
-        proteinConsumed = UserDataManager.shared.loadInt("proteinConsumed", uid: uid, defaultValue: 0)
+        // Nutrients: computed from persisted FoodLog entries
+        let totals    = ActivityLogManager.shared.todayNutrientTotals()
+        potassiumConsumed = totals.potassium
+        sodiumConsumed    = totals.sodium
+        proteinConsumed   = totals.protein
 
         currentWeight = UserDataManager.shared.loadDouble("weight", uid: uid, defaultValue: 0)
     }
 
-    func updateWater(consumed: Int, goal: Int? = nil) {
-        waterConsumed = consumed
-        UserDataManager.shared.save("waterConsumed", value: consumed, uid: uid)
+    func updateWater() {
+        waterConsumed = ActivityLogManager.shared.todayFluidTotal()
 
-        if let newGoal = goal {
-            waterGoal = newGoal
-            UserDataManager.shared.save("waterGoal", value: newGoal, uid: uid)
-        }
-        
         WatchConnectivityManager.shared.sendSummary(
             foodText: nil,
             waterText: "\(waterConsumed) / \(waterGoal) ml",
@@ -249,17 +242,12 @@ class HomeDashboardViewController: UIViewController,
 
         updateWaterCard()
         refreshHighlights()
-        
     }
     
-    func updateMedication(consumed: Int, goal: Int? = nil) {
-        dosesConsumed = consumed
-        UserDataManager.shared.save("dosesConsumed", value: consumed, uid: uid)
-
-        if let newGoal = goal {
-            dosesGoal = newGoal
-            UserDataManager.shared.save("dosesGoal", value: newGoal, uid: uid)
-        }
+    func updateMedication() {
+        let adherence = MedicationStore.shared.totalProgress()
+        dosesConsumed = adherence.taken
+        dosesGoal     = adherence.total
         
         WatchConnectivityManager.shared.sendSummary(
             foodText: nil,
@@ -270,19 +258,11 @@ class HomeDashboardViewController: UIViewController,
         updateMedicationCard()
     }
     
-    func updateNutrients(potassium: Int? = nil, sodium: Int? = nil, protein: Int? = nil) {
-        if let p = potassium {
-            potassiumConsumed = p
-            UserDataManager.shared.save("potassiumConsumed", value: p, uid: uid)
-        }
-        if let s = sodium {
-            sodiumConsumed = s
-            UserDataManager.shared.save("sodiumConsumed", value: s, uid: uid)
-        }
-        if let pr = protein {
-            proteinConsumed = pr
-            UserDataManager.shared.save("proteinConsumed", value: pr, uid: uid)
-        }
+    func updateNutrients() {
+        let totals = ActivityLogManager.shared.todayNutrientTotals()
+        potassiumConsumed = totals.potassium
+        sodiumConsumed    = totals.sodium
+        proteinConsumed   = totals.protein
         
         let foodSummary = "K:\(potassiumConsumed) S:\(sodiumConsumed) P:\(proteinConsumed)"
         WatchConnectivityManager.shared.sendSummary(
@@ -291,7 +271,6 @@ class HomeDashboardViewController: UIViewController,
             medicationText: "\(dosesConsumed) / \(dosesGoal) doses"
         )
         NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
-
 
         updateNutrientCard()
     }
@@ -303,13 +282,7 @@ class HomeDashboardViewController: UIViewController,
     }
     
     @objc private func waterDidUpdateFromWatch() {
-        let consumed = UserDataManager.shared.loadInt(
-            "waterConsumed",
-            uid: uid,
-            defaultValue: 0
-        )
-
-        updateWater(consumed: consumed)
+        updateWater()
     }
 
     
@@ -434,11 +407,6 @@ class HomeDashboardViewController: UIViewController,
         potassiumConsumed = totals.potassium
         sodiumConsumed = totals.sodium
         proteinConsumed = totals.protein
-        
-        // Save to UserDefaults for persistence
-        UserDataManager.shared.save("potassiumConsumed", value: totals.potassium, uid: uid)
-        UserDataManager.shared.save("sodiumConsumed", value: totals.sodium, uid: uid)
-        UserDataManager.shared.save("proteinConsumed", value: totals.protein, uid: uid)
         
         // Update UI
         updateNutrientCard()
@@ -1681,15 +1649,11 @@ class HomeDashboardViewController: UIViewController,
     }
 
     @objc private func fluidQuickAddSaveTapped(_ sender: UIButton) {
-        // Add quantity to total water & log entry
-        let currentTotal = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
-        let newTotal = currentTotal + selectedFluidQuantity
-        updateWater(consumed: newTotal)
-
+        // Persist the individual fluid entry
         let type = fluidTypes[selectedFluidTypeIndex]
         FluidLogStore.shared.addLog(type: type, quantity: selectedFluidQuantity)
+        updateWater()
         NotificationCenter.default.post(name: NSNotification.Name("fluidDidUpdate"), object: nil)
-        // collapse after save
         fluidButtonTapped()
     }
 
@@ -1830,13 +1794,9 @@ class HomeDashboardViewController: UIViewController,
         fluidQuantityDisplayLabel?.text = "\(selectedFluidQuantity) ml"
         fluidStepper?.value = Double(selectedFluidQuantity)
 
-        // update hydration + log
-        let currentTotal = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
-        let newTotal = currentTotal + selectedFluidQuantity
-        updateWater(consumed: newTotal)
-
         let finalType = fluidTypes[selectedFluidTypeIndex]
         FluidLogStore.shared.addLog(type: finalType, quantity: selectedFluidQuantity)
+        updateWater()
 
         view.endEditing(true)
         dismissFluidEditor()

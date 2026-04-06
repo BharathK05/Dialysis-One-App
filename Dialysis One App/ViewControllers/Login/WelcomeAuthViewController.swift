@@ -17,8 +17,8 @@ class WelcomeAuthViewController: UIViewController {
     /// Root container that receives the fade-in / slide-up animation
     private let contentContainer = UIView()
 
-    /// "DialysisOne" wordmark at the top
-    private let logoLabel = UILabel()
+    /// "DialysisOne" at the top
+    private let titleLabel = UILabel()
 
     /// The app mockup / preview image — aspect-fit, constrained height
     private let welcomeImageView = UIImageView()
@@ -47,7 +47,7 @@ class WelcomeAuthViewController: UIViewController {
         super.viewDidLoad()
         setupBackground()
         setupContentContainer()
-        setupLogoLabel()
+        setupTitleLabel()
         setupWelcomeImage()
         setupHeadlineLabel()
         setupAuthStack()
@@ -85,31 +85,38 @@ class WelcomeAuthViewController: UIViewController {
         view.addSubview(contentContainer)
     }
 
-    // MARK: - Logo Label
+    // MARK: - Title Label
 
-    private func setupLogoLabel() {
-        logoLabel.text          = "DialysisOne"
-        logoLabel.textAlignment = .center
-        logoLabel.textColor     = .black
+    private func setupTitleLabel() {
+        // Regular (not bold) — elegant Apple-style branding
+        let fontName = "FONTSPRINGDEMO-TheSeasonsBdIt"
+        let font = UIFont(name: fontName, size: 24)
+            ?? UIFont(name: "FONTSPRINGDEMO-TheSeasonsBold", size: 24)
+            ?? UIFont.systemFont(ofSize: 24, weight: .regular)
 
-        // Try the custom font; fall back to a serif system font
-        let customFontName = "FONTSPRINGDEMO-TheSeasonsBold"
-        if let customFont = UIFont(name: customFontName, size: 36) {
-            logoLabel.font = customFont
-        } else {
-            logoLabel.font = UIFont.systemFont(ofSize: 36, weight: .bold)
-        }
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .kern: 0.5,
+            .foregroundColor: UIColor.label
+        ]
 
-        logoLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(logoLabel)
+        titleLabel.attributedText = NSAttributedString(string: "DialysisOne", attributes: attributes)
+        titleLabel.textAlignment  = .center
+        titleLabel.alpha          = 0.95
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        contentContainer.addSubview(titleLabel)
     }
 
     // MARK: - Welcome / Mockup Image
 
     private func setupWelcomeImage() {
-        welcomeImageView.image       = UIImage(named: "welcome")
-        welcomeImageView.contentMode = .scaleAspectFit   // ✅ never stretches
+        welcomeImageView.image         = UIImage(named: "loginscreen")
+        welcomeImageView.contentMode   = .scaleAspectFit
         welcomeImageView.clipsToBounds = true
+        welcomeImageView.layer.cornerRadius  = 16
+        welcomeImageView.layer.masksToBounds = true
+        // Subtle optical reduction — image reads as preview, not hero takeover
+        welcomeImageView.transform = CGAffineTransform(scaleX: 0.92, y: 0.92)
         welcomeImageView.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.addSubview(welcomeImageView)
     }
@@ -125,38 +132,33 @@ class WelcomeAuthViewController: UIViewController {
         contentContainer.addSubview(headlineLabel)
     }
 
-    /// Builds the headline with selective bold on "diet", "fluids", "health"
+    /// Builds the headline: base 17pt regular, phrase "diet, fluids, and health" bolded as a unit
     private func buildHeadlineAttributedText() -> NSAttributedString {
-        let baseFont  = UIFont.systemFont(ofSize: 17, weight: .regular)
-        let boldFont  = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        let textColor = UIColor.black.withAlphaComponent(0.82)
+        let baseFont  = UIFont.systemFont(ofSize: 16.5, weight: .regular)
+        let boldFont  = UIFont.systemFont(ofSize: 16.5, weight: .semibold)
+        let textColor = UIColor.label.withAlphaComponent(0.85)
 
         let paragraphStyle              = NSMutableParagraphStyle()
         paragraphStyle.alignment        = .center
-        paragraphStyle.lineHeightMultiple = 1.28
+        paragraphStyle.lineHeightMultiple = 1.25
 
         let baseAttrs: [NSAttributedString.Key: Any] = [
             .font            : baseFont,
             .foregroundColor : textColor,
             .paragraphStyle  : paragraphStyle
         ]
-        let boldAttrs: [NSAttributedString.Key: Any] = [
-            .font            : boldFont,
-            .foregroundColor : textColor,
-            .paragraphStyle  : paragraphStyle
-        ]
 
-        let fullText = "Stay on top of your dialysis\ndiet, fluids, and health — effortlessly"
+        // Single natural sentence — no forced line break
+        let fullText = "Stay on top of your dialysis diet, fluids, and health — effortlessly"
         let attributed = NSMutableAttributedString(string: fullText, attributes: baseAttrs)
 
-        // Bold only the key words
-        for word in ["diet", "fluids", "health"] {
-            var searchRange = fullText.startIndex..<fullText.endIndex
-            while let range = fullText.range(of: word, options: .caseInsensitive, range: searchRange) {
-                let nsRange = NSRange(range, in: fullText)
-                attributed.addAttributes(boldAttrs, range: nsRange)
-                searchRange = range.upperBound..<fullText.endIndex
-            }
+        // Bold the phrase as a unit (Apple style — phrase emphasis, not word emphasis)
+        let emphasisPhrase = "diet, fluids, and health"
+        if let range = fullText.range(of: emphasisPhrase) {
+            attributed.addAttributes([
+                .font: boldFont,
+                .foregroundColor: textColor
+            ], range: NSRange(range, in: fullText))
         }
 
         return attributed
@@ -170,7 +172,7 @@ class WelcomeAuthViewController: UIViewController {
 
         authStack.axis      = .vertical
         authStack.alignment = .fill
-        authStack.spacing   = 14
+        authStack.spacing   = 12
         authStack.translatesAutoresizingMaskIntoConstraints = false
 
         // ✅ Apple FIRST, Guest SECOND
@@ -179,7 +181,7 @@ class WelcomeAuthViewController: UIViewController {
 
         contentContainer.addSubview(authStack)
     }
-
+    //MARK: - setupAppleButton
     private func setupAppleButton() {
         signInWithAppleButton.cornerRadius  = 12
         signInWithAppleButton.clipsToBounds = true
@@ -221,6 +223,7 @@ class WelcomeAuthViewController: UIViewController {
         microcopyLabel.textColor     = UIColor.black.withAlphaComponent(0.45)
         microcopyLabel.textAlignment = .center
         microcopyLabel.numberOfLines = 1
+        microcopyLabel.alpha         = 0.65
         microcopyLabel.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.addSubview(microcopyLabel)
     }
@@ -228,49 +231,46 @@ class WelcomeAuthViewController: UIViewController {
     // MARK: - Auto Layout
 
     private func setupConstraints() {
-        let screenHeight = UIScreen.main.bounds.height
-        // Image fills ~55% of screen height on all device sizes
-        let imageHeight  = screenHeight * 0.52
-
         NSLayoutConstraint.activate([
 
-            // ── contentContainer fills the view ──────────────────────────
+            // ── contentContainer: fills the entire screen ─────────────────
             contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-            // ── Logo ──────────────────────────────────────────────────────
-            logoLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
-            logoLabel.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
-            logoLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentContainer.leadingAnchor, constant: 16),
-            logoLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentContainer.trailingAnchor, constant: -16),
+            // ── App Title ─────────────────────────────────────────────────
+            // Pinned to top safe area — acts as a header, not part of a card
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            titleLabel.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
 
-            // ── Mockup image ──────────────────────────────────────────────
-            welcomeImageView.topAnchor.constraint(equalTo: logoLabel.bottomAnchor, constant: 12),
-            welcomeImageView.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
-            welcomeImageView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            welcomeImageView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
-            welcomeImageView.heightAnchor.constraint(equalToConstant: imageHeight),
+            // ── Hero Image ────────────────────────────────────────────────
+            // Large and dominant — main visual focus of the screen
+            welcomeImageView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
+            welcomeImageView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
+            welcomeImageView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
+            // 45% of screen height — genuinely large and impactful
+            welcomeImageView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.45),
 
-            // ── Headline ──────────────────────────────────────────────────
-            headlineLabel.topAnchor.constraint(equalTo: welcomeImageView.bottomAnchor, constant: 16),
-            headlineLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 28),
-            headlineLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -28),
+            // ── Tagline / Headline ────────────────────────────────────────
+            // Sits below image, bridges visual to action
+            headlineLabel.topAnchor.constraint(equalTo: welcomeImageView.bottomAnchor, constant: 20),
+            headlineLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
+            headlineLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
 
-            // ── Auth stack ────────────────────────────────────────────────
-            authStack.topAnchor.constraint(greaterThanOrEqualTo: headlineLabel.bottomAnchor, constant: 20),
-            authStack.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 24),
-            authStack.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -24),
+            // ── Button Section ────────────────────────────────────────────
+            // Anchored to BOTTOM of screen — always in thumb reach
+            authStack.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 20),
+            authStack.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -20),
+            authStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -36),
+
+            // Flexible gap: headline never overlaps buttons on small devices
+            headlineLabel.bottomAnchor.constraint(lessThanOrEqualTo: authStack.topAnchor, constant: -16),
 
             // ── Microcopy ─────────────────────────────────────────────────
-            microcopyLabel.topAnchor.constraint(equalTo: authStack.bottomAnchor, constant: 12),
+            microcopyLabel.topAnchor.constraint(equalTo: authStack.bottomAnchor, constant: 10),
             microcopyLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 16),
-            microcopyLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16),
-            microcopyLabel.bottomAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.bottomAnchor,
-                constant: -20
-            )
+            microcopyLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -16)
         ])
     }
 

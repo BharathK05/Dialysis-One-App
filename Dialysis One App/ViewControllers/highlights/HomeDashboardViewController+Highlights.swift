@@ -2,109 +2,90 @@
 //  HomeDashboardViewController+Highlights.swift
 //  Dialysis One App
 //
-//  Smart Highlights System - Integration with Home Dashboard
-//  FIXED: Unique selector name to avoid conflicts
+//  Insight system integration.
+//  Cards are powered by InsightDataEngine — every value is computed from logs.
 //
 
 import UIKit
+import SwiftUI
 
-// MARK: - Extension for Highlights Section
+// MARK: - Highlights Section
 
 extension HomeDashboardViewController {
-    
-    // NOTE: Make sure these properties are added to HomeDashboardViewController class:
-    // var highlightsContainer: HighlightsContainerView?
-    // var highlightsLabel: UILabel?
-    // var summaryCardsStackView: UIStackView? // Reference to summary section bottom
-    
-    /// Call this method in viewDidLoad() after setupSummarySection()
+
+    /// Call in viewDidLoad() after setupSummarySection()
     func setupHighlightsSection() {
-        // Title Label
+        // Section title
         let label = UILabel()
-        label.text = "Highlights"
-        label.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        label.text  = "Highlights"
+        label.font  = UIFont.systemFont(ofSize: 20, weight: .semibold)
         label.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(label)
-        
-        // Store reference
         self.highlightsLabel = label
+
+        // Create initial empty reports list
+        let reports = InsightDataEngine.shared.generateHomeInsightReports()
         
-        // Container for highlight cards
-        let container = HighlightsContainerView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(container)
-        
-        // Store reference
-        self.highlightsContainer = container
-        
-        // Handle card taps
-        container.onCardTapped = { [weak self] destination in
-            self?.navigateToScreen(destination)
+        let swiftUIView = InsightsSwiftUIList(reports: reports) { [weak self] report in
+            self?.openInsightDetail(report: report)
         }
         
-        // Layout constraints
-        // Find the last view in Summary section
-        let summaryBottomView = findSummaryBottomView()
+        // Host in UIHostingController
+        let hostingController = UIHostingController(rootView: swiftUIView)
+        hostingController.view.backgroundColor = .clear
+        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
         
+        addChild(hostingController)
+        contentView.addSubview(hostingController.view)
+        hostingController.didMove(toParent: self)
+        
+        // Store reference to update later
+        self.highlightsHostingController = hostingController
+
+        // Layout
+        let anchor = findSummaryBottomView()
         NSLayoutConstraint.activate([
-            // Label positioning - 24pt below summary section
-            label.topAnchor.constraint(equalTo: summaryBottomView.bottomAnchor, constant: 24),
-            label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            
-            // Container positioning
-            container.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 14),
-            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            
-            // Update content view bottom constraint to include highlights
-            container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
+            label.topAnchor.constraint(equalTo: anchor.bottomAnchor, constant: 28),
+            label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+
+            hostingController.view.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 4),
+            hostingController.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            hostingController.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            hostingController.view.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
         ])
-        
-        // Generate and display insights
-        refreshHighlights()
+
+        setupHighlightsObservers()
     }
-    
-    /// Call this whenever data updates (meals added, medications taken, etc.)
+
+    /// Refresh insight cards from latest logs (call whenever data changes)
     func refreshHighlights() {
-        highlightsContainer?.refresh()
-    }
-    
-    /// Navigate to appropriate screen when card is tapped
-    private func navigateToScreen(_ destination: HealthInsight.DestinationScreen) {
-        let viewController: UIViewController
-        
-        switch destination {
-        case .nutrientBalance:
-            viewController = NutrientBalanceViewController()
-        case .hydrationStatus:
-            viewController = HydrationStatusViewController()
-        case .medicationAdherence:
-            viewController = MedicationAdherenceViewController()
-        case .healthAndVitals:
-            viewController = HealthAndVitalsViewController()
+        let newReports = InsightDataEngine.shared.generateHomeInsightReports()
+        let swiftUIView = InsightsSwiftUIList(reports: newReports) { [weak self] report in
+            self?.openInsightDetail(report: report)
         }
         
-        navigationController?.pushViewController(viewController, animated: true)
+        if let hostingController = highlightsHostingController as? UIHostingController<InsightsSwiftUIList> {
+            hostingController.rootView = swiftUIView
+        } else {
+            // First time setup is handled in setupHighlightsSection
+        }
     }
-    
-    /// Helper to find the bottom-most view in Summary section
+
+    // MARK: - Navigation
+
+    func openInsightDetail(report: InsightReport) {
+        let detail = InsightDetailViewController(report: report)
+        navigationController?.setNavigationBarHidden(false, animated: true)
+        navigationController?.pushViewController(detail, animated: true)
+    }
+
+    // MARK: - Helpers
+
     private func findSummaryBottomView() -> UIView {
-        // If you have a reference to summaryCardsStackView, use it:
-        if let summaryStack = summaryCardsStackView {
-            return summaryStack
+        if let stack = summaryCardsStackView { return stack }
+        for sub in contentView.subviews {
+            if let stack = sub as? UIStackView, !stack.arrangedSubviews.isEmpty { return stack }
         }
-        
-        // Otherwise, try to find it by searching for a stack view in contentView
-        // This looks for the first UIStackView that contains the summary cards
-        for subview in contentView.subviews {
-            if let stackView = subview as? UIStackView,
-               stackView.arrangedSubviews.count > 0 {
-                // This is likely the summary cards stack
-                return stackView
-            }
-        }
-        
-        // Fallback: return contentView itself (will need adjustment)
         return contentView
     }
 }
@@ -112,36 +93,24 @@ extension HomeDashboardViewController {
 // MARK: - Notification Observers
 
 extension HomeDashboardViewController {
-    
-    /// Add these observers to viewDidLoad() to auto-refresh highlights
+
     func setupHighlightsObservers() {
-        // Refresh when meals update
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleDataUpdateForHighlights),
-            name: .mealsDidUpdate,
-            object: nil
-        )
-        
-        // Refresh when medications update
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleDataUpdateForHighlights),
-            name: NSNotification.Name("medicationsDidUpdate"),
-            object: nil
-        )
-        
-        // Refresh when fluid is logged
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleDataUpdateForHighlights),
-            name: NSNotification.Name("fluidDidUpdate"),
-            object: nil
-        )
+        let names: [Notification.Name] = [
+            .mealsDidUpdate,
+            NSNotification.Name("medicationsDidUpdate"),
+            NSNotification.Name("fluidDidUpdate"),
+        ]
+        for name in names {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleDataUpdateForHighlights),
+                name: name,
+                object: nil
+            )
+        }
     }
-    
+
     @objc private func handleDataUpdateForHighlights() {
-        // Small delay to ensure data is saved
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             self?.refreshHighlights()
         }

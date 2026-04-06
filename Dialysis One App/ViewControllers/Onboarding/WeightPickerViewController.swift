@@ -2,6 +2,8 @@ import UIKit
 
 class WeightPickerViewController: UIViewController {
     
+    var profileBuilder: ProfileBuilder!
+
     // MARK: - Properties
     private var currentWeight: Double = 50.0
     private var isKilogram: Bool = true
@@ -260,11 +262,12 @@ class WeightPickerViewController: UIViewController {
     }
     
     @objc private func nextButtonTapped() {
-        // Save weight using local user ID
-        let localID = LocalUserManager.shared.getLocalUserID()
-        UserDefaults.standard.set(currentWeight, forKey: "weight_\(localID)")
+        // Save weight
+        let weightKg = isKilogram ? currentWeight : currentWeight / 2.20462
+        profileBuilder.weightKg = weightKg
         
         let nutrientVC = NutrientsViewController()
+        nutrientVC.profileBuilder = profileBuilder
         navigationController?.pushViewController(nutrientVC, animated: true)
     }
 

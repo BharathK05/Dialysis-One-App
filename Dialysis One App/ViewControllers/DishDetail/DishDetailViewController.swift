@@ -1317,8 +1317,7 @@ class DishDetailViewController: UIViewController {
             imageData: foodImage?.jpegData(compressionQuality: 0.7)
         )
         
-        let ckdStage = UserDefaults.standard
-            .dictionary(forKey: "EditHealthDetailsLocal_v1")?["ckdStage"] as? String
+        let ckdStage = ProfileManager.shared.currentProfile?.ckdStage
         
         let record = MealRecord(
             from: meal,
@@ -1409,8 +1408,7 @@ class DishDetailViewController: UIViewController {
             source = "unknown"
         }
         
-        let ckdStage = UserDefaults.standard
-            .dictionary(forKey: "EditHealthDetailsLocal_v1")?["ckdStage"] as? String
+        let ckdStage = ProfileManager.shared.currentProfile?.ckdStage
         
         let record = MealRecord(
             from: savedMeal,

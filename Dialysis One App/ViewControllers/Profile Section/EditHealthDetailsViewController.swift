@@ -95,6 +95,20 @@ final class EditHealthDetailsViewController: UIViewController {
         lastName = lastNameField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let a = Int(ageField.text ?? "") { age = a } else { age = nil }
         if let h = Int(heightField.text ?? "") { heightCm = h } else { heightCm = nil }
+        
+        let fullName = "\(firstName ?? "") \(lastName ?? "")".trimmingCharacters(in: .whitespaces)
+
+        if let profile = ProfileManager.shared.currentProfile {
+            if !fullName.isEmpty { profile.name = fullName }
+            profile.gender = gender ?? profile.gender
+            if let a = age { profile.age = a }
+            if let h = heightCm {
+                profile.heightCm = Double(h)
+            }
+            // Persist CKD stage to SwiftData
+            profile.ckdStage = ckdStage ?? ""
+            ProfileManager.shared.updateProfile(profile)
+        }
 
         // call delegate
         delegate?.editHealthDetailsDidSave(firstName: firstName,
@@ -107,45 +121,26 @@ final class EditHealthDetailsViewController: UIViewController {
                                           dialysisFrequency: Array(selectedFrequency),
                                           profileImage: profileImage)
 
-        // persist locally for demo (UserDefaults)
-        saveLocally()
-        LimitsDiet.shared.refreshFromSavedProfile()
         dismiss(animated: true)
     }
 
-    private func saveLocally() {
-        var dict = [String: Any]()
-        dict["firstName"] = firstName
-        dict["lastName"] = lastName
-        dict["age"] = age
-        dict["heightCm"] = heightCm
-        dict["gender"] = gender
-        dict["bloodGroup"] = bloodGroup
-        dict["ckdStage"] = ckdStage
-        dict["frequency"] = Array(selectedFrequency)
-        UserDefaults.standard.set(dict, forKey: "EditHealthDetailsLocal_v1")
-
-        if let img = profileImage {
-            if let data = img.jpegData(compressionQuality: 0.8) {
-                UserDefaults.standard.set(data, forKey: "ProfileImageData_v1")
-            }
-        }
-    }
-
     private func loadSavedValuesIfAny() {
-        if let dict = UserDefaults.standard.dictionary(forKey: "EditHealthDetailsLocal_v1") {
-            firstName = dict["firstName"] as? String
-            lastName = dict["lastName"] as? String
-            age = dict["age"] as? Int
-            heightCm = dict["heightCm"] as? Int
-            gender = dict["gender"] as? String
-            bloodGroup = dict["bloodGroup"] as? String
-            ckdStage = dict["ckdStage"] as? String
-            if let freq = dict["frequency"] as? [String] {
-                selectedFrequency = Set(freq)
+        if let profile = ProfileManager.shared.currentProfile {
+            // Split name into first and last
+            let parts = profile.name.components(separatedBy: .whitespaces)
+            firstName = parts.first
+            if parts.count > 1 {
+                lastName = parts.dropFirst().joined(separator: " ")
+            }
+            age = profile.age
+            heightCm = Int(profile.heightCm)
+            gender = profile.gender
+            // Load CKD stage from SwiftData
+            if !profile.ckdStage.isEmpty {
+                ckdStage = profile.ckdStage
             }
         }
-
+        
         if let data = UserDefaults.standard.data(forKey: "ProfileImageData_v1"),
            let img = UIImage(data: data) {
             profileImage = img
