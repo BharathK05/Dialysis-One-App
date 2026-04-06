@@ -1,3 +1,17 @@
 # Ignore Xcode user workspace data
 xcuserdata/
 *.xcuserstate
+
+# API Keys and Secrets
+secrets.swift
+Secrets.swift
+Secrets.plist
+GoogleService-Info.plist
+*.plist.secret
+
+# macOS
+.DS_Store
+
+# Build artifacts
+Build/
+destinations.txt

@@ -219,21 +219,34 @@ final class ReliefGuideViewController: UIViewController, UICollectionViewDataSou
         ),
     ]
     
+    private var backgroundGradientLayer: CAGradientLayer?
+    
     private func addTopGradientBackground() {
             let gradient = CAGradientLayer()
-            let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)
-            let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1)
-
-            gradient.colors = [topColor.cgColor, bottomColor.cgColor]
             gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
             gradient.endPoint = CGPoint(x: 0.5, y: 1.0)
             gradient.locations = [0.0, 0.7]
             gradient.type = .axial
             gradient.frame = view.bounds
             gradient.zPosition = -1
-
             view.layer.insertSublayer(gradient, at: 0)
+            self.backgroundGradientLayer = gradient
+            updateGradientColors()
         }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            updateGradientColors()
+        }
+    }
+    
+    private func updateGradientColors() {
+        backgroundGradientLayer?.colors = [
+            AppTheme.gradientTop.resolvedColor(with: traitCollection).cgColor,
+            AppTheme.gradientBottom.resolvedColor(with: traitCollection).cgColor
+        ]
+    }
 
     private var collectionView: UICollectionView!
 
