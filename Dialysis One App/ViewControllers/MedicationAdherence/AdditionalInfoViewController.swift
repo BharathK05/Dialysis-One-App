@@ -80,7 +80,7 @@ class AdditionalInfoViewController: UIViewController {
         descriptionTextField.placeholder = "e.g., Blood pressure medication"
         descriptionTextField.text = medicationDescription
         descriptionTextField.font = UIFont.systemFont(ofSize: 16)
-        descriptionTextField.backgroundColor = .white
+        descriptionTextField.backgroundColor = AppTheme.glassCard
         descriptionTextField.layer.cornerRadius = 12
         descriptionTextField.layer.shadowColor = UIColor.black.cgColor
         descriptionTextField.layer.shadowOffset = CGSize(width: 0, height: 2)
@@ -108,7 +108,7 @@ class AdditionalInfoViewController: UIViewController {
         // Instructions text view
         instructionsTextView.text = instructions
         instructionsTextView.font = UIFont.systemFont(ofSize: 16)
-        instructionsTextView.backgroundColor = .white
+        instructionsTextView.backgroundColor = AppTheme.glassCard
         instructionsTextView.layer.cornerRadius = 12
         instructionsTextView.layer.shadowColor = UIColor.black.cgColor
         instructionsTextView.layer.shadowOffset = CGSize(width: 0, height: 2)
@@ -200,27 +200,38 @@ class AdditionalInfoViewController: UIViewController {
         ])
     }
     
+    private var backgroundGradientLayer: CAGradientLayer?
+    
     private func addTopGradientBackground() {
         let gradient = CAGradientLayer()
-        let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)
-        let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1)
-
-        gradient.colors = [topColor.cgColor, bottomColor.cgColor]
         gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
         gradient.endPoint = CGPoint(x: 0.5, y: 1.0)
         gradient.locations = [0.0, 0.7]
         gradient.type = .axial
         gradient.frame = view.bounds
         gradient.zPosition = -1
-
         view.layer.insertSublayer(gradient, at: 0)
+        self.backgroundGradientLayer = gradient
+        updateGradientColors()
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            updateGradientColors()
+        }
+    }
+    
+    private func updateGradientColors() {
+        backgroundGradientLayer?.colors = [
+            AppTheme.gradientTop.resolvedColor(with: traitCollection).cgColor,
+            AppTheme.gradientBottom.resolvedColor(with: traitCollection).cgColor
+        ]
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        if let gradientLayer = view.layer.sublayers?.first as? CAGradientLayer {
-            gradientLayer.frame = view.bounds
-        }
+        backgroundGradientLayer?.frame = view.bounds
     }
     
     private func setupKeyboardHandling() {

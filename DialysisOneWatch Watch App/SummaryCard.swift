@@ -12,16 +12,18 @@ struct SummaryCard: View {
     let subtitle: String?
     let icon: String
     let accent: Color
+    
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.black.opacity(0.88))
+                    .foregroundColor(.primary.opacity(0.88))
                 Text(subtitle ?? "—")
                     .font(.system(size: 11))
-                    .foregroundColor(.black.opacity(0.55))
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -34,22 +36,33 @@ struct SummaryCard: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(red: 245/255, green: 255/255, blue: 250/255).opacity(0.94))
-                .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+                .fill(colorScheme == .dark
+                      ? Color(white: 0.18).opacity(0.94)
+                      : Color(red: 245/255, green: 255/255, blue: 250/255).opacity(0.94))
+                .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
         )
     }
 }
 
 struct HomeView: View {
     @StateObject private var watchData = WatchDataManager.shared
+    @Environment(\.colorScheme) var colorScheme
     
     // card height constant so summary cards are equal height
     private let cardHeight: CGFloat = 58
     
-    var body: some View {
-        ZStack {
-            // same background as Vitals screen
-            LinearGradient(
+    private var backgroundGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.06, green: 0.12, blue: 0.09),
+                    Color(red: 0.04, green: 0.08, blue: 0.06)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        } else {
+            return LinearGradient(
                 colors: [
                     Color(red: 215/255, green: 240/255, blue: 230/255),
                     Color(red: 190/255, green: 225/255, blue: 210/255)
@@ -57,7 +70,13 @@ struct HomeView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .ignoresSafeArea()
+        }
+    }
+    
+    var body: some View {
+        ZStack {
+            backgroundGradient
+                .ignoresSafeArea()
             
             // Scrollable column so content always reachable
             ScrollView(.vertical, showsIndicators: false) {
@@ -65,8 +84,8 @@ struct HomeView: View {
                     // Title
                     HStack {
                         Text("Today")
-                            .font(.system(size: 22, weight: .bold))   // Bigger + Bold
-                            .foregroundColor(.black.opacity(0.90))
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.primary.opacity(0.90))
                             .padding(.leading, 10)
                             .padding(.top, 4)
                         
@@ -77,18 +96,22 @@ struct HomeView: View {
                     HStack {
                         Text("Summary")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.black.opacity(0.75))
+                            .foregroundColor(.secondary)
                         Spacer()
                     }
                     .padding(.horizontal, 10)
                     
                     // SUMMARY CARDS (stacked vertically, equal height)
                     VStack(spacing: 10) {
-                        SummaryCard(title: "Diet",
-                                    subtitle: watchData.foodSummary ?? "—",
-                                    icon: "fork.knife",
-                                    accent: .orange)
-                        .frame(height: cardHeight)
+                        // Diet Card — NOW TAPPABLE → AddDietWatchView
+                        NavigationLink(destination: AddDietWatchView()) {
+                            SummaryCard(title: "Diet",
+                                        subtitle: watchData.foodSummary ?? "—",
+                                        icon: "fork.knife",
+                                        accent: .orange)
+                            .frame(height: cardHeight)
+                        }
+                        .buttonStyle(.plain)
                         
                         NavigationLink(destination: AddWaterWatchView()) {
                             SummaryCard(
@@ -113,12 +136,12 @@ struct HomeView: View {
                         }
                         .buttonStyle(.plain)
                         
-                        // Vitals section below the summary, as you requested
+                        // Vitals section below the summary
                         VStack(spacing: 8) {
                             HStack {
                                 Text("Vitals")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.black.opacity(0.85))
+                                    .foregroundColor(.primary.opacity(0.85))
                                 Spacer()
                             }
                             .padding(.horizontal, 10)
@@ -128,10 +151,10 @@ struct HomeView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Vitals")
                                             .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(.black.opacity(0.85))
+                                            .foregroundColor(.primary.opacity(0.85))
                                         Text("Heart rate • SpO₂")
                                             .font(.system(size: 11))
-                                            .foregroundColor(.black.opacity(0.55))
+                                            .foregroundColor(.secondary)
                                     }
                                     
                                     Spacer()
@@ -144,8 +167,10 @@ struct HomeView: View {
                                 .padding(.vertical, 12)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(Color(red: 245/255, green: 255/255, blue: 250/255).opacity(0.94))
-                                        .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+                                        .fill(colorScheme == .dark
+                                              ? Color(white: 0.18).opacity(0.94)
+                                              : Color(red: 245/255, green: 255/255, blue: 250/255).opacity(0.94))
+                                        .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -155,7 +180,7 @@ struct HomeView: View {
                         // small footer text
                         Text("Dialysis One App")
                             .font(.system(size: 10))
-                            .foregroundColor(.black.opacity(0.55))
+                            .foregroundColor(.secondary)
                             .padding(.vertical, 12)
                     }
                     .padding(.bottom, 16)

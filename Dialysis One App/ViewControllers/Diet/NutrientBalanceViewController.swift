@@ -254,7 +254,19 @@ final class NutrientBalanceViewController: UIViewController {
         ])
 
         // Add all nav bar elements
-                gradientView.addSubview(titleLabel)
+        // Back button — circular with chevron (Apple HIG style)
+        let backButton = UIButton(type: .system)
+        let backConfig = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+        backButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: backConfig), for: .normal)
+        backButton.tintColor = .label
+        backButton.backgroundColor = UIColor.systemGray5
+        backButton.layer.cornerRadius = 18
+        backButton.clipsToBounds = true
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        gradientView.addSubview(backButton)
+        
+        gradientView.addSubview(titleLabel)
         gradientView.addSubview(editButton)
         
         // Setup targets
@@ -263,7 +275,10 @@ final class NutrientBalanceViewController: UIViewController {
         mealsSegmented.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
 
         NSLayoutConstraint.activate([
-            
+            backButton.leadingAnchor.constraint(equalTo: gradientView.leadingAnchor, constant: 16),
+            backButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            backButton.widthAnchor.constraint(equalToConstant: 36),
+            backButton.heightAnchor.constraint(equalToConstant: 36),
 
             titleLabel.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
             titleLabel.topAnchor.constraint(equalTo: gradientView.safeAreaLayoutGuide.topAnchor, constant: Spacing.topNav),
@@ -956,6 +971,13 @@ final class HorseshoeGaugeView: UIView {
         ctx.restoreGState()
 
         ctx.restoreGState()
+    }
+}
+
+// MARK: - Back Navigation
+extension NutrientBalanceViewController {
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
     }
 }
 

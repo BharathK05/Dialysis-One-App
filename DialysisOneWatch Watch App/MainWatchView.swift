@@ -5,23 +5,25 @@
 //  Created by user@22 on 16/12/25.
 //
 
-
-//
-//  MainWatchView.swift
-//  Dialysis One App
-//
-//  Created by user@22 on 15/12/25.
-//
-
 import SwiftUI
 
 struct MainWatchView: View {
 
     @ObservedObject private var healthKitManager = HealthKitManager.shared
+    @Environment(\.colorScheme) var colorScheme
 
-    var body: some View {
-        ZStack {
-            LinearGradient(
+    private var backgroundGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.06, green: 0.12, blue: 0.09),
+                    Color(red: 0.04, green: 0.08, blue: 0.06)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        } else {
+            return LinearGradient(
                 colors: [
                     Color(red: 215/255, green: 240/255, blue: 230/255),
                     Color(red: 190/255, green: 225/255, blue: 210/255)
@@ -29,14 +31,20 @@ struct MainWatchView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .ignoresSafeArea()
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            backgroundGradient
+                .ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 10) {
 
                     Text("Vitals")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color.black.opacity(0.85))
+                        .foregroundColor(.primary.opacity(0.85))
                         .padding(.top, 6)
 
                     // Heart Rate
@@ -47,7 +55,7 @@ struct MainWatchView: View {
                     )
 
                     Divider()
-                        .background(Color.black.opacity(0.12))
+                        .background(Color.primary.opacity(0.12))
                         .padding(.horizontal, 26)
                         .padding(.vertical, 4)
 
@@ -64,7 +72,7 @@ struct MainWatchView: View {
 
                     Text(healthKitManager.statusMessage)
                         .font(.system(size: 10))
-                        .foregroundColor(Color.black.opacity(0.6))
+                        .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 14)
                         .padding(.top, 6)
@@ -89,7 +97,7 @@ struct MainWatchView: View {
         VStack(spacing: 4) {
             Text(title)
                 .font(.system(size: 11))
-                .foregroundColor(.black.opacity(0.55))
+                .foregroundColor(.secondary)
 
             Text(value)
                 .font(
@@ -98,19 +106,21 @@ struct MainWatchView: View {
                     : .system(size: 36, weight: .semibold)
                 )
                 .multilineTextAlignment(.center)
-                .foregroundColor(.black.opacity(0.9))
+                .foregroundColor(.primary.opacity(0.9))
 
             if let unit {
                 Text(unit)
                     .font(.system(size: 12))
-                    .foregroundColor(.black.opacity(0.65))
+                    .foregroundColor(.secondary)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(red: 245/255, green: 255/255, blue: 250/255))
+                .fill(colorScheme == .dark
+                      ? Color(white: 0.18)
+                      : Color(red: 245/255, green: 255/255, blue: 250/255))
         )
         .padding(.horizontal, 10)
     }
