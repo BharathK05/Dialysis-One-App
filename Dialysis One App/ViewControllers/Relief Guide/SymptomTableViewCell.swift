@@ -18,27 +18,30 @@ class SymptomTableViewCell: UITableViewCell {
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
-        let lightGreen = (UIColor(named: "AppGreen") ?? .systemGreen).withAlphaComponent(0.12) // 12% opacity
-        card.backgroundColor = lightGreen
-
-        // keep the soft shadow
-        card.layer.cornerRadius = 18
+        // Modern, crisp iOS native card
+        card.backgroundColor = .systemBackground
+        card.layer.cornerRadius = 20
         card.layer.shadowColor = UIColor.black.cgColor
-        card.layer.shadowOpacity = 0.08
-        card.layer.shadowRadius  = 10
-        card.layer.shadowOffset  = CGSize(width: 0, height: 5)
+        card.layer.shadowOpacity = 0.06
+        card.layer.shadowRadius = 14
+        card.layer.shadowOffset = CGSize(width: 0, height: 6)
         card.layer.masksToBounds = false
+        
+        // Add subtle border for depth on light/dark mode
+        card.layer.borderWidth = 0.5
+        card.layer.borderColor = UIColor.systemGray5.cgColor
 
-        // icon chip (subtle)
-        iconImageView.backgroundColor = lightGreen.withAlphaComponent(0.25)
+        let lightGreen = (UIColor(named: "AppGreen") ?? .systemGreen).withAlphaComponent(0.15)
+        
+        // Icon chip (subtle background, larger corner radius)
+        iconImageView.backgroundColor = lightGreen
         iconImageView.layer.cornerRadius = 14
         iconImageView.clipsToBounds = true
-        iconImageView.contentMode = .center
+        iconImageView.contentMode = .scaleAspectFill
 
-
-                // Chevron default
-                chevronImageView.image = UIImage(systemName: "chevron.right")
-                chevronImageView.tintColor = .tertiaryLabel
+        // Chevron default
+        chevronImageView.image = UIImage(systemName: "chevron.right")?.withConfiguration(UIImage.SymbolConfiguration(weight: .semibold))
+        chevronImageView.tintColor = .tertiaryLabel
     }
 
     override func setSelected(_ selected: Bool, animated: Bool) {
