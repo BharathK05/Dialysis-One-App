@@ -146,7 +146,7 @@ class MedicationCheckboxRow: UIView {
     }
     
     private func setupUI() {
-        backgroundColor = UIColor.white.withAlphaComponent(0.7)
+        backgroundColor = MedicationDesignTokens.Colors.rowBackground
         layer.cornerRadius = 12
         
         // Make the entire row tappable

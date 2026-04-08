@@ -22,6 +22,9 @@ final class WatchConnectivityManager: NSObject {
     private enum WatchPayloadType {
         static let addWater = "add_water"
         static let addMedication = "add_medication"
+        static let addDiet = "add_diet"
+        static let requestSync = "request_sync"
+        static let nutritionLookup = "nutrition_lookup"
     }
 
     // Access latest context
@@ -46,6 +49,20 @@ final class WatchConnectivityManager: NSObject {
             }
         }
     }
+    
+    func notifyLogin() {
+        guard let session = session else { return }
+        
+        let payload: [String: Any] = [
+            "type": "auth",
+            "state": "logged_in",
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+        }
+    }
 
     // Evaluate payload from watch or context (incoming -> iPhone)
     func handleIncomingPayload(_ payload: [String: Any]) {
@@ -64,8 +81,18 @@ final class WatchConnectivityManager: NSObject {
             handleAddMedicationFromWatch(payload)
             return
         }
-
-
+        
+        if payload["type"] as? String == WatchPayloadType.addDiet {
+            handleAddDietFromWatch(payload)
+            return
+        }
+        
+        if payload["type"] as? String == WatchPayloadType.requestSync {
+            sendFullSync()
+            return
+        }
+        
+        // Note: nutritionLookup is handled via sendMessage replyHandler in session(_:didReceiveMessage:replyHandler:)
 
         if payload["alert"] as? Bool == true {
             let hr = payload["heartRate"] as? Double
@@ -137,12 +164,131 @@ final class WatchConnectivityManager: NSObject {
 
         print("✅ Medication toggled from Watch:", medicationId)
     }
+    
+    // MARK: - Handle Diet from Watch
+    
+    private func handleAddDietFromWatch(_ payload: [String: Any]) {
+        guard
+            let foodName = payload["foodName"] as? String,
+            let quantity = payload["quantity"] as? Int,
+            let mealTypeString = payload["mealType"] as? String
+        else {
+            print("❌ Invalid add_diet payload:", payload)
+            return
+        }
+        
+        // Map meal type string to SavedMeal.MealType
+        let mealType: SavedMeal.MealType
+        switch mealTypeString.lowercased() {
+        case "breakfast": mealType = .breakfast
+        case "dinner": mealType = .dinner
+        default: mealType = .lunch
+        }
+        
+        // Check if Watch sent pre-computed nutrition (new flow)
+        let calories: Int
+        let potassium: Int
+        let sodium: Int
+        let protein: Double
+        
+        if let cal = payload["calories"] as? Int,
+           let pot = payload["potassium"] as? Int,
+           let sod = payload["sodium"] as? Int,
+           let pro = payload["protein"] as? Double {
+            // Watch already computed the scaled values
+            calories = cal
+            potassium = pot
+            sodium = sod
+            protein = pro
+        } else {
+            // Legacy fallback: compute from NutritionDatabase
+            let nutritionData = NutritionDatabase.shared.lookupDish(byLabel: foodName)
+            let scale = Double(quantity) / 100.0
+            calories = Int(Double(nutritionData?.calories ?? 100) * scale)
+            potassium = Int(Double(nutritionData?.potassium ?? 200) * scale)
+            sodium = Int(Double(nutritionData?.sodium ?? 200) * scale)
+            protein = Double(nutritionData?.protein ?? 5) * scale
+        }
+        
+        // Save via MealDataManager (single source of truth)
+        MealDataManager.shared.saveMeal(
+            dishName: foodName,
+            calories: calories,
+            potassium: potassium,
+            sodium: sodium,
+            protein: protein,
+            quantity: quantity,
+            mealType: mealType,
+            image: nil
+        )
+        
+        // Send updated summary back to Watch
+        let totals = MealDataManager.shared.getTodayTotals()
+        sendSummary(
+            food: "\(totals.calories) cal today",
+            water: nil,
+            medication: nil
+        )
+        
+        print("✅ Diet added from Watch: \(foodName) (\(quantity)g) — \(calories) kcal")
+    }
+    
+    // MARK: - Handle Nutrition Lookup from Watch
+    
+    private func handleNutritionLookupFromWatch(_ payload: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        guard let foodName = payload["foodName"] as? String else {
+            replyHandler(["error": "Missing food name"])
+            return
+        }
+        
+        print("🔍 Watch requested nutrition lookup for: \(foodName)")
+        
+        // Step 1: Try local NutritionDatabase first (fast)
+        if let dbNutrients = DishTemplateManager.shared.nutrients(forDetectedName: foodName) {
+            let reply: [String: Any] = [
+                "foodName": dbNutrients.dishName,
+                "caloriesPer100g": Int(dbNutrients.calories),
+                "proteinPer100g": dbNutrients.protein,
+                "potassiumPer100g": Int(dbNutrients.potassium),
+                "sodiumPer100g": Int(dbNutrients.sodium),
+                "confidence": "high",
+                "source": "database"
+            ]
+            replyHandler(reply)
+            print("✅ Replied with DB nutrition for: \(foodName)")
+            return
+        }
+        
+        // Step 2: Fallback to Gemini AI
+        Task {
+            if let aiNutrients = await LLMNutritionService.shared.estimateNutrients(
+                forDishName: foodName,
+                categoryHint: nil,
+                quantityHint: nil
+            ) {
+                let reply: [String: Any] = [
+                    "foodName": aiNutrients.dishName,
+                    "caloriesPer100g": Int(aiNutrients.calories),
+                    "proteinPer100g": aiNutrients.protein,
+                    "potassiumPer100g": Int(aiNutrients.potassium),
+                    "sodiumPer100g": Int(aiNutrients.sodium),
+                    "confidence": aiNutrients.confidence ?? "moderate",
+                    "source": "ai"
+                ]
+                replyHandler(reply)
+                print("✅ Replied with AI nutrition for: \(foodName)")
+            } else {
+                replyHandler(["error": "Could not estimate nutrition for \(foodName)"])
+                print("❌ Failed nutrition lookup for: \(foodName)")
+            }
+        }
+    }
 
     func sendMedicationList(_ meds: [Medication], timeOfDay: TimeOfDay) {
         guard let session = session else { return }
 
         let payload: [String: Any] = [
-            "type": "medication_list",
+            "type": WatchMessageType.medicationList.rawValue,
             "timeOfDay": timeOfDay.rawValue,
             "medications": meds.map {
                 [
@@ -154,9 +300,17 @@ final class WatchConnectivityManager: NSObject {
             }
         ]
 
-        try? session.updateApplicationContext(payload)
+        // Use sendMessage for immediate delivery, fallback to transferUserInfo for queued
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil) { err in
+                print("sendMedicationList sendMessage failed:", err.localizedDescription)
+                // Fallback: Use transferUserInfo for reliable delivery
+                session.transferUserInfo(payload)
+            }
+        } else {
+            session.transferUserInfo(payload)
+        }
     }
-
 
     
     private func handleAddWaterFromWatch(_ payload: [String: Any]) {
@@ -197,14 +351,14 @@ final class WatchConnectivityManager: NSObject {
     }
 
 
-
     // MARK: - Sending Summary to Watch (Food, Water, Medication)
-    // Canonical API used by the app:
+    
+    /// Send partial summary — merges with existing application context
     func sendSummary(food: String?, water: String?, medication: String?) {
         guard let session = session else { return }
 
         var payload: [String: Any] = [
-            "type": "summary",
+            "type": WatchMessageType.summary.rawValue,
             "timestamp": Date().timeIntervalSince1970
         ]
 
@@ -212,24 +366,80 @@ final class WatchConnectivityManager: NSObject {
         if let water = water { payload["summary.water"] = water }
         if let medication = medication { payload["summary.medication"] = medication }
 
-        do {
-            // Keeps only the most recent summary
-            try session.updateApplicationContext(payload)
-        } catch {
-            print("updateApplicationContext failed:", error.localizedDescription)
-
-            // fallback: immediate message if reachable
-            if session.isReachable {
-                session.sendMessage(payload, replyHandler: nil) { err in
-                    print("sendMessage fallback failed:", err.localizedDescription)
-                }
+        // Prefer sendMessage for immediate delivery
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil) { err in
+                print("sendSummary sendMessage failed:", err.localizedDescription)
+                // Fallback to applicationContext
+                try? session.updateApplicationContext(payload)
+            }
+        } else {
+            do {
+                try session.updateApplicationContext(payload)
+            } catch {
+                print("updateApplicationContext failed:", error.localizedDescription)
             }
         }
     }
+    
+    // MARK: - Full Sync (push ALL current data to Watch)
+    
+    func sendFullSync() {
+        guard let session = session else { return }
+        
+        let uid = FirebaseAuthManager.shared.getUserID() ?? "guest"
+        
+        // Gather all current data
+        let waterConsumed = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
+        let waterGoal = UserDataManager.shared.loadInt("waterGoal", uid: uid, defaultValue: 2500)
+        let dietTotals = MealDataManager.shared.getTodayTotals()
+        
+        let time = TimeOfDay.current()
+        let morningP = MedicationStore.shared.takenCount(for: .morning, date: Date())
+        let afternoonP = MedicationStore.shared.takenCount(for: .afternoon, date: Date())
+        let nightP = MedicationStore.shared.takenCount(for: .night, date: Date())
+        let totalTaken = morningP.taken + afternoonP.taken + nightP.taken
+        let totalDoses = morningP.total + afternoonP.total + nightP.total
+        
+        // Recent food names for Watch suggestions
+        let recentMeals = MealDataManager.shared.getAllMeals()
+        let recentFoods = Array(Set(recentMeals.map { $0.dishName })).prefix(20)
+        
+        // Medication list for current time
+        let meds = MedicationStore.shared.medicationsFor(timeOfDay: time, date: Date())
+        let medsPayload = meds.map { med -> [String: Any] in
+            [
+                "id": med.id.uuidString,
+                "name": med.name,
+                "dosage": med.dosage,
+                "isTaken": med.isTaken(on: Date(), timeOfDay: time)
+            ]
+        }
+        
+        var payload: [String: Any] = [
+            "type": WatchMessageType.fullSync.rawValue,
+            "timestamp": Date().timeIntervalSince1970,
+            "summary.food": "\(dietTotals.calories) cal today",
+            "summary.water": "\(waterConsumed) / \(waterGoal) ml",
+            "summary.medication": "\(totalTaken) / \(totalDoses) taken",
+            "recentFoods": Array(recentFoods),
+            "medications": medsPayload
+        ]
+        
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil) { err in
+                print("sendFullSync sendMessage failed:", err.localizedDescription)
+                // Fallback
+                session.transferUserInfo(payload)
+            }
+        } else {
+            session.transferUserInfo(payload)
+        }
+        
+        print("📊 Full sync sent to Watch")
+    }
 
     // ----- Compatibility overload -----
-    // You were calling sendSummary(foodText:waterText:medicationText:) in many places.
-    // This small overload forwards to the canonical function so you don't need to update all call sites at once.
     func sendSummary(foodText: String?, waterText: String?, medicationText: String?) {
         sendSummary(food: foodText, water: waterText, medication: medicationText)
     }
@@ -244,10 +454,29 @@ extension WatchConnectivityManager: WCSessionDelegate {
             self.handleIncomingPayload(message)
         }
     }
+    
+    func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+        // Handle nutrition lookup with reply
+        if message["type"] as? String == WatchPayloadType.nutritionLookup {
+            handleNutritionLookupFromWatch(message, replyHandler: replyHandler)
+            return
+        }
+        // Default: handle as regular message
+        DispatchQueue.main.async {
+            self.handleIncomingPayload(message)
+        }
+        replyHandler([:])
+    }
 
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
         DispatchQueue.main.async {
             self.handleIncomingPayload(applicationContext)
+        }
+    }
+    
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+        DispatchQueue.main.async {
+            self.handleIncomingPayload(userInfo)
         }
     }
 
@@ -257,17 +486,12 @@ extension WatchConnectivityManager: WCSessionDelegate {
         error: Error?
     )
     {
-            if activationState == .activated {
-                let time = TimeOfDay.current()
-
-                WatchConnectivityManager.shared.sendMedicationList(
-                    MedicationStore.shared.medicationsFor(
-                        timeOfDay: time,
-                        date: Date()
-                    ),
-                    timeOfDay: time
-                )
+        if activationState == .activated {
+            // Send full sync on activation so Watch has latest data
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.sendFullSync()
             }
+        }
         
         print("WC activated on iPhone:", activationState.rawValue, error?.localizedDescription ?? "")
 
@@ -282,19 +506,25 @@ extension WatchConnectivityManager: WCSessionDelegate {
 
     func sessionReachabilityDidChange(_ session: WCSession) {
         NotificationCenter.default.post(name: .watchStateChanged, object: nil)
+        
+        // When Watch becomes reachable, send fresh data
+        if session.isReachable {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.sendFullSync()
+            }
+        }
     }
 
     func sessionWatchStateDidChange(_ session: WCSession) {
         NotificationCenter.default.post(name: .watchStateChanged, object: nil)
     }
 
-    // These two methods are required in some Xcode / SDK combos to satisfy the protocol:
+    // These two methods are required to satisfy the protocol:
     func sessionDidBecomeInactive(_ session: WCSession) {
-        // no-op for now; implement if you need to handle handoff
+        // no-op
     }
 
     func sessionDidDeactivate(_ session: WCSession) {
-        // Must call activate on the new session after deactivation when supporting switching watches
         session.activate()
     }
 }

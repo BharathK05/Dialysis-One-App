@@ -34,7 +34,8 @@ class MedicationAdherenceViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
+        navigationController?.setNavigationBarHidden(true, animated: false)
+        
         updateStatus()
         loadMedications()
 
@@ -54,16 +55,32 @@ class MedicationAdherenceViewController: UIViewController {
         }
     }
     
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: false)
+    }
+    
     private func setupUI() {
         addTopGradientBackground()
-
-        // Edit button goes into navigation bar right item
-        let editConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-        editButton.setImage(UIImage(systemName: "pencil.circle", withConfiguration: editConfig), for: .normal)
-        editButton.setImage(UIImage(systemName: "checkmark.circle.fill", withConfiguration: editConfig), for: .selected)
-        editButton.tintColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
-        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
-        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: editButton)
+        
+        // Title Label
+        let titleLabel = UILabel()
+        titleLabel.text = "Medication Adherence"
+        titleLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(titleLabel)
+        
+        // Back button — circular with chevron (Apple HIG style)
+        let backButton = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+        backButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
+        backButton.tintColor = .label
+        backButton.backgroundColor = UIColor.systemGray5
+        backButton.layer.cornerRadius = 18
+        backButton.clipsToBounds = true
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(backButton)
         
         // Scroll view
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -103,7 +120,7 @@ class MedicationAdherenceViewController: UIViewController {
         contentView.addSubview(timeSegmentedControl)
         
         // Medication list container
-        medicationListContainer.backgroundColor = UIColor.white.withAlphaComponent(0.5)
+        medicationListContainer.backgroundColor = AppTheme.glassCardLight
         medicationListContainer.layer.cornerRadius = 16
         medicationListContainer.layer.shadowColor = UIColor.black.cgColor
         medicationListContainer.layer.shadowOffset = CGSize(width: 0, height: 2)
@@ -157,7 +174,15 @@ class MedicationAdherenceViewController: UIViewController {
         ]
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            backButton.widthAnchor.constraint(equalToConstant: 36),
+            backButton.heightAnchor.constraint(equalToConstant: 36),
+            
+            titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: backButton.trailingAnchor, constant: 8),
+            
+            scrollView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -216,20 +241,33 @@ class MedicationAdherenceViewController: UIViewController {
         updateStatus()
     }
     
+    private var backgroundGradientLayer: CAGradientLayer?
+    
     private func addTopGradientBackground() {
         let gradient = CAGradientLayer()
-        let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)
-        let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1)
-
-        gradient.colors = [topColor.cgColor, bottomColor.cgColor]
         gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
         gradient.endPoint = CGPoint(x: 0.5, y: 1.0)
         gradient.locations = [0.0, 0.7]
         gradient.type = .axial
         gradient.frame = view.bounds
         gradient.zPosition = -1
-
         view.layer.insertSublayer(gradient, at: 0)
+        self.backgroundGradientLayer = gradient
+        updateGradientColors()
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            updateGradientColors()
+        }
+    }
+    
+    private func updateGradientColors() {
+        backgroundGradientLayer?.colors = [
+            AppTheme.gradientTop.resolvedColor(with: traitCollection).cgColor,
+            AppTheme.gradientBottom.resolvedColor(with: traitCollection).cgColor
+        ]
     }
     
     override func viewDidLayoutSubviews() {
@@ -241,7 +279,7 @@ class MedicationAdherenceViewController: UIViewController {
     
     private func createYourMedicationsCard() -> UIView {
         let container = UIView()
-        container.backgroundColor = UIColor.white.withAlphaComponent(0.7)
+        container.backgroundColor = AppTheme.glassCardLight
         container.layer.cornerRadius = 16
         container.layer.shadowColor = UIColor.black.cgColor
         container.layer.shadowOffset = CGSize(width: 0, height: 2)
@@ -667,7 +705,7 @@ class MedicationDetailRow: UIView {
     }
     
     private func setupUI() {
-        backgroundColor = UIColor.white.withAlphaComponent(0.7)
+        backgroundColor = MedicationDesignTokens.Colors.rowBackground
         layer.cornerRadius = 16
         
         // Checkbox button (smaller)

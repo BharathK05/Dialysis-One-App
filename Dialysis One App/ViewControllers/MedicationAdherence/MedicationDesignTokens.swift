@@ -11,15 +11,38 @@ import UIKit
 enum MedicationDesignTokens {
     // MARK: - Colors (sRGB Hex)
     enum Colors {
-        static let popupBackground = UIColor(red: 0.55, green: 0.89, blue: 0.70, alpha: 0.95) // #8CE3B3
-        static let cardBackground = UIColor.white.withAlphaComponent(0.9)
+        static let popupBackground = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.15, green: 0.4, blue: 0.25, alpha: 0.95)
+                : UIColor(red: 0.55, green: 0.89, blue: 0.70, alpha: 0.95)
+        }
+        
+        static let cardBackground = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(white: 0.15, alpha: 0.9)
+                : UIColor.white.withAlphaComponent(0.9)
+        }
+        
         static let checkmarkActive = UIColor(red: 0.20, green: 0.78, blue: 0.35, alpha: 1.0) // #34C759
         static let checkmarkInactive = UIColor.systemGray4
         static let textPrimary = UIColor.label
         static let textSecondary = UIColor.secondaryLabel
         static let separatorColor = UIColor.separator.withAlphaComponent(0.3)
-        static let selectedTabBackground = UIColor.white
+        
+        static let selectedTabBackground = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(white: 0.22, alpha: 1.0)
+                : UIColor.white
+        }
+        
         static let unselectedTabBackground = UIColor.clear
+        
+        // Row background for medication checkbox rows
+        static let rowBackground = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(white: 0.18, alpha: 0.7)
+                : UIColor.white.withAlphaComponent(0.7)
+        }
     }
     
     // MARK: - Typography

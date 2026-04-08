@@ -1422,8 +1422,6 @@ class HomeDashboardViewController: UIViewController,
         
         blurView.isUserInteractionEnabled = false
         segmentedProgress.isUserInteractionEnabled = false
-        countLabel.isUserInteractionEnabled = false
-        totalLabel.isUserInteractionEnabled = false
         
         return container
     }

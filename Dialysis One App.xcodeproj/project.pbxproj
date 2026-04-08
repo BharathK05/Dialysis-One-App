@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		258466F70ABCFB1664526D70 /* LoggedOutWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CBEC37BD83C57440D22A385 /* LoggedOutWatchView.swift */; };
+		299BE683432381C0911B5F21 /* WorkoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67DA39CAB988C59F6E8744D1 /* WorkoutManager.swift */; };
+		2ADBF10FD34E1C6C2BB5F831 /* AddMedicationWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCC874E0F991A6119275A41A /* AddMedicationWatchView.swift */; };
+		2CDD664EAADD43BD6498CE64 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8AD774163BCE037EEE8863D /* AppState.swift */; };
+		30CFB14E75FAC0CB7F7C1C27 /* WatchNutritionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD3EB5965D00D745CB276F3 /* WatchNutritionResult.swift */; };
 		37000D992EF1392700DCC20E /* DialysisOneWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 37000D8F2EF1392600DCC20E /* DialysisOneWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		37317CD82EF2C3AE00F73C61 /* WatchMessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */; };
 		37317CD92EF2C3FC00F73C61 /* WatchMessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */; };
@@ -19,6 +24,16 @@
 		37F0FAC62EC2EC3F00859256 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 37F0FAC52EC2EC3F00859256 /* FirebaseAuth */; };
 		37F0FAC82EC2EC3F00859256 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 37F0FAC72EC2EC3F00859256 /* FirebaseCore */; };
 		37F0FACC2EC2EE4600859256 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */; };
+		66C7E9F0A42D56AB1224D18C /* DialysisOneWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59E120B64D5B2EFC8AC36F51 /* DialysisOneWatchApp.swift */; };
+		6A23BEAF46D4526DF825C8F6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4003E9F9ABDE2B659EC8846F /* ContentView.swift */; };
+		806E50D0BF27EB90CB2093DE /* WatchMedication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9950EDE9D95E6121FD01C49E /* WatchMedication.swift */; };
+		8DCE46290FC3B01701CDD180 /* AddWaterWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D37535696B7CC55F1063C57F /* AddWaterWatchView.swift */; };
+		AAB2B72730B191BCAC84C44C /* AddDietWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E3F4A22613B5E461F3FE872 /* AddDietWatchView.swift */; };
+		B22D838787C6A6A90D954D58 /* WatchDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA035B84E5C6D762BB059C1C /* WatchDataManager.swift */; };
+		B74CC2FAE6C02F67FC04CF4C /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF1AB96A8CBE29E5BDD736B /* WatchConnectivityManager.swift */; };
+		B78CA5FB4A1B3275D0BC24E7 /* MainWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 451999DBC9E70E74163AAAF9 /* MainWatchView.swift */; };
+		E2B40D89FAD0A966F9EA1BCC /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8FEB2FEB537E2AA193074A /* HealthKitManager.swift */; };
+		F7CB2858BBC3502C14A6C4EC /* SummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A17BA411B5514827C29226D /* SummaryCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,10 +61,25 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1E3F4A22613B5E461F3FE872 /* AddDietWatchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AddDietWatchView.swift; sourceTree = "<group>"; };
 		37000D8F2EF1392600DCC20E /* DialysisOneWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DialysisOneWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		37317CD72EF2C3AE00F73C61 /* WatchMessageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMessageType.swift; sourceTree = "<group>"; };
 		373BB7A22EBF0F1000E4D6BE /* Dialysis One App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dialysis One App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		4003E9F9ABDE2B659EC8846F /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		451999DBC9E70E74163AAAF9 /* MainWatchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MainWatchView.swift; sourceTree = "<group>"; };
+		59E120B64D5B2EFC8AC36F51 /* DialysisOneWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DialysisOneWatchApp.swift; sourceTree = "<group>"; };
+		5CBEC37BD83C57440D22A385 /* LoggedOutWatchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoggedOutWatchView.swift; sourceTree = "<group>"; };
+		67DA39CAB988C59F6E8744D1 /* WorkoutManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutManager.swift; sourceTree = "<group>"; };
+		8A17BA411B5514827C29226D /* SummaryCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SummaryCard.swift; sourceTree = "<group>"; };
+		9950EDE9D95E6121FD01C49E /* WatchMedication.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchMedication.swift; sourceTree = "<group>"; };
+		AB8FEB2FEB537E2AA193074A /* HealthKitManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		ACD3EB5965D00D745CB276F3 /* WatchNutritionResult.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchNutritionResult.swift; sourceTree = "<group>"; };
+		BA035B84E5C6D762BB059C1C /* WatchDataManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchDataManager.swift; sourceTree = "<group>"; };
+		BCC874E0F991A6119275A41A /* AddMedicationWatchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AddMedicationWatchView.swift; sourceTree = "<group>"; };
+		C8AD774163BCE037EEE8863D /* AppState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		CBF1AB96A8CBE29E5BDD736B /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
+		D37535696B7CC55F1063C57F /* AddWaterWatchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AddWaterWatchView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -112,6 +142,7 @@
 				37000D902EF1392600DCC20E /* DialysisOneWatch Watch App */,
 				373BB7A32EBF0F1000E4D6BE /* Products */,
 				37F0FACB2EC2EE4600859256 /* GoogleService-Info.plist */,
+				DEE44747E1957D79148D0EF5 /* DialysisOneWatch Watch App */,
 			);
 			sourceTree = "<group>";
 		};
@@ -122,6 +153,28 @@
 				37000D8F2EF1392600DCC20E /* DialysisOneWatch Watch App.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		DEE44747E1957D79148D0EF5 /* DialysisOneWatch Watch App */ = {
+			isa = PBXGroup;
+			children = (
+				C8AD774163BCE037EEE8863D /* AppState.swift */,
+				9950EDE9D95E6121FD01C49E /* WatchMedication.swift */,
+				451999DBC9E70E74163AAAF9 /* MainWatchView.swift */,
+				67DA39CAB988C59F6E8744D1 /* WorkoutManager.swift */,
+				BCC874E0F991A6119275A41A /* AddMedicationWatchView.swift */,
+				D37535696B7CC55F1063C57F /* AddWaterWatchView.swift */,
+				BA035B84E5C6D762BB059C1C /* WatchDataManager.swift */,
+				8A17BA411B5514827C29226D /* SummaryCard.swift */,
+				1E3F4A22613B5E461F3FE872 /* AddDietWatchView.swift */,
+				5CBEC37BD83C57440D22A385 /* LoggedOutWatchView.swift */,
+				CBF1AB96A8CBE29E5BDD736B /* WatchConnectivityManager.swift */,
+				AB8FEB2FEB537E2AA193074A /* HealthKitManager.swift */,
+				4003E9F9ABDE2B659EC8846F /* ContentView.swift */,
+				59E120B64D5B2EFC8AC36F51 /* DialysisOneWatchApp.swift */,
+				ACD3EB5965D00D745CB276F3 /* WatchNutritionResult.swift */,
+			);
+			path = "DialysisOneWatch Watch App";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -143,8 +196,6 @@
 				37000D902EF1392600DCC20E /* DialysisOneWatch Watch App */,
 			);
 			name = "DialysisOneWatch Watch App";
-			packageProductDependencies = (
-			);
 			productName = "DialysisOneWatch Watch App";
 			productReference = 37000D8F2EF1392600DCC20E /* DialysisOneWatch Watch App.app */;
 			productType = "com.apple.product-type.application";
@@ -247,6 +298,21 @@
 			buildActionMask = 2147483647;
 			files = (
 				37317CD92EF2C3FC00F73C61 /* WatchMessageType.swift in Sources */,
+				2CDD664EAADD43BD6498CE64 /* AppState.swift in Sources */,
+				806E50D0BF27EB90CB2093DE /* WatchMedication.swift in Sources */,
+				B78CA5FB4A1B3275D0BC24E7 /* MainWatchView.swift in Sources */,
+				299BE683432381C0911B5F21 /* WorkoutManager.swift in Sources */,
+				2ADBF10FD34E1C6C2BB5F831 /* AddMedicationWatchView.swift in Sources */,
+				8DCE46290FC3B01701CDD180 /* AddWaterWatchView.swift in Sources */,
+				B22D838787C6A6A90D954D58 /* WatchDataManager.swift in Sources */,
+				F7CB2858BBC3502C14A6C4EC /* SummaryCard.swift in Sources */,
+				AAB2B72730B191BCAC84C44C /* AddDietWatchView.swift in Sources */,
+				258466F70ABCFB1664526D70 /* LoggedOutWatchView.swift in Sources */,
+				B74CC2FAE6C02F67FC04CF4C /* WatchConnectivityManager.swift in Sources */,
+				E2B40D89FAD0A966F9EA1BCC /* HealthKitManager.swift in Sources */,
+				6A23BEAF46D4526DF825C8F6 /* ContentView.swift in Sources */,
+				66C7E9F0A42D56AB1224D18C /* DialysisOneWatchApp.swift in Sources */,
+				30CFB14E75FAC0CB7F7C1C27 /* WatchNutritionResult.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,8 +343,8 @@
 				CODE_SIGN_ENTITLEMENTS = "DialysisOneWatch Watch App/DialysisOneWatch Watch App.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3DXUA7RP32;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 2XF95KUMBG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "DialysisOneWatch-Watch-App-Info.plist";
@@ -286,13 +352,13 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.iOS.DialysisOneApppp;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.srmist.DialysisOneApp;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneApppp.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = NO;
@@ -315,7 +381,7 @@
 				CODE_SIGN_ENTITLEMENTS = "DialysisOneWatch Watch App/DialysisOneWatch Watch App.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 2XF95KUMBG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -324,13 +390,13 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.\nThis app reads your heart rate and blood oxygen levels to display them on your watch.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.\nThis app writes your workout data to Health to help track your vitals.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.iOS.DialysisOneApppp;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.srmist.DialysisOneApp;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneApppp.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = NO;
@@ -353,8 +419,8 @@
 				CODE_SIGN_ENTITLEMENTS = "Dialysis One App/Dialysis One AppDebug.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3DXUA7RP32;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 2XF95KUMBG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
@@ -371,7 +437,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneApppp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -396,8 +462,8 @@
 				CODE_SIGN_ENTITLEMENTS = "Dialysis One App/Dialysis One App.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3DXUA7RP32;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 2XF95KUMBG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Dialysis One App/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
@@ -414,7 +480,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iOS.DialysisOneApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srmist.DialysisOneApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

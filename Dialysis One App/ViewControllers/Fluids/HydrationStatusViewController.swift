@@ -468,10 +468,12 @@ class HydrationStatusViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
-        // Start wave animation only when screen is actually visible
-        waveView.startAnimating()
-        // Load data and refresh UI
+        navigationController?.setNavigationBarHidden(true, animated: false)
+        
+        // Blue tab bar tint for water screen
+        tabBarController?.tabBar.tintColor = UIColor(red: 0.26, green: 0.65, blue: 0.94, alpha: 1.0)
+
+        // Refresh progress + cards from latest data
         loadHydrationFromStore()
         syncProgressToWave()
         updateActivityContent()
@@ -479,11 +481,10 @@ class HydrationStatusViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // Stop the 60fps display link to free the main thread when not visible
-        waveView.stopAnimating()
-        if isMovingFromParent {
-            navigationController?.setNavigationBarHidden(true, animated: animated)
-        }
+        navigationController?.setNavigationBarHidden(false, animated: false)
+        
+        // Restore default green tab bar tint
+        tabBarController?.tabBar.tintColor = UIColor(red: 0.3, green: 0.7, blue: 0.5, alpha: 1.0)
     }
     
     // MARK: - Data
@@ -541,10 +542,20 @@ class HydrationStatusViewController: UIViewController {
     }
     
     private func setupHeader() {
-        // Title comes from the system navigation bar (self.title set in viewDidLoad)
-        // Keep the custom titleLabel hidden — visible only if shown modally without nav bar
-        titleLabel.text      = "Hydration Status"
-        titleLabel.font      = UIFont.systemFont(ofSize: 22, weight: .semibold)
+        // Back button — circular with chevron (Apple HIG style)
+        let backButton = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+        backButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
+        backButton.tintColor = .label
+        backButton.backgroundColor = UIColor.systemGray5
+        backButton.layer.cornerRadius = 18
+        backButton.clipsToBounds = true
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(backButton)
+        
+        titleLabel.text = "Hydration Status"
+        titleLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
         titleLabel.textColor = UIColor(hex: 0x152B3C)
         titleLabel.isHidden  = true  // system nav bar provides the title
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -558,11 +569,16 @@ class HydrationStatusViewController: UIViewController {
         dateButton.layer.cornerRadius = 18
         dateButton.translatesAutoresizingMaskIntoConstraints = false
         dateButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 16, bottom: 6, right: 16)
-
+        
         contentView.addSubview(titleLabel)
         contentView.addSubview(dateButton)
 
         NSLayoutConstraint.activate([
+            backButton.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor, constant: 8),
+            backButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            backButton.widthAnchor.constraint(equalToConstant: 36),
+            backButton.heightAnchor.constraint(equalToConstant: 36),
+            
             titleLabel.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor, constant: 10),
             titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
 
@@ -852,6 +868,10 @@ class HydrationStatusViewController: UIViewController {
     @objc private func viewAllTapped() {
         let vc = PreviousLogsViewController()
         navigationController?.pushViewController(vc, animated: true)
+    }
+    
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
     }
     
     

@@ -77,30 +77,39 @@ class HealthAndVitalsViewController: UIViewController {
     }
 
     
+    private var backgroundGradientLayer: CAGradientLayer?
+    
     private func addTopGradientBackground() {
         let gradient = CAGradientLayer()
-
-            // COLORS MATCHING RELIEF GUIDE LOOK
-            let topColor = UIColor(red: 225/255, green: 245/255, blue: 235/255, alpha: 1)   // soft mint
-            let bottomColor = UIColor(red: 200/255, green: 235/255, blue: 225/255, alpha: 1) // light teal
-
-            gradient.colors = [
-                topColor.cgColor,
-                bottomColor.cgColor
-            ]
-
-            // Same blending behavior as GradientView.swift
-            gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
-            gradient.endPoint   = CGPoint(x: 0.5, y: 1.0)
-
-            // Match the Relief Guide: bottom color dominates ~70%
-            gradient.locations = [0.0, 0.7]
-
-            gradient.type = .axial
-            gradient.frame = view.bounds
-            gradient.zPosition = -1
-
-            view.layer.insertSublayer(gradient, at: 0)
+        gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
+        gradient.endPoint   = CGPoint(x: 0.5, y: 1.0)
+        gradient.locations = [0.0, 0.7]
+        gradient.type = .axial
+        gradient.frame = view.bounds
+        gradient.zPosition = -1
+        view.layer.insertSublayer(gradient, at: 0)
+        self.backgroundGradientLayer = gradient
+        updateGradientColors()
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            updateGradientColors()
+            updateCardColors()
+        }
+    }
+    
+    private func updateGradientColors() {
+        backgroundGradientLayer?.colors = [
+            AppTheme.gradientTop.resolvedColor(with: traitCollection).cgColor,
+            AppTheme.gradientBottom.resolvedColor(with: traitCollection).cgColor
+        ]
+    }
+    
+    private func updateCardColors() {
+        watchCard.backgroundColor = AppTheme.glassCard
+        [bpCard, spO2Card].forEach { $0.backgroundColor = AppTheme.glassCard }
     }
 
     private func buildUI() {
@@ -133,7 +142,7 @@ class HealthAndVitalsViewController: UIViewController {
 
         subtitleLabel.text = "Track key vitals and review your recent reports."
         subtitleLabel.font = UIFont.systemFont(ofSize: 15, weight: .regular)
-        subtitleLabel.textColor = UIColor(white: 0.30, alpha: 1)
+        subtitleLabel.textColor = AppTheme.textSecondary
 
 
         let headerStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
@@ -150,7 +159,7 @@ class HealthAndVitalsViewController: UIViewController {
         content.addArrangedSubview(vitalsTitle)
 
         // Watch card (connect)
-        watchCard.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        watchCard.backgroundColor = AppTheme.glassCard
         watchCard.layer.cornerRadius = 22
         watchCard.layer.shadowColor = UIColor.black.withAlphaComponent(0.08).cgColor
         watchCard.layer.shadowOpacity = 1
@@ -160,7 +169,7 @@ class HealthAndVitalsViewController: UIViewController {
         watchCard.heightAnchor.constraint(equalToConstant: 160).isActive = true
         
         // Watch status card (informational only)
-        watchCard.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        watchCard.backgroundColor = AppTheme.glassCard
         watchCard.layer.cornerRadius = 22
         watchCard.layer.shadowColor = UIColor.black.withAlphaComponent(0.08).cgColor
         watchCard.layer.shadowOpacity = 1
@@ -170,7 +179,7 @@ class HealthAndVitalsViewController: UIViewController {
         watchCard.heightAnchor.constraint(equalToConstant: 160).isActive = true
 
         let icon = UIImageView(image: UIImage(systemName: "applewatch"))
-        icon.tintColor = .black
+        icon.tintColor = AppTheme.iconPrimary
         icon.translatesAutoresizingMaskIntoConstraints = false
 
         let title = UILabel()
@@ -215,7 +224,7 @@ class HealthAndVitalsViewController: UIViewController {
         row.distribution = .fillEqually
 
         [bpCard, spO2Card].forEach {
-            $0.backgroundColor = .white
+            $0.backgroundColor = AppTheme.glassCard
             $0.layer.cornerRadius = 20
             $0.heightAnchor.constraint(equalToConstant: 120).isActive = true
         }
@@ -256,7 +265,7 @@ class HealthAndVitalsViewController: UIViewController {
         addReportButton.setTitleColor(.systemBlue, for: .normal)
         addReportButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
 
-        addReportButton.backgroundColor = UIColor(white: 0.96, alpha: 1)
+        addReportButton.backgroundColor = AppTheme.buttonBackground
         addReportButton.layer.cornerRadius = 16
         addReportButton.layer.borderWidth = 1
         addReportButton.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.3).cgColor
