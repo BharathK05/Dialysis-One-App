@@ -74,8 +74,8 @@ class HighlightsInsightEngine {
     private func checkPotassiumInsights() -> [HealthInsight] {
         var insights: [HealthInsight] = []
         
-        let consumed = UserDataManager.shared.loadInt("potassiumConsumed", uid: uid, defaultValue: 0)
-        let goal = UserDataManager.shared.loadInt("potassiumGoal", uid: uid, defaultValue: 2000)
+        let consumed = ActivityLogManager.shared.todayNutrientTotals().potassium
+        let goal = LimitsManager.shared.getPotassiumLimit()
         
         let percentage = Double(consumed) / Double(goal) * 100
         
@@ -128,8 +128,8 @@ class HighlightsInsightEngine {
     private func checkSodiumInsights() -> [HealthInsight] {
         var insights: [HealthInsight] = []
         
-        let consumed = UserDataManager.shared.loadInt("sodiumConsumed", uid: uid, defaultValue: 0)
-        let goal = UserDataManager.shared.loadInt("sodiumGoal", uid: uid, defaultValue: 2000)
+        let consumed = ActivityLogManager.shared.todayNutrientTotals().sodium
+        let goal = LimitsManager.shared.getSodiumLimit()
         
         let percentage = Double(consumed) / Double(goal) * 100
         
@@ -182,8 +182,8 @@ class HighlightsInsightEngine {
     private func checkFluidInsights() -> [HealthInsight] {
         var insights: [HealthInsight] = []
         
-        let consumed = UserDataManager.shared.loadInt("fluidConsumed", uid: uid, defaultValue: 0)
-        let goal = UserDataManager.shared.loadInt("fluidGoal", uid: uid, defaultValue: 2500)
+        let consumed = ActivityLogManager.shared.todayFluidTotal()
+        let goal = LimitsManager.shared.getFluidLimit()
         
         let percentage = Double(consumed) / Double(goal) * 100
         
@@ -315,12 +315,13 @@ class HighlightsInsightEngine {
     private func checkPositiveInsights() -> [HealthInsight] {
         var insights: [HealthInsight] = []
         
-        let potassiumConsumed = UserDataManager.shared.loadInt("potassiumConsumed", uid: uid, defaultValue: 0)
-        let potassiumGoal = UserDataManager.shared.loadInt("potassiumGoal", uid: uid, defaultValue: 2000)
-        let sodiumConsumed = UserDataManager.shared.loadInt("sodiumConsumed", uid: uid, defaultValue: 0)
-        let sodiumGoal = UserDataManager.shared.loadInt("sodiumGoal", uid: uid, defaultValue: 2000)
-        let proteinConsumed = UserDataManager.shared.loadInt("proteinConsumed", uid: uid, defaultValue: 0)
-        let proteinGoal = UserDataManager.shared.loadInt("proteinGoal", uid: uid, defaultValue: 84)
+        let totals = ActivityLogManager.shared.todayNutrientTotals()
+        let potassiumConsumed = totals.potassium
+        let potassiumGoal = LimitsManager.shared.getPotassiumLimit()
+        let sodiumConsumed = totals.sodium
+        let sodiumGoal = LimitsManager.shared.getSodiumLimit()
+        let proteinConsumed = totals.protein
+        let proteinGoal = LimitsManager.shared.getProteinLimit()
         
         let potassiumPct = Double(potassiumConsumed) / Double(potassiumGoal) * 100
         let sodiumPct = Double(sodiumConsumed) / Double(sodiumGoal) * 100

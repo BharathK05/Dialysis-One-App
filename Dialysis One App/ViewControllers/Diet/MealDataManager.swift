@@ -1,7 +1,16 @@
+//
+//  MealDataManager.swift
+//  Dialysis One App
+//
+//  Thin proxy layer — public API is UNCHANGED.
+//  All persistence now delegates to ActivityLogManager (SwiftData).
+//  DO NOT reintroduce UserDefaults reads/writes for meal data here.
+//
+
 import Foundation
 import UIKit
 
-// MARK: - Models
+// MARK: - SavedMeal (backward-compatibility value type)
 
 struct SavedMeal: Codable {
     let id: UUID
@@ -11,34 +20,44 @@ struct SavedMeal: Codable {
     let sodium: Int
     let protein: Double
     let quantity: Int
-    let mealType: MealType // breakfast, lunch, dinner
+    let mealType: MealType
     let timestamp: Date
-    let imageData: Data? // Store image as Data
-    
+    let imageData: Data?
+
     enum MealType: String, Codable {
         case breakfast = "Breakfast"
-        case lunch = "Lunch"
-        case dinner = "Dinner"
+        case lunch     = "Lunch"
+        case dinner    = "Dinner"
     }
 }
 
-// MARK: - Meal Data Manager
+// MARK: - Conversion helper
+
+private extension FoodLog {
+    func toSavedMeal() -> SavedMeal {
+        SavedMeal(
+            id:        id,
+            dishName:  dishName,
+            calories:  calories,
+            potassium: potassium,
+            sodium:    sodium,
+            protein:   protein,
+            quantity:  quantity,
+            mealType:  SavedMeal.MealType(rawValue: mealType) ?? .breakfast,
+            timestamp: timestamp,
+            imageData: imageData
+        )
+    }
+}
+
+// MARK: - MealDataManager
 
 class MealDataManager {
     static let shared = MealDataManager()
-    
-    private let mealsKey = "saved_meals"
-    
     private init() {}
-    
-    // MARK: - Get Current User ID
-    
-    private var uid: String {
-        return FirebaseAuthManager.shared.getUserID() ?? "guest"
-    }
-    
+
     // MARK: - Save Meal
-    
+
     func saveMeal(
         dishName: String,
         calories: Int,
@@ -50,165 +69,78 @@ class MealDataManager {
         image: UIImage?
     ) {
         let imageData = image?.jpegData(compressionQuality: 0.7)
-        
-        let meal = SavedMeal(
-            id: UUID(),
-            dishName: dishName,
-            calories: calories,
+
+        ActivityLogManager.shared.saveFoodLog(
+            dishName:  dishName,
+            mealType:  mealType.rawValue,
+            calories:  calories,
+            protein:   protein,
             potassium: potassium,
-            sodium: sodium,
-            protein: protein,
-            quantity: quantity,
-            mealType: mealType,
-            timestamp: Date(),
+            sodium:    sodium,
+            quantity:  quantity,
             imageData: imageData
         )
-        
-        var meals = getAllMeals()
-        meals.append(meal)
-        
-        saveMeals(meals)
-        
-        // Also update the nutrient totals in UserDataManager for persistence
-        updateUserNutrientTotals()
-        
-        // Post notification to update UI
+
         NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
-        
-        print("✅ Meal saved successfully for user: \(uid)")
+        print("✅ Meal saved via SwiftData: \(dishName)")
     }
-    
+
     // MARK: - Get Meals
-    
+
     func getAllMeals() -> [SavedMeal] {
-        let key = UserDataManager.shared.key(mealsKey, uid: uid)
-        
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let meals = try? JSONDecoder().decode([SavedMeal].self, from: data) else {
-            return []
-        }
-        return meals
+        ActivityLogManager.shared.allFoodLogs().map { $0.toSavedMeal() }
     }
-    
+
     func getMealsForToday() -> [SavedMeal] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        
-        return getAllMeals().filter { meal in
-            calendar.isDate(meal.timestamp, inSameDayAs: today)
-        }
+        ActivityLogManager.shared.foodLogs(for: Date()).map { $0.toSavedMeal() }
     }
-    
+
     func getMeals(for mealType: SavedMeal.MealType, date: Date = Date()) -> [SavedMeal] {
-        let calendar = Calendar.current
-        return getMealsForToday().filter { meal in
-            meal.mealType == mealType && calendar.isDate(meal.timestamp, inSameDayAs: date)
-        }
+        ActivityLogManager.shared.foodLogs(for: date)
+            .filter { $0.mealType == mealType.rawValue }
+            .map    { $0.toSavedMeal() }
     }
-    
-    // MARK: - Calculate Totals
-    
+
+    // MARK: - Totals
+
     func getTodayTotals() -> (calories: Int, potassium: Int, sodium: Int, protein: Int) {
-        let meals = getMealsForToday()
-        
-        let calories = meals.reduce(0) { $0 + $1.calories }
-        let potassium = meals.reduce(0) { $0 + $1.potassium }
-        let sodium = meals.reduce(0) { $0 + $1.sodium }
-        let protein = Int(meals.reduce(0.0) { $0 + $1.protein })
-        
-        return (calories, potassium, sodium, protein)
+        ActivityLogManager.shared.todayNutrientTotals()
     }
-    
-    // MARK: - Delete Meal
-    
-    // Add this property to track Supabase IDs (optional for now)
-    // Later you can extend SavedMeal to include supabaseId
+
+    // MARK: - Delete
 
     func deleteMeal(id: UUID) {
-        var meals = getAllMeals()
-        
-        // Find the meal before deleting (for Supabase sync)
-        if let mealIndex = meals.firstIndex(where: { $0.id == id }) {
-            let meal = meals[mealIndex]
-            
-            // Delete from local storage
-            meals.remove(at: mealIndex)
-            saveMeals(meals)
-            
-            // Update nutrient totals
-            updateUserNutrientTotals()
-            
-            // Delete from Supabase in background
-            // Note: This requires storing Supabase UUID in SavedMeal
-            // For now, we'll skip this - implement later when extending SavedMeal
-            
-            NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
-            
-            print("🗑️ Meal deleted for user: \(uid)")
-        }
-    }
-    // MARK: - Private Helpers
-    
-    private func saveMeals(_ meals: [SavedMeal]) {
-        if let encoded = try? JSONEncoder().encode(meals) {
-            let key = UserDataManager.shared.key(mealsKey, uid: uid)
-            UserDefaults.standard.set(encoded, forKey: key)
-        }
-    }
-    
-    private func updateUserNutrientTotals() {
-        let totals = getTodayTotals()
-        
-        // Save to UserDataManager so it persists and syncs with Home screen
-        UserDataManager.shared.save("potassiumConsumed", value: totals.potassium, uid: uid)
-        UserDataManager.shared.save("sodiumConsumed", value: totals.sodium, uid: uid)
-        UserDataManager.shared.save("proteinConsumed", value: totals.protein, uid: uid)
-        
-        print("📊 Nutrient totals updated:")
-        print("   Potassium: \(totals.potassium) mg")
-        print("   Sodium: \(totals.sodium) mg")
-        print("   Protein: \(totals.protein) g")
-    }
-    
-    func clearAllMeals() {
-        let key = UserDataManager.shared.key(mealsKey, uid: uid)
-        UserDefaults.standard.removeObject(forKey: key)
-        
-        // Reset nutrient totals
-        UserDataManager.shared.save("potassiumConsumed", value: 0, uid: uid)
-        UserDataManager.shared.save("sodiumConsumed", value: 0, uid: uid)
-        UserDataManager.shared.save("proteinConsumed", value: 0, uid: uid)
-        
+        ActivityLogManager.shared.deleteFoodLog(id: id)
         NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
-        
-        print("🧹 All meals cleared for user: \(uid)")
+        print("🗑️ Meal deleted from SwiftData")
     }
-    
-    // MARK: - Get Meals by Date Range (for future features)
-    
+
+    // MARK: - Clear
+
+    func clearAllMeals() {
+        ActivityLogManager.shared.clearAllFoodLogs()
+        NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
+        print("🧹 All meals cleared from SwiftData")
+    }
+
+    // MARK: - Date Range
+
     func getMeals(from startDate: Date, to endDate: Date) -> [SavedMeal] {
-        let calendar = Calendar.current
-        return getAllMeals().filter { meal in
-            calendar.isDate(meal.timestamp, inSameDayAs: startDate) ||
-            (meal.timestamp >= startDate && meal.timestamp <= endDate)
-        }
+        getAllMeals().filter { $0.timestamp >= startDate && $0.timestamp <= endDate }
     }
-    
-    // MARK: - Statistics (for future features)
-    
+
+    // MARK: - Statistics
+
     func getAverageCaloriesForWeek() -> Int {
-        let calendar = Calendar.current
-        let today = Date()
-        guard let weekAgo = calendar.date(byAdding: .day, value: -7, to: today) else { return 0 }
-        
+        let today   = Date()
+        guard let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: today) else { return 0 }
         let meals = getMeals(from: weekAgo, to: today)
-        let totalCalories = meals.reduce(0) { $0 + $1.calories }
-        
-        return meals.isEmpty ? 0 : totalCalories / 7
+        let total = meals.reduce(0) { $0 + $1.calories }
+        return meals.isEmpty ? 0 : total / 7
     }
 }
 
-// MARK: - Notification Extension
+// MARK: - Notification
 
 extension Notification.Name {
     static let mealsDidUpdate = Notification.Name("mealsDidUpdate")

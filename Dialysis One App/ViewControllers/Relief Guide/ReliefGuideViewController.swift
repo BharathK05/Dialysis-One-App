@@ -250,6 +250,8 @@ final class ReliefGuideViewController: UIViewController, UICollectionViewDataSou
 
     private var collectionView: UICollectionView!
 
+    private var collectionView: UICollectionView!
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {

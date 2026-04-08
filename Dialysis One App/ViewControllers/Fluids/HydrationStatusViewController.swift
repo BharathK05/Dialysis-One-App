@@ -300,9 +300,21 @@ class WaveView: UIView {
 
         layer.addSublayer(gradientLayer1)
         layer.addSublayer(gradientLayer2)
+        // Display link is NOT started here — call startAnimating() explicitly.
+    }
 
+    /// Start the wave animation. Call from viewWillAppear.
+    func startAnimating() {
+        guard displayLink == nil else { return }
         displayLink = CADisplayLink(target: self, selector: #selector(updateWaves))
+        displayLink?.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
         displayLink?.add(to: .main, forMode: .common)
+    }
+
+    /// Stop the wave animation. Call from viewWillDisappear / deinit.
+    func stopAnimating() {
+        displayLink?.invalidate()
+        displayLink = nil
     }
 
     @objc private func updateWaves() {
@@ -423,30 +435,29 @@ class HydrationStatusViewController: UIViewController {
     private var goalAmount: CGFloat = 2500
     
     private func loadHydrationFromStore() {
-        let storedConsumed = UserDataManager.shared.loadInt("waterConsumed",
-                                                            uid: uid,
-                                                            defaultValue: 0)
-        let storedGoal = UserDataManager.shared.loadInt("waterGoal",
-                                                        uid: uid,
-                                                        defaultValue: 2500)
-
-        consumedAmount = CGFloat(max(storedConsumed, 0))
-        goalAmount = CGFloat(max(storedGoal, 1))
+        let todayTotal = ActivityLogManager.shared.todayFluidTotal()
+        let storedGoal = LimitsManager.shared.getFluidLimit()
+        consumedAmount = CGFloat(max(todayTotal, 0))
+        goalAmount     = CGFloat(max(storedGoal, 1))
     }
 
     
-    // “reset once per app run” flag
+    // "reset once per app run" flag — kept for interface compatibility, no longer used
     private static var didResetForThisRun = false
     
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Use system navigation bar (provides native back button)
+        self.title = "Hydration Status"
+        navigationItem.largeTitleDisplayMode = .never
+
         setupBase()
         setupHeader()
         setupProgress()
         setupStatsCards()
-        setupActivitySection()   // <- THIS name
+        setupActivitySection()
         setupWaveView()
 
         loadHydrationFromStore()
@@ -468,7 +479,6 @@ class HydrationStatusViewController: UIViewController {
         updateActivityContent()
     }
 
-    
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         navigationController?.setNavigationBarHidden(false, animated: false)
@@ -480,29 +490,10 @@ class HydrationStatusViewController: UIViewController {
     // MARK: - Data
     
     private func loadHydrationValues() {
-        // For now: when app is freshly run, reset everything to 0 once.
-        // Later we’ll move this “daily reset” into a separate file.
-        if !Self.didResetForThisRun {
-            let storedGoal = UserDataManager.shared.loadInt("waterGoal",
-                                                            uid: uid,
-                                                            defaultValue: 2500)
-            goalAmount = CGFloat(max(storedGoal, 1))
-            consumedAmount = 0
-            
-            UserDataManager.shared.save("waterConsumed", value: 0, uid: uid)
-            UserDataManager.shared.save("waterGoal", value: Int(goalAmount), uid: uid)
-            
-            Self.didResetForThisRun = true
-        } else {
-            let consumed = UserDataManager.shared.loadInt("waterConsumed",
-                                                          uid: uid,
-                                                          defaultValue: 0)
-            let goal = UserDataManager.shared.loadInt("waterGoal",
-                                                      uid: uid,
-                                                      defaultValue: 2500)
-            consumedAmount = CGFloat(max(consumed, 0))
-            goalAmount = CGFloat(max(goal, 1))
-        }
+        let todayTotal = ActivityLogManager.shared.todayFluidTotal()
+        let goal       = LimitsManager.shared.getFluidLimit()
+        consumedAmount = CGFloat(max(todayTotal, 0))
+        goalAmount     = CGFloat(max(goal, 1))
     }
     
     private func syncProgressToWave() {
@@ -566,21 +557,22 @@ class HydrationStatusViewController: UIViewController {
         titleLabel.text = "Hydration Status"
         titleLabel.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
         titleLabel.textColor = UIColor(hex: 0x152B3C)
+        titleLabel.isHidden  = true  // system nav bar provides the title
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        
+
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM dd, yyyy"
         dateButton.setTitle(formatter.string(from: Date()), for: .normal)
         dateButton.setTitleColor(UIColor(hex: 0x152B3C), for: .normal)
         dateButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        dateButton.backgroundColor = UIColor(hex: 0xF3F4F6)
+        dateButton.backgroundColor  = UIColor(hex: 0xF3F4F6)
         dateButton.layer.cornerRadius = 18
         dateButton.translatesAutoresizingMaskIntoConstraints = false
         dateButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 16, bottom: 6, right: 16)
         
         contentView.addSubview(titleLabel)
         contentView.addSubview(dateButton)
-        
+
         NSLayoutConstraint.activate([
             backButton.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor, constant: 8),
             backButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -590,8 +582,9 @@ class HydrationStatusViewController: UIViewController {
             titleLabel.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor, constant: 10),
             titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
 
+            // Date pill sits just under the (hidden) titleLabel position
             dateButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            dateButton.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16)
+            dateButton.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor, constant: 14),
         ])
     }
     
@@ -832,7 +825,7 @@ class HydrationStatusViewController: UIViewController {
                 default:       iconName = "drop"
                 }
 
-                let timeString = formatter.string(from: log.date)
+            let timeString = formatter.string(from: log.timestamp)
 
                 let row = ActivityRowView(
                     title: log.type,
@@ -884,28 +877,17 @@ class HydrationStatusViewController: UIViewController {
     
 }
 
-// MARK: - Shared fluid log store (in-memory for this run)
-
-struct FluidLog {
-    let type: String
-    let quantity: Int
-    let date: Date
-}
+// MARK: - FluidLogStore (persistent — backed by ActivityLogManager)
 
 final class FluidLogStore {
     static let shared = FluidLogStore()
     private init() {}
 
-    private var logs: [FluidLog] = []
-
     func addLog(type: String, quantity: Int, date: Date = Date()) {
-        let log = FluidLog(type: type, quantity: quantity, date: date)
-        logs.append(log)
+        ActivityLogManager.shared.saveFluidLog(type: type, quantity: quantity, timestamp: date)
     }
 
     func todayLogs() -> [FluidLog] {
-        let calendar = Calendar.current
-        return logs.filter { calendar.isDateInToday($0.date) }
+        ActivityLogManager.shared.fluidLogs(for: Date())
     }
 }
-

@@ -325,25 +325,13 @@ final class WatchConnectivityManager: NSObject {
 
         let uid = FirebaseAuthManager.shared.getUserID() ?? "guest"
 
-        // 1️⃣ Update total water (single source of truth)
-        let current = UserDataManager.shared.loadInt(
-            "waterConsumed",
-            uid: uid,
-            defaultValue: 0
-        )
-
-        let newTotal = current + quantity
-        UserDataManager.shared.save(
-            "waterConsumed",
-            value: newTotal,
-            uid: uid
-        )
-
-        // 2️⃣ Log fluid entry (important for history)
+        // 1️⃣ Log fluid entry (which persists to SwiftData)
         FluidLogStore.shared.addLog(
             type: fluidType,
             quantity: quantity
         )
+
+        let newTotal = ActivityLogManager.shared.todayFluidTotal()
 
         // 3️⃣ Notify UI (HomeDashboardViewController listens)
         NotificationCenter.default.post(
@@ -351,12 +339,7 @@ final class WatchConnectivityManager: NSObject {
             object: nil
         )
 
-        // 4️⃣ Send updated summary BACK to Watch
-        let goal = UserDataManager.shared.loadInt(
-            "waterGoal",
-            uid: uid,
-            defaultValue: 2500
-        )
+        let goal = LimitsManager.shared.getFluidLimit()
 
         sendSummary(
             food: nil,

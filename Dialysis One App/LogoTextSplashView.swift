@@ -136,8 +136,10 @@ struct LogoTextSplashView: View {
             // measure the text size into textSize
             .background(GeometryReader { proxy -> Color in
                 DispatchQueue.main.async {
-                    // update measured text size
-                    self.textSize = proxy.size
+                    // update measured text size only if it changed to prevent infinite layout loops
+                    if self.textSize != proxy.size {
+                        self.textSize = proxy.size
+                    }
                 }
                 return Color.clear
             })

@@ -1,6 +1,8 @@
 import UIKit
 
 final class AgePickerViewController: UIViewController {
+    
+    var profileBuilder: ProfileBuilder!
 
     private let ages = Array(10...100)
     private var selectedIndex: Int = 10
@@ -176,11 +178,10 @@ final class AgePickerViewController: UIViewController {
         let age = ages[selectedIndex]
         print("Age selected:", age)
         
-        // Save using local user ID
-        let localID = LocalUserManager.shared.getLocalUserID()
-        UserDefaults.standard.set(age, forKey: "age_\(localID)")
+        profileBuilder.age = age
         
         let heightVC = HeightPickerViewController()
+        heightVC.profileBuilder = profileBuilder
         navigationController?.pushViewController(heightVC, animated: true)
     }
 }

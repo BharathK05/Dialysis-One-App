@@ -160,6 +160,19 @@ final class NutrientBalanceViewController: UIViewController {
             object: nil
         )
     }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // Restore home's hidden nav bar on pop
+        if isMovingFromParent {
+            navigationController?.setNavigationBarHidden(true, animated: animated)
+        }
+    }
     
     deinit {
         NotificationCenter.default.removeObserver(self)
@@ -241,7 +254,13 @@ final class NutrientBalanceViewController: UIViewController {
 
     // MARK: - Setup
     private func configureNavigationBar() {
-        navigationController?.setNavigationBarHidden(true, animated: false)
+        // Use system navigation bar — gives native back button
+        self.title = "Nutrient Balance"
+        navigationItem.largeTitleDisplayMode = .never
+
+        // Move Edit button into the nav bar right item
+        editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: editButton)
     }
 
     private func setupLayout() {
@@ -268,10 +287,8 @@ final class NutrientBalanceViewController: UIViewController {
         
         gradientView.addSubview(titleLabel)
         gradientView.addSubview(editButton)
-        
-        // Setup targets
-        
-        editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
+
+        // Edit button targets set in configureNavigationBar
         mealsSegmented.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
 
         NSLayoutConstraint.activate([
@@ -281,16 +298,17 @@ final class NutrientBalanceViewController: UIViewController {
             backButton.heightAnchor.constraint(equalToConstant: 36),
 
             titleLabel.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
-            titleLabel.topAnchor.constraint(equalTo: gradientView.safeAreaLayoutGuide.topAnchor, constant: Spacing.topNav),
-
+            titleLabel.topAnchor.constraint(equalTo: gradientView.safeAreaLayoutGuide.topAnchor,
+                                            constant: Spacing.topNav),
             editButton.trailingAnchor.constraint(equalTo: gradientView.trailingAnchor, constant: -16),
             editButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            editButton.heightAnchor.constraint(equalToConstant: 40)
+            editButton.heightAnchor.constraint(equalToConstant: 40),
         ])
 
         gradientView.addSubview(datePill)
         NSLayoutConstraint.activate([
-            datePill.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
+            // Anchor directly to safeArea since titleLabel is now hidden
+            datePill.topAnchor.constraint(equalTo: gradientView.safeAreaLayoutGuide.topAnchor, constant: 8),
             datePill.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
             datePill.heightAnchor.constraint(equalToConstant: 34),
             datePill.widthAnchor.constraint(greaterThanOrEqualToConstant: 120)

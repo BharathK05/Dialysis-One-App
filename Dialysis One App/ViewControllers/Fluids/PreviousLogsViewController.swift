@@ -440,24 +440,7 @@ class PreviousLogsViewController: UIViewController {
 
     // MARK: - Data helpers
     private func dailyConsumed(for date: Date) -> Int {
-        // Use the SAME UID string that you use in Home / HydrationStatus
-        let uid = "defaultUser"
-
-        let today = calendar.startOfDay(for: Date())
-        let thisDay = calendar.startOfDay(for: date)
-
-        if today == thisDay {
-            // Today uses the same key as Home / HydrationStatus
-            return UserDataManager.shared.loadInt("waterConsumed",
-                                                  uid: uid,
-                                                  defaultValue: 0)
-        } else {
-            // Per-day key (if you later save past days)
-            let key = "waterConsumed_" + dayKeyFormatter.string(from: date)
-            return UserDataManager.shared.loadInt(key,
-                                                  uid: uid,
-                                                  defaultValue: 0)
-        }
+        ActivityLogManager.shared.totalFluid(for: date)
     }
 
 
@@ -502,9 +485,7 @@ class PreviousLogsViewController: UIViewController {
 
         // Same UID constant as in dailyConsumed / Home / HydrationStatus
         let uid = "defaultUser"
-        let goal = UserDataManager.shared.loadInt("waterGoal",
-                                                  uid: uid,
-                                                  defaultValue: 2500)
+        let goal = LimitsManager.shared.getFluidLimit()
 
 
         let maxWeeks = 4  // ALWAYS 4 rows: w1–w4

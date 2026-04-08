@@ -2,6 +2,8 @@ import UIKit
 
 class HeightPickerViewController: UIViewController {
     
+    var profileBuilder: ProfileBuilder!
+
     // MARK: - Properties
     private var selectedFeet: Int = 5
     private var selectedInches: Int = 10
@@ -330,18 +332,18 @@ class HeightPickerViewController: UIViewController {
     
     @objc private func nextButtonTapped() {
         // Save height
-        let localID = LocalUserManager.shared.getLocalUserID()
-        
         if isFeetMode {
             let totalInches = selectedFeet * 12 + selectedInches
-            UserDefaults.standard.set(totalInches, forKey: "height_inches_\(localID)")
-            print("Selected height: \(selectedFeet) ft \(selectedInches) in")
+            let totalCm = Double(totalInches) * 2.54
+            profileBuilder.heightCm = totalCm
+            print("Selected height: \(selectedFeet) ft \(selectedInches) in (\(totalCm) cm)")
         } else {
-            UserDefaults.standard.set(selectedCm, forKey: "height_cm_\(localID)")
+            profileBuilder.heightCm = Double(selectedCm)
             print("Selected height: \(selectedCm) cm")
         }
         
         let weightVC = WeightPickerViewController()
+        weightVC.profileBuilder = profileBuilder
         navigationController?.pushViewController(weightVC, animated: true)
     }
 }

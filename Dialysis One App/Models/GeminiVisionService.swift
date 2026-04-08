@@ -12,6 +12,37 @@ struct DetectedFood: Codable {
     let type: String?
     let quantity: String?
     let confidence: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case name, type, quantity, confidence
+    }
+    
+    init(name: String, type: String? = nil, quantity: String? = nil, confidence: String? = nil) {
+        self.name = name
+        self.type = type
+        self.quantity = quantity
+        self.confidence = confidence
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? "Unknown Food"
+        self.type = try? container.decodeIfPresent(String.self, forKey: .type)
+        
+        if let qInt = try? container.decodeIfPresent(Int.self, forKey: .quantity) {
+            self.quantity = "\(qInt)"
+        } else if let qDouble = try? container.decodeIfPresent(Double.self, forKey: .quantity) {
+            self.quantity = "\(qDouble)"
+        } else {
+            self.quantity = try? container.decodeIfPresent(String.self, forKey: .quantity)
+        }
+        
+        if let cDouble = try? container.decodeIfPresent(Double.self, forKey: .confidence) {
+            self.confidence = "\(cDouble)"
+        } else {
+            self.confidence = try? container.decodeIfPresent(String.self, forKey: .confidence)
+        }
+    }
 }
 
 struct FoodDetectionResponse: Codable {
@@ -273,6 +304,8 @@ final class GeminiVisionService {
         
         if let response = try? JSONDecoder().decode(FoodDetectionResponse.self, from: jsonData) {
             return response.detected_foods
+        } else if let arrayResponse = try? JSONDecoder().decode([DetectedFood].self, from: jsonData) {
+            return arrayResponse
         } else {
             print("⚠️ JSONDecoder failed for cleaned text – maybe model output wasn't valid JSON.")
             return nil

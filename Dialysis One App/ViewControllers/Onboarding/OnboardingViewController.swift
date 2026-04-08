@@ -92,19 +92,18 @@ class OnboardingViewController: UIViewController , UITextFieldDelegate{
     
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
-
         guard
             let name = nameTextField.text?.trimmingCharacters(in: .whitespaces),
             !name.isEmpty,
             let gender = selectedGender
         else { return }
 
-        let localID = LocalUserManager.shared.getLocalUserID()
-
-        UserDefaults.standard.set(name, forKey: "name_\(localID)")
-        UserDefaults.standard.set(gender, forKey: "gender_\(localID)")
+        let builder = ProfileBuilder()
+        builder.name = name
+        builder.gender = gender
 
         let ageVC = AgePickerViewController()
+        ageVC.profileBuilder = builder
         navigationController?.pushViewController(ageVC, animated: true)
     }
     @objc func dismissKeyboard() {

@@ -93,7 +93,10 @@ class HomeDashboardViewController: UIViewController,
     private var waterConsumed: Int = 150 {
         didSet { updateWaterCard() }
     }
-    private var waterGoal: Int = 250
+    // Computed — always reads the value set in Profile → Edit Limits
+    private var waterGoal: Int {
+        return LimitsManager.shared.getFluidLimit()
+    }
     
     // Medication tracking
     private var dosesConsumed: Int = 2 {
@@ -198,12 +201,16 @@ class HomeDashboardViewController: UIViewController,
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        updateSegmentedMedicationCard()
-        loadTodayNutrients()
-        refreshHighlights()
-        // Keep it fresh every time the screen appears
-       // updateSegmentedMedicationCard()
-        
+        // Wrap in Task to ensure any in-flight async SwiftData saves from
+        // LimitsManager have committed before we re-read goal values.
+        Task { @MainActor in
+            ProfileManager.shared.fetchProfile()
+            self.updateSegmentedMedicationCard()
+            self.loadTodayNutrients()
+            self.updateNutrientCard()   // refresh goal labels (potassium/sodium/protein)
+            self.updateWaterCard()      // refresh fluid goal from LimitsManager
+            self.refreshHighlights()
+        }
     }
     
     
@@ -211,17 +218,14 @@ class HomeDashboardViewController: UIViewController,
     // MARK: - Public Update Methods
     // MARK: - Public Update Methods
     private func loadUserValues() {
-        // Default values for NEW users
+        // Consumed values — persisted per-user via UserDataManager
         waterConsumed = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
-        waterGoal = UserDataManager.shared.loadInt("waterGoal", uid: uid, defaultValue: 250)
+        // waterGoal is a computed property sourced from LimitsManager (Profile → Edit Limits)
 
         dosesConsumed = UserDataManager.shared.loadInt("dosesConsumed", uid: uid, defaultValue: 0)
         dosesGoal = UserDataManager.shared.loadInt("dosesGoal", uid: uid, defaultValue: 3)
 
-        // ❌ REMOVE THESE THREE LINES - goals now come from LimitsManager
-        // potassiumGoal = UserDataManager.shared.loadInt("potassiumGoal", uid: uid, defaultValue: 90)
-        // sodiumGoal = UserDataManager.shared.loadInt("sodiumGoal", uid: uid, defaultValue: 70)
-        // proteinGoal = UserDataManager.shared.loadInt("proteinGoal", uid: uid, defaultValue: 110)
+        // Goals for nutrients come from LimitsManager (computed properties — no local storage needed)
 
         // Load consumed nutrients
         potassiumConsumed = UserDataManager.shared.loadInt("potassiumConsumed", uid: uid, defaultValue: 0)
@@ -235,10 +239,9 @@ class HomeDashboardViewController: UIViewController,
         waterConsumed = consumed
         UserDataManager.shared.save("waterConsumed", value: consumed, uid: uid)
 
-        if let newGoal = goal {
-            waterGoal = newGoal
-            UserDataManager.shared.save("waterGoal", value: newGoal, uid: uid)
-        }
+        // waterGoal is now fully controlled by LimitsManager — ignore any passed goal
+        // (kept parameter for call-site compatibility)
+        _ = goal
         
         WatchConnectivityManager.shared.sendSummary(
             foodText: nil,
@@ -455,8 +458,14 @@ class HomeDashboardViewController: UIViewController,
         refreshHighlights()
     }
     @objc private func limitsDidUpdate() {
-        // Reload nutrient card with new limits
-        updateNutrientCard()
+        // Re-fetch the persisted profile so LimitsManager reads the freshly-saved
+        // values, then update every goal-dependent card in one pass.
+        Task { @MainActor in
+            ProfileManager.shared.fetchProfile()
+            self.updateNutrientCard()   // potassium / sodium / protein goals
+            self.updateWaterCard()      // fluid goal
+            self.refreshHighlights()    // insight cards that reference limits
+        }
     }
     // MARK: - Setup UI
     private func setupUI() {
@@ -1044,6 +1053,9 @@ class HomeDashboardViewController: UIViewController,
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -24)
         ])
         
+        blurView.isUserInteractionEnabled = false
+        stack.isUserInteractionEnabled = false
+        
         return container
     }
     
@@ -1450,7 +1462,7 @@ class HomeDashboardViewController: UIViewController,
         container.backgroundColor = AppTheme.waterCardBase
         container.layer.cornerRadius = 14
         container.translatesAutoresizingMaskIntoConstraints = false
-        container.clipsToBounds = true
+        container.clipsToBounds = true 
 
         let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
         let iconView = UIImageView(image: UIImage(systemName: "drop.fill", withConfiguration: config))
@@ -1841,7 +1853,7 @@ class HomeDashboardViewController: UIViewController,
         
         // CAGradientLayer needs to have its CGColors manually updated specifically for the current trait collection
         backgroundGradientLayer?.colors = [
-            topColor.resolvedColor(with: traitCollection).cgColor, 
+            topColor.resolvedColor(with: traitCollection).cgColor,
             bottomColor.resolvedColor(with: traitCollection).cgColor
         ]
     }
