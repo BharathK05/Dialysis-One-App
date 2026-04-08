@@ -36,7 +36,7 @@ class AdditionalInfoViewController: UIViewController {
     
     // MARK: - UI Setup
     private func setupUI() {
-        addTopGradientBackground()
+        view.backgroundColor = .systemBackground
         title = "Additional Info"
         
         scrollView.translatesAutoresizingMaskIntoConstraints = false

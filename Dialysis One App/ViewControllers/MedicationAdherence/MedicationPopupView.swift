@@ -17,6 +17,9 @@ class MedicationPopupView: UIView {
     
     var requiredHeight: Int {
         let rowCount = medications.count
+        if rowCount == 0 {
+            return 132 // Accommodate timeLabel (56) + emptyContainer (60) + bottom padding (16)
+        }
         return 80 + (rowCount * 64) + 20
     }
     
@@ -78,15 +81,40 @@ class MedicationPopupView: UIView {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         checkboxRows.removeAll()
         
-        for medication in medications {
-            let row = MedicationCheckboxRow(medication: medication, timeOfDay: currentTimeOfDay)
-            row.delegate = self
-            stackView.addArrangedSubview(row)
-            checkboxRows.append(row)
+        if medications.isEmpty {
+            let emptyContainer = UIView()
+            emptyContainer.translatesAutoresizingMaskIntoConstraints = false
+            
+            let emptyLabel = UILabel()
+            emptyLabel.text = "No medications scheduled.\nAdd a new medication."
+            emptyLabel.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+            emptyLabel.textColor = .secondaryLabel
+            emptyLabel.textAlignment = .center
+            emptyLabel.numberOfLines = 0
+            emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+            
+            emptyContainer.addSubview(emptyLabel)
             
             NSLayoutConstraint.activate([
-                row.heightAnchor.constraint(equalToConstant: 56)
+                emptyLabel.centerXAnchor.constraint(equalTo: emptyContainer.centerXAnchor),
+                emptyLabel.centerYAnchor.constraint(equalTo: emptyContainer.centerYAnchor),
+                emptyLabel.leadingAnchor.constraint(equalTo: emptyContainer.leadingAnchor, constant: 8),
+                emptyLabel.trailingAnchor.constraint(equalTo: emptyContainer.trailingAnchor, constant: -8),
+                emptyContainer.heightAnchor.constraint(equalToConstant: 60)
             ])
+            
+            stackView.addArrangedSubview(emptyContainer)
+        } else {
+            for medication in medications {
+                let row = MedicationCheckboxRow(medication: medication, timeOfDay: currentTimeOfDay)
+                row.delegate = self
+                stackView.addArrangedSubview(row)
+                checkboxRows.append(row)
+                
+                NSLayoutConstraint.activate([
+                    row.heightAnchor.constraint(equalToConstant: 56)
+                ])
+            }
         }
     }
 }

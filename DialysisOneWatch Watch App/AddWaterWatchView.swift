@@ -16,120 +16,87 @@ struct AddWaterWatchView: View {
     @State private var isSaving = false
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) var colorScheme
 
+    @Environment(\.colorScheme) var colorScheme
     private let types = ["Water", "Coffee", "Tea", "Juice"]
     private let quantities = [50, 75, 100, 125, 150, 200, 250]
 
-    private var backgroundGradient: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [
-                    Color(red: 0.06, green: 0.12, blue: 0.09),
-                    Color(red: 0.04, green: 0.08, blue: 0.06)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        } else {
-            return LinearGradient(
-                colors: [
-                    Color(red: 215/255, green: 240/255, blue: 230/255),
-                    Color(red: 190/255, green: 225/255, blue: 210/255)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-    }
-    
-    private var cardFill: Color {
-        colorScheme == .dark ? Color(white: 0.18).opacity(0.85) : Color.white.opacity(0.85)
-    }
-
     var body: some View {
-        ZStack {
-            backgroundGradient
-                .ignoresSafeArea()
-
-            Form {
-
-                // TYPE
-                Section {
-                    Picker(selection: $selectedType) {
-                        ForEach(types, id: \.self) {
-                            Text($0)
-                                .foregroundColor(.primary)
-                        }
-                    } label: {
-                        EmptyView()
-                    }
-                    .listRowBackground(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(cardFill)
-                    )
-                } header: {
-                    Text("Type")
-                        .foregroundColor(.secondary)
-                }
-
-                // QUANTITY
-                Section {
-                    Picker(selection: $selectedQty) {
-                        ForEach(quantities, id: \.self) {
-                            Text("\($0) ml")
-                                .foregroundColor(.primary)
-                        }
-                    } label: {
-                        EmptyView()
-                    }
-                    .listRowBackground(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(cardFill)
-                    )
-                } header: {
-                    Text("Quantity (ml)")
-                        .foregroundColor(.secondary)
-                }
-                
-                // SAVE BUTTON
-                Section {
-                    Button {
-                        guard !isSaving else { return }
-                        isSaving = true
-
-                        WatchConnectivityManager.shared.sendAddWater(
-                            type: selectedType,
-                            quantity: selectedQty
-                        )
-
-                        WKInterfaceDevice.current().play(.success)
-                        dismiss()
-                    } label: {
-                        Text("Save")
+        Form {
+            // TYPE
+            Section {
+                Picker(selection: $selectedType) {
+                    ForEach(types, id: \.self) {
+                        Text($0)
                             .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity)
                     }
+                } label: {
+                    EmptyView()
                 }
                 .listRowBackground(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(cardFill)
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(WatchTheme.cardBackground(for: colorScheme))
                 )
+            } header: {
+                Text("Type")
+                    .foregroundColor(.secondary)
+            }
 
-                // INFO TEXT (not inside card)
-                Section {
-                    Text("To add Custom Quantity\nuse Dialysis One iPhone App")
-                        .font(.footnote)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
+            // QUANTITY
+            Section {
+                Picker(selection: $selectedQty) {
+                    ForEach(quantities, id: \.self) {
+                        Text("\($0) ml")
+                            .foregroundColor(.primary)
+                    }
+                } label: {
+                    EmptyView()
+                }
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(WatchTheme.cardBackground(for: colorScheme))
+                )
+            } header: {
+                Text("Quantity (ml)")
+                    .foregroundColor(.secondary)
+            }
+            
+            // SAVE BUTTON
+            Section {
+                Button {
+                    guard !isSaving else { return }
+                    isSaving = true
+
+                    WatchConnectivityManager.shared.sendAddWater(
+                        type: selectedType,
+                        quantity: selectedQty
+                    )
+
+                    WKInterfaceDevice.current().play(.success)
+                    dismiss()
+                } label: {
+                    Text("Save")
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity)
                 }
-                .listRowBackground(Color.clear)
-
-                
             }
-            .scrollContentBackground(.hidden)
-            .tint(.primary)
+            .listRowBackground(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(WatchTheme.cardBackground(for: colorScheme))
+            )
+
+            // INFO TEXT (not inside card)
+            Section {
+                Text("To add Custom Quantity\nuse Dialysis One iPhone App")
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+            .listRowBackground(Color.clear)
         }
+        .scrollContentBackground(.hidden)
+        .tint(.primary)
+        .watchBackground()
     }
 }

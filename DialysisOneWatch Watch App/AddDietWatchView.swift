@@ -47,6 +47,7 @@ struct AddDietWatchView: View {
                 doneStep
             }
         }
+        .watchBackground()
         .navigationTitle(stepTitle)
         .onChange(of: dataManager.pendingNutritionResult) { result in
             if result != nil && step == .loading {
@@ -168,16 +169,7 @@ struct AddDietWatchView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.3, green: 0.7, blue: 0.5),
-                                Color(red: 0.2, green: 0.6, blue: 0.4)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .background(Color(red: 0.3, green: 0.7, blue: 0.5)) // Solid green from theme
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }

@@ -55,24 +55,26 @@ final class TermsViewController: UIViewController {
         header.textColor = .label
         header.textAlignment = .center
 
-        let text = UILabel()
+        let text = UITextView()
+        text.backgroundColor = .clear
+        text.isEditable = false
+        text.isScrollEnabled = false
         text.font = UIFont.systemFont(ofSize: 16)
-        text.numberOfLines = 0
         text.textColor = .darkGray
-        text.text =
-        """
-        By using the Dialysis One app, you agree to follow these terms and conditions.
-
-        The app provides tools for fluid tracking, medication scheduling, and health monitoring. It is not a substitute for medical diagnosis or professional healthcare advice.
-
-        You are responsible for ensuring the accuracy of the data you input. The app is provided “as-is” without warranties of any kind.
-
-        We reserve the right to update features, modify services, or revise these terms at any time.
-
-        Placeholder content — final legal terms will be added later.
-        """
         
-        text.textAlignment = .justified
+        let linkText = "The Terms and Conditions are in this link: https://dialysisone.vercel.app/terms"
+        let attributedString = NSMutableAttributedString(string: linkText)
+        let linkRange = (linkText as NSString).range(of: "https://dialysisone.vercel.app/terms")
+        attributedString.addAttribute(.link, value: "https://dialysisone.vercel.app/terms", range: linkRange)
+        attributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 16), range: NSRange(location: 0, length: linkText.count))
+        
+        text.attributedText = attributedString
+        text.textAlignment = .center
+        text.linkTextAttributes = [
+            .foregroundColor: UIColor.systemBlue,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        text.translatesAutoresizingMaskIntoConstraints = false
 
         content.addArrangedSubview(header)
         content.addArrangedSubview(text)

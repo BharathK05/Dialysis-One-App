@@ -36,9 +36,7 @@ struct SummaryCard: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(colorScheme == .dark
-                      ? Color(white: 0.18).opacity(0.94)
-                      : Color(red: 245/255, green: 255/255, blue: 250/255).opacity(0.94))
+                .fill(WatchTheme.cardBackground(for: colorScheme))
                 .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
         )
     }
@@ -47,40 +45,16 @@ struct SummaryCard: View {
 struct HomeView: View {
     @StateObject private var watchData = WatchDataManager.shared
     @Environment(\.colorScheme) var colorScheme
+    @AppStorage("isDarkMode") var isDarkMode = false
     
     // card height constant so summary cards are equal height
     private let cardHeight: CGFloat = 58
     
-    private var backgroundGradient: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [
-                    Color(red: 0.06, green: 0.12, blue: 0.09),
-                    Color(red: 0.04, green: 0.08, blue: 0.06)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        } else {
-            return LinearGradient(
-                colors: [
-                    Color(red: 215/255, green: 240/255, blue: 230/255),
-                    Color(red: 190/255, green: 225/255, blue: 210/255)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-    }
     
     var body: some View {
-        ZStack {
-            backgroundGradient
-                .ignoresSafeArea()
-            
-            // Scrollable column so content always reachable
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 14) {
+        // Scrollable column so content always reachable
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 14) {
                     // Title
                     HStack {
                         Text("Today")
@@ -167,15 +141,17 @@ struct HomeView: View {
                                 .padding(.vertical, 12)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(colorScheme == .dark
-                                              ? Color(white: 0.18).opacity(0.94)
-                                              : Color(red: 245/255, green: 255/255, blue: 250/255).opacity(0.94))
+                                        .fill(WatchTheme.cardBackground(for: colorScheme))
                                         .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
                                 )
                             }
                             .buttonStyle(.plain)
                         }
                         .padding(.horizontal, 10)
+                        
+                        Toggle("Dark Mode", isOn: $isDarkMode)
+                            .font(.system(size: 14, weight: .medium))
+                            .padding(.horizontal, 10)
                         
                         // small footer text
                         Text("Dialysis One App")
@@ -184,10 +160,11 @@ struct HomeView: View {
                             .padding(.vertical, 12)
                     }
                     .padding(.bottom, 16)
-                } // ScrollView
-            } // ZStack
+            }
         }
+        .watchBackground()
     }
+
     
 #if DEBUG
     struct HomeView_Previews: PreviewProvider {
@@ -199,3 +176,4 @@ struct HomeView: View {
     }
 #endif
 }
+

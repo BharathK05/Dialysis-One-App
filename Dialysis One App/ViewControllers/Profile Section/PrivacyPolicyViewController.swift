@@ -56,24 +56,26 @@ final class PrivacyPolicyViewController: UIViewController {
         header.textColor = .label
         header.textAlignment = .center
 
-        let text = UILabel()
+        let text = UITextView()
+        text.backgroundColor = .clear
+        text.isEditable = false
+        text.isScrollEnabled = false
         text.font = UIFont.systemFont(ofSize: 16)
-        text.numberOfLines = 0
         text.textColor = .darkGray
-        text.text =
-        """
-        Your privacy is important to us. This Privacy Policy outlines how your data is collected, used, and protected within the Dialysis One app.
-
-        We collect information to improve your health tracking experience. This may include profile data, app usage analytics, and health-related inputs.
-
-        Your information is never sold or shared with third-party advertisers. Data is securely stored and used only to enhance your app experience.
-
-        You may request deletion of your data at any time through the app settings.
-
-        This is placeholder content. A full legal privacy policy will be inserted later.
-        """
         
-        text.textAlignment = .justified
+        let linkText = "The privacy policy is in this link: https://dialysisone.vercel.app/privacy"
+        let attributedString = NSMutableAttributedString(string: linkText)
+        let linkRange = (linkText as NSString).range(of: "https://dialysisone.vercel.app/privacy")
+        attributedString.addAttribute(.link, value: "https://dialysisone.vercel.app/privacy", range: linkRange)
+        attributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 16), range: NSRange(location: 0, length: linkText.count))
+        
+        text.attributedText = attributedString
+        text.textAlignment = .center
+        text.linkTextAttributes = [
+            .foregroundColor: UIColor.systemBlue,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        text.translatesAutoresizingMaskIntoConstraints = false
 
         content.addArrangedSubview(header)
         content.addArrangedSubview(text)

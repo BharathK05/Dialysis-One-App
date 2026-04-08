@@ -116,9 +116,6 @@ class ProfileSheetViewController: UIViewController {
         content.addArrangedSubview(makeSectionHeader("Health"))
         content.addArrangedSubview(makeMultiOptionCard(["Edit Health Details","Edit Limits"], startTag: &globalRowTag))
 
-        content.addArrangedSubview(makeSectionHeader("App Settings"))
-        content.addArrangedSubview(makeMultiOptionCard(["Edit Pinned", "Notifications"], startTag: &globalRowTag))
-
         content.addArrangedSubview(makeSectionHeader("Privacy"))
         content.addArrangedSubview(makeMultiOptionCard(["Privacy Policy", "Terms and Conditions"], startTag: &globalRowTag))
         
@@ -180,21 +177,6 @@ class ProfileSheetViewController: UIViewController {
     
     // MARK: - Navigation to other screens
 
-    private func openEditPinned() {
-        let vc = EditPinnedViewController()
-
-        vc.pinned = UserDefaults.standard.stringArray(forKey: PinnedStorage.pinnedKey) ?? ["Fluid Tracker"]
-        vc.others = UserDefaults.standard.stringArray(forKey: PinnedStorage.othersKey) ??
-                    ["Calorie Tracker", "Medication"]
-
-        vc.delegate = self
-        presentSheet(vc)
-    }
-
-    private func openNotifications() {
-        let vc = NotificationsViewController()
-        presentSheet(vc)
-    }
 
     private func openPrivacyPolicy() {
         let vc = PrivacyPolicyViewController()
@@ -296,10 +278,8 @@ class ProfileSheetViewController: UIViewController {
         switch row.tag {
         case 0: openEditHealthDetails()
         case 1: openEditLimits()
-        case 2: openEditPinned()
-        case 3: openNotifications()
-        case 4: openPrivacyPolicy()
-        case 5: openTerms()
+        case 2: openPrivacyPolicy()
+        case 3: openTerms()
         default: break
         }
     }
@@ -528,14 +508,11 @@ extension ProfileSheetViewController: EditPinnedDelegate {
 }
 
 extension ProfileSheetViewController: EditHealthDetailsDelegate {
-    func editHealthDetailsDidSave(firstName: String?,
-                                  lastName: String?,
+    func editHealthDetailsDidSave(name: String?,
                                   age: Int?,
                                   gender: String?,
                                   heightCm: Int?,
-                                  bloodGroup: String?,
-                                  ckdStage: String?,
-                                  dialysisFrequency: [String],
+                                  weightKg: Double?,
                                   profileImage: UIImage?) {
         // Update profile image if provided
         if let img = profileImage {
@@ -551,10 +528,7 @@ extension ProfileSheetViewController: EditHealthDetailsDelegate {
         }
 
         // Update name label
-        if let f = firstName, !f.isEmpty {
-            var display = f
-            if let l = lastName, !l.isEmpty { display += " " + l }
-            
+        if let display = name, !display.isEmpty {
             DispatchQueue.main.async {
                 self.nameLabel.text = display
             }
