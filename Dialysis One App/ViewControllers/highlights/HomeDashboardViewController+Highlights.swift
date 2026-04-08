@@ -22,53 +22,37 @@ extension HomeDashboardViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(label)
         self.highlightsLabel = label
-
-        // Create initial empty reports list
-        let reports = InsightDataEngine.shared.generateHomeInsightReports()
+ 
+        let container = HighlightsContainerView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(container)
+        self.highlightsContainer = container
         
-        let swiftUIView = InsightsSwiftUIList(reports: reports) { [weak self] report in
+        container.onCardTapped = { [weak self] report in
             self?.openInsightDetail(report: report)
         }
-        
-        // Host in UIHostingController
-        let hostingController = UIHostingController(rootView: swiftUIView)
-        hostingController.view.backgroundColor = .clear
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        
-        addChild(hostingController)
-        contentView.addSubview(hostingController.view)
-        hostingController.didMove(toParent: self)
-        
-        // Store reference to update later
-        self.highlightsHostingController = hostingController
-
+ 
         // Layout
         let anchor = findSummaryBottomView()
         NSLayoutConstraint.activate([
             label.topAnchor.constraint(equalTo: anchor.bottomAnchor, constant: 28),
             label.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-
-            hostingController.view.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 4),
-            hostingController.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            hostingController.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            hostingController.view.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
+ 
+            container.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 14),
+            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
         ])
-
+        
+        let reports = InsightDataEngine.shared.generateHomeInsightReports()
+        container.configure(with: reports)
+ 
         setupHighlightsObservers()
     }
 
     /// Refresh insight cards from latest logs (call whenever data changes)
     func refreshHighlights() {
-        let newReports = InsightDataEngine.shared.generateHomeInsightReports()
-        let swiftUIView = InsightsSwiftUIList(reports: newReports) { [weak self] report in
-            self?.openInsightDetail(report: report)
-        }
-        
-        if let hostingController = highlightsHostingController as? UIHostingController<InsightsSwiftUIList> {
-            hostingController.rootView = swiftUIView
-        } else {
-            // First time setup is handled in setupHighlightsSection
-        }
+        highlightsContainer?.refresh()
     }
 
     // MARK: - Navigation

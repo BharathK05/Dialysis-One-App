@@ -61,45 +61,65 @@ class LimitsManager {
         if let profile = profile {
             profile.calorieTarget = Double(value)
             profile.isUsingDefaultTargets = false
-            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+            Task { @MainActor in
+                ProfileManager.shared.updateProfile(profile)
+                self.postUpdateNotification()
+            }
+        } else {
+            postUpdateNotification()
         }
-        postUpdateNotification()
     }
     
     func setPotassiumLimit(_ value: Int) {
         if let profile = profile {
             profile.potassiumTarget = Double(value)
             profile.isUsingDefaultTargets = false
-            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+            Task { @MainActor in
+                ProfileManager.shared.updateProfile(profile)
+                self.postUpdateNotification()
+            }
+        } else {
+            postUpdateNotification()
         }
-        postUpdateNotification()
     }
     
     func setSodiumLimit(_ value: Int) {
         if let profile = profile {
             profile.sodiumTarget = Double(value)
             profile.isUsingDefaultTargets = false
-            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+            Task { @MainActor in
+                ProfileManager.shared.updateProfile(profile)
+                self.postUpdateNotification()
+            }
+        } else {
+            postUpdateNotification()
         }
-        postUpdateNotification()
     }
     
     func setProteinLimit(_ value: Int) {
         if let profile = profile {
             profile.proteinTarget = Double(value)
             profile.isUsingDefaultTargets = false
-            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+            Task { @MainActor in
+                ProfileManager.shared.updateProfile(profile)
+                self.postUpdateNotification()
+            }
+        } else {
+            postUpdateNotification()
         }
-        postUpdateNotification()
     }
     
     func setFluidLimit(_ value: Int) {
         if let profile = profile {
             profile.waterTarget = Double(value) / 1000.0
             profile.isUsingDefaultTargets = false
-            Task { @MainActor in ProfileManager.shared.updateProfile(profile) }
+            Task { @MainActor in
+                ProfileManager.shared.updateProfile(profile)
+                self.postUpdateNotification()
+            }
+        } else {
+            postUpdateNotification()
         }
-        postUpdateNotification()
     }
     
     // MARK: - Notification

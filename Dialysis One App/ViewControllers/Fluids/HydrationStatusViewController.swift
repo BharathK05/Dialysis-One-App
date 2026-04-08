@@ -300,9 +300,21 @@ class WaveView: UIView {
 
         layer.addSublayer(gradientLayer1)
         layer.addSublayer(gradientLayer2)
+        // Display link is NOT started here — call startAnimating() explicitly.
+    }
 
+    /// Start the wave animation. Call from viewWillAppear.
+    func startAnimating() {
+        guard displayLink == nil else { return }
         displayLink = CADisplayLink(target: self, selector: #selector(updateWaves))
+        displayLink?.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
         displayLink?.add(to: .main, forMode: .common)
+    }
+
+    /// Stop the wave animation. Call from viewWillDisappear / deinit.
+    func stopAnimating() {
+        displayLink?.invalidate()
+        displayLink = nil
     }
 
     @objc private func updateWaves() {
@@ -456,19 +468,19 @@ class HydrationStatusViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // System nav bar provides the back button
         navigationController?.setNavigationBarHidden(false, animated: animated)
-
-        // Refresh progress + cards from latest data
+        // Start wave animation only when screen is actually visible
+        waveView.startAnimating()
+        // Load data and refresh UI
         loadHydrationFromStore()
         syncProgressToWave()
         updateActivityContent()
     }
 
-    
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // Restore home screen's hidden nav bar when popping back
+        // Stop the 60fps display link to free the main thread when not visible
+        waveView.stopAnimating()
         if isMovingFromParent {
             navigationController?.setNavigationBarHidden(true, animated: animated)
         }

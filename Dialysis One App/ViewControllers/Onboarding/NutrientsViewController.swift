@@ -299,9 +299,15 @@ class NutrientsViewController: UIViewController {
             waterTarget: water,
             isUsingDefaultTargets: isDefault
         )
-        
-        ProfileManager.shared.recalculateTargets(for: profile)
+
+        // Only recalculate when user chose defaults — preserves custom-entered values.
+        if isDefault {
+            ProfileManager.shared.recalculateTargets(for: profile)
+        }
         ProfileManager.shared.saveProfile(profile)
+
+        // Notify any already-loaded screens (e.g. home dashboard) that limits changed.
+        NotificationCenter.default.post(name: .limitsDidUpdate, object: nil)
     }
 
     private func finishOnboarding() {

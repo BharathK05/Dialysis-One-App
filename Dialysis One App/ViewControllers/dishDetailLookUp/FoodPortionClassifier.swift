@@ -12,17 +12,30 @@ enum PortionType: String, Codable {
     case count  = "COUNT"
     case meal   = "MEAL"
     case bowl   = "BOWL"
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try? container.decode(String.self)
+        self = PortionType(rawValue: value?.uppercased() ?? "") ?? .weight
+    }
 }
 
 enum FoodCategory: String, Codable {
     case riceDish = "rice_dish"
-    case bread
-    case curry
-    case meal
-    case fullPlatedMeal = "full_plated_meal"  // ✅ ADD THIS
-    case snack
-    case beverage
-    case unknown
+    case bread = "bread"
+    case curry = "curry"
+    case meal = "meal"
+    case fullPlatedMeal = "full_plated_meal"
+    case snack = "snack"
+    case beverage = "beverage"
+    case meat = "meat"
+    case unknown = "unknown"
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try? container.decode(String.self)
+        self = FoodCategory(rawValue: value?.lowercased() ?? "") ?? .unknown
+    }
 }
 
 struct ClassifiedFood: Codable {
@@ -32,6 +45,20 @@ struct ClassifiedFood: Codable {
     let default_portion_value: Double
     let original_name: String
     let confidence: Double?
+    
+    enum CodingKeys: String, CodingKey {
+        case canonical_food_name, food_category, portion_type, default_portion_value, original_name, confidence
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.canonical_food_name = try container.decodeIfPresent(String.self, forKey: .canonical_food_name) ?? "Unknown Food"
+        self.food_category = try container.decodeIfPresent(FoodCategory.self, forKey: .food_category) ?? .unknown
+        self.portion_type = try container.decodeIfPresent(PortionType.self, forKey: .portion_type) ?? .weight
+        self.default_portion_value = try container.decodeIfPresent(Double.self, forKey: .default_portion_value) ?? 100.0
+        self.original_name = try container.decodeIfPresent(String.self, forKey: .original_name) ?? "Unknown"
+        self.confidence = try container.decodeIfPresent(Double.self, forKey: .confidence)
+    }
 }
 
 struct FoodClassificationResponse: Codable {
@@ -87,8 +114,9 @@ final class FoodPortionClassifier {
         - Breads → COUNT (pieces) → food_category: "bread"
         - Full plated meals → MEAL → food_category: "meal"
         - Curries / gravies → BOWL → food_category: "curry"
+        - Meats / Proteins → WEIGHT (grams) → food_category: "meat"
 
-        IMPORTANT: food_category must be one of: "rice_dish", "bread", "curry", "meal", "snack", "beverage"
+        IMPORTANT: food_category must be one of: "rice_dish", "bread", "curry", "meal", "snack", "beverage", "meat"
 
         Detected food:
         \(foodList)

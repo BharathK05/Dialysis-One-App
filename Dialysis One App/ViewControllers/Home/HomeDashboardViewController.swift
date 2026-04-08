@@ -55,8 +55,8 @@ class HomeDashboardViewController: UIViewController,
     
     // Add to MARK: - Properties section
     var highlightsLabel: UILabel?
-    var highlightsHostingController: UIViewController?
-    var summaryCardsStackView: UIView? // Reference to summary section bottom
+    var highlightsContainer: HighlightsContainerView?
+    var summaryCardsStackView: UIStackView? // Reference to summary section bottom
     
 //    private var appointmentHospitalLabel: UILabel?
 //    private var appointmentDateLabel: UILabel?
@@ -93,6 +93,7 @@ class HomeDashboardViewController: UIViewController,
     private var waterConsumed: Int = 150 {
         didSet { updateWaterCard() }
     }
+    // Computed — always reads the value set in Profile → Edit Limits
     private var waterGoal: Int {
         return LimitsManager.shared.getFluidLimit()
     }
@@ -139,8 +140,7 @@ class HomeDashboardViewController: UIViewController,
     private var waterValueLabel: UILabel?
     private var waterTotalLabel: UILabel?
     private var waterProgressView: SemiCircularProgressView?
-    private var waterRingView: FullCircularProgressView?   // new full-ring for hydration card
-
+    
     private var medicationValueLabel: UILabel?
     private var medicationProgressView: UIView? // Changed from SemiCircularProgressView
     
@@ -201,12 +201,16 @@ class HomeDashboardViewController: UIViewController,
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        updateSegmentedMedicationCard()
-        loadTodayNutrients()
-        refreshHighlights()
-        // Keep it fresh every time the screen appears
-       // updateSegmentedMedicationCard()
-        
+        // Wrap in Task to ensure any in-flight async SwiftData saves from
+        // LimitsManager have committed before we re-read goal values.
+        Task { @MainActor in
+            ProfileManager.shared.fetchProfile()
+            self.updateSegmentedMedicationCard()
+            self.loadTodayNutrients()
+            self.updateNutrientCard()   // refresh goal labels (potassium/sodium/protein)
+            self.updateWaterCard()      // refresh fluid goal from LimitsManager
+            self.refreshHighlights()
+        }
     }
     
     
@@ -214,26 +218,31 @@ class HomeDashboardViewController: UIViewController,
     // MARK: - Public Update Methods
     // MARK: - Public Update Methods
     private func loadUserValues() {
-        // Water: computed from persisted FluidLog entries
-        waterConsumed = ActivityLogManager.shared.todayFluidTotal()
+        // Consumed values — persisted per-user via UserDataManager
+        waterConsumed = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
+        // waterGoal is a computed property sourced from LimitsManager (Profile → Edit Limits)
 
-        // Medication adherence: computed from MedicationLog entries
-        let adherence = MedicationStore.shared.totalProgress()
-        dosesConsumed = adherence.taken
-        dosesGoal     = adherence.total
+        dosesConsumed = UserDataManager.shared.loadInt("dosesConsumed", uid: uid, defaultValue: 0)
+        dosesGoal = UserDataManager.shared.loadInt("dosesGoal", uid: uid, defaultValue: 3)
 
-        // Nutrients: computed from persisted FoodLog entries
-        let totals    = ActivityLogManager.shared.todayNutrientTotals()
-        potassiumConsumed = totals.potassium
-        sodiumConsumed    = totals.sodium
-        proteinConsumed   = totals.protein
+        // Goals for nutrients come from LimitsManager (computed properties — no local storage needed)
+
+        // Load consumed nutrients
+        potassiumConsumed = UserDataManager.shared.loadInt("potassiumConsumed", uid: uid, defaultValue: 0)
+        sodiumConsumed = UserDataManager.shared.loadInt("sodiumConsumed", uid: uid, defaultValue: 0)
+        proteinConsumed = UserDataManager.shared.loadInt("proteinConsumed", uid: uid, defaultValue: 0)
 
         currentWeight = UserDataManager.shared.loadDouble("weight", uid: uid, defaultValue: 0)
     }
 
-    func updateWater() {
-        waterConsumed = ActivityLogManager.shared.todayFluidTotal()
+    func updateWater(consumed: Int, goal: Int? = nil) {
+        waterConsumed = consumed
+        UserDataManager.shared.save("waterConsumed", value: consumed, uid: uid)
 
+        // waterGoal is now fully controlled by LimitsManager — ignore any passed goal
+        // (kept parameter for call-site compatibility)
+        _ = goal
+        
         WatchConnectivityManager.shared.sendSummary(
             foodText: nil,
             waterText: "\(waterConsumed) / \(waterGoal) ml",
@@ -242,12 +251,17 @@ class HomeDashboardViewController: UIViewController,
 
         updateWaterCard()
         refreshHighlights()
+        
     }
     
-    func updateMedication() {
-        let adherence = MedicationStore.shared.totalProgress()
-        dosesConsumed = adherence.taken
-        dosesGoal     = adherence.total
+    func updateMedication(consumed: Int, goal: Int? = nil) {
+        dosesConsumed = consumed
+        UserDataManager.shared.save("dosesConsumed", value: consumed, uid: uid)
+
+        if let newGoal = goal {
+            dosesGoal = newGoal
+            UserDataManager.shared.save("dosesGoal", value: newGoal, uid: uid)
+        }
         
         WatchConnectivityManager.shared.sendSummary(
             foodText: nil,
@@ -258,11 +272,19 @@ class HomeDashboardViewController: UIViewController,
         updateMedicationCard()
     }
     
-    func updateNutrients() {
-        let totals = ActivityLogManager.shared.todayNutrientTotals()
-        potassiumConsumed = totals.potassium
-        sodiumConsumed    = totals.sodium
-        proteinConsumed   = totals.protein
+    func updateNutrients(potassium: Int? = nil, sodium: Int? = nil, protein: Int? = nil) {
+        if let p = potassium {
+            potassiumConsumed = p
+            UserDataManager.shared.save("potassiumConsumed", value: p, uid: uid)
+        }
+        if let s = sodium {
+            sodiumConsumed = s
+            UserDataManager.shared.save("sodiumConsumed", value: s, uid: uid)
+        }
+        if let pr = protein {
+            proteinConsumed = pr
+            UserDataManager.shared.save("proteinConsumed", value: pr, uid: uid)
+        }
         
         let foodSummary = "K:\(potassiumConsumed) S:\(sodiumConsumed) P:\(proteinConsumed)"
         WatchConnectivityManager.shared.sendSummary(
@@ -271,6 +293,7 @@ class HomeDashboardViewController: UIViewController,
             medicationText: "\(dosesConsumed) / \(dosesGoal) doses"
         )
         NotificationCenter.default.post(name: .mealsDidUpdate, object: nil)
+
 
         updateNutrientCard()
     }
@@ -282,7 +305,13 @@ class HomeDashboardViewController: UIViewController,
     }
     
     @objc private func waterDidUpdateFromWatch() {
-        updateWater()
+        let consumed = UserDataManager.shared.loadInt(
+            "waterConsumed",
+            uid: uid,
+            defaultValue: 0
+        )
+
+        updateWater(consumed: consumed)
     }
 
     
@@ -352,49 +381,57 @@ class HomeDashboardViewController: UIViewController,
     
     // MARK: - Private Update Methods
     private func updateWaterCard() {
-        // Update full-ring hydration card
-        let progress = waterGoal > 0 ? CGFloat(waterConsumed) / CGFloat(waterGoal) : 0
-        waterRingView?.progress = min(progress, 1.0)
-        let liters = String(format: "%.1f", Double(waterConsumed) / 1000.0)
-        waterValueLabel?.text = liters
-        let pct = waterGoal > 0 ? Int(progress * 100) : 0
-        waterTotalLabel?.text = "\(pct)% of daily goal"
-        // Legacy semi-circular (unused in new layout, safe to update)
+        waterValueLabel?.text = "\(waterConsumed)"
+        waterTotalLabel?.text = "out of\n\(waterGoal) ml"
+        let progress = CGFloat(waterConsumed) / CGFloat(waterGoal)
         waterProgressView?.progress = min(progress, 1.0)
     }
-
+    
+    
+    
     private func updateMedicationCard() {
         updateSegmentedMedicationCard()
     }
-
+    
     private func updateNutrientCard() {
-        let fmt = NumberFormatter()
-        fmt.numberStyle = .decimal
-
-        let kVal = fmt.string(from: NSNumber(value: potassiumConsumed)) ?? "\(potassiumConsumed)"
-        potassiumValueLabel?.text = kVal
-        let kProg = potassiumGoal > 0 ? CGFloat(potassiumConsumed) / CGFloat(potassiumGoal) : 0
-        updateProgressBar(fill: potassiumProgressFill, bar: potassiumProgressBar, progress: kProg)
-
-        let sVal = fmt.string(from: NSNumber(value: sodiumConsumed)) ?? "\(sodiumConsumed)"
-        sodiumValueLabel?.text = sVal
-        let sProg = sodiumGoal > 0 ? CGFloat(sodiumConsumed) / CGFloat(sodiumGoal) : 0
-        updateProgressBar(fill: sodiumProgressFill, bar: sodiumProgressBar, progress: sProg)
-
-        let pVal = fmt.string(from: NSNumber(value: proteinConsumed)) ?? "\(proteinConsumed)"
-        proteinValueLabel?.text = pVal
-        let pProg = proteinGoal > 0 ? CGFloat(proteinConsumed) / CGFloat(proteinGoal) : 0
-        updateProgressBar(fill: proteinProgressFill, bar: proteinProgressBar, progress: pProg)
-    }
-
-    private func updateProgressBar(fill: UIView?, bar: UIView?, progress: CGFloat) {
-        guard let fill = fill, let bar = bar else { return }
-        fill.constraints.forEach { c in
-            if c.firstAttribute == .width { bar.removeConstraint(c) }
+        potassiumValueLabel?.text = "\(potassiumConsumed)/\(potassiumGoal)mg"
+        let potassiumProgress = potassiumConsumed > 0 ? CGFloat(potassiumConsumed) / CGFloat(potassiumGoal) : 0
+        if let progressBar = potassiumProgressBar, let progressFill = potassiumProgressFill {
+            progressFill.constraints.forEach { constraint in
+                if constraint.firstAttribute == .width {
+                    progressBar.removeConstraint(constraint)
+                }
+            }
+            NSLayoutConstraint.activate([
+                progressFill.widthAnchor.constraint(equalTo: progressBar.widthAnchor, multiplier: min(potassiumProgress, 1.0))
+            ])
         }
-        NSLayoutConstraint.activate([
-            fill.widthAnchor.constraint(equalTo: bar.widthAnchor, multiplier: min(max(progress, 0), 1.0))
-        ])
+        
+        sodiumValueLabel?.text = "\(sodiumConsumed)/\(sodiumGoal)mg"
+        let sodiumProgress = sodiumConsumed > 0 ? CGFloat(sodiumConsumed) / CGFloat(sodiumGoal) : 0
+        if let progressBar = sodiumProgressBar, let progressFill = sodiumProgressFill {
+            progressFill.constraints.forEach { constraint in
+                if constraint.firstAttribute == .width {
+                    progressBar.removeConstraint(constraint)
+                }
+            }
+            NSLayoutConstraint.activate([
+                progressFill.widthAnchor.constraint(equalTo: progressBar.widthAnchor, multiplier: min(sodiumProgress, 1.0))
+            ])
+        }
+        
+        proteinValueLabel?.text = "\(proteinConsumed)/\(proteinGoal)mg"
+        let proteinProgress = proteinConsumed > 0 ? CGFloat(proteinConsumed) / CGFloat(proteinGoal) : 0
+        if let progressBar = proteinProgressBar, let progressFill = proteinProgressFill {
+            progressFill.constraints.forEach { constraint in
+                if constraint.firstAttribute == .width {
+                    progressBar.removeConstraint(constraint)
+                }
+            }
+            NSLayoutConstraint.activate([
+                progressFill.widthAnchor.constraint(equalTo: progressBar.widthAnchor, multiplier: min(proteinProgress, 1.0))
+            ])
+        }
     }
     
     private func updateWeightCard() {
@@ -408,6 +445,11 @@ class HomeDashboardViewController: UIViewController,
         sodiumConsumed = totals.sodium
         proteinConsumed = totals.protein
         
+        // Save to UserDefaults for persistence
+        UserDataManager.shared.save("potassiumConsumed", value: totals.potassium, uid: uid)
+        UserDataManager.shared.save("sodiumConsumed", value: totals.sodium, uid: uid)
+        UserDataManager.shared.save("proteinConsumed", value: totals.protein, uid: uid)
+        
         // Update UI
         updateNutrientCard()
     }
@@ -416,8 +458,14 @@ class HomeDashboardViewController: UIViewController,
         refreshHighlights()
     }
     @objc private func limitsDidUpdate() {
-        // Reload nutrient card with new limits
-        updateNutrientCard()
+        // Re-fetch the persisted profile so LimitsManager reads the freshly-saved
+        // values, then update every goal-dependent card in one pass.
+        Task { @MainActor in
+            ProfileManager.shared.fetchProfile()
+            self.updateNutrientCard()   // potassium / sodium / protein goals
+            self.updateWaterCard()      // fluid goal
+            self.refreshHighlights()    // insight cards that reference limits
+        }
     }
     // MARK: - Setup UI
     private func setupUI() {
@@ -747,9 +795,13 @@ class HomeDashboardViewController: UIViewController,
     @objc private func searchButtonTapped() {
         print("🔍 Search button tapped - opening FoodSearchViewController")
         
-        let searchVC = EnhancedFoodSearchViewController()
+        let searchVC = EnhancedFoodSearchViewController()  // ← Use new one // ← This stays the same!
         searchVC.hidesBottomBarWhenPushed = true
-        navigationController?.pushViewController(searchVC, animated: true)
+        
+        let navController = UINavigationController(rootViewController: searchVC)
+        navController.modalPresentationStyle = .fullScreen
+        
+        present(navController, animated: true)
     }
     
     
@@ -841,7 +893,7 @@ class HomeDashboardViewController: UIViewController,
         
         let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
         let iconView = UIImageView(image: UIImage(systemName: iconName, withConfiguration: config))
-        iconView.tintColor = .black
+        iconView.tintColor = AppTheme.iconPrimary
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.contentMode = .scaleAspectFit
         container.addSubview(iconView)
@@ -865,24 +917,12 @@ class HomeDashboardViewController: UIViewController,
 
         summaryTopConstraint = summaryLabel.topAnchor.constraint(equalTo: dietButton.bottomAnchor, constant: 16)
 
-        // 1. Nutrient Card
+        // Nutrient Card (with tap to open NutrientBalanceViewController)
         let nutrientCard = createNutrientBalanceCard()
         nutrientCard.translatesAutoresizingMaskIntoConstraints = false
         nutrientCard.isUserInteractionEnabled = true
         nutrientCard.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(openNutrientBalance)))
         contentView.addSubview(nutrientCard)
-
-        // 2. Hydration Card
-        let waterCard = createHydrationSummaryCard()
-        waterCard.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(waterCard)
-
-        // 3. Medication Card
-        let doseCard = createMedicationSummaryCard()
-        doseCard.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(doseCard)
-
-        self.summaryCardsStackView = doseCard
 
         NSLayoutConstraint.activate([
             summaryTopConstraint,
@@ -891,16 +931,43 @@ class HomeDashboardViewController: UIViewController,
             nutrientCard.topAnchor.constraint(equalTo: summaryLabel.bottomAnchor, constant: 14),
             nutrientCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             nutrientCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            nutrientCard.heightAnchor.constraint(equalToConstant: 110)
+        ])
 
-            waterCard.topAnchor.constraint(equalTo: nutrientCard.bottomAnchor, constant: 14),
-            waterCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            waterCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            waterCard.heightAnchor.constraint(equalToConstant: 110),
+        // Water & Medication Cards
+        let cardsStack = UIStackView()
+        cardsStack.axis = .horizontal
+        cardsStack.spacing = 12
+        cardsStack.distribution = .fillEqually
+        cardsStack.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(cardsStack)
+        
+        self.summaryCardsStackView = cardsStack
 
-            doseCard.topAnchor.constraint(equalTo: waterCard.bottomAnchor, constant: 14),
-            doseCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            doseCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            doseCard.heightAnchor.constraint(equalToConstant: 110)
+        let waterProgress = CGFloat(waterConsumed) / CGFloat(waterGoal)
+        let waterCard = createProgressCard(
+            value: "\(waterConsumed)",
+            total: "out of\n\(waterGoal) ml",
+            color: UIColor.systemBlue,
+            progress: waterProgress,
+            type: .water
+        )
+
+        let doseCard = createSegmentedMedicationCard()
+        
+        // Add tap gesture to medication card
+        let medicationTapGesture = UITapGestureRecognizer(target: self, action: #selector(medicationCardTapped))
+        doseCard.addGestureRecognizer(medicationTapGesture)
+        doseCard.isUserInteractionEnabled = true
+
+        cardsStack.addArrangedSubview(waterCard)
+        cardsStack.addArrangedSubview(doseCard)
+
+        NSLayoutConstraint.activate([
+            cardsStack.topAnchor.constraint(equalTo: nutrientCard.bottomAnchor, constant: 16),
+            cardsStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            cardsStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            cardsStack.heightAnchor.constraint(equalToConstant: 150)
         ])
     }
     // MARK: - Highlights Section Setup
@@ -940,106 +1007,89 @@ class HomeDashboardViewController: UIViewController,
     
     private func createNutrientBalanceCard() -> UIView {
         let container = UIView()
-        container.backgroundColor = UIColor.systemBackground
+        container.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.4)
         container.layer.cornerRadius = 20
-        container.layer.shadowColor = UIColor.black.cgColor
-        container.layer.shadowOpacity = 0.06
-        container.layer.shadowRadius = 8
-        container.layer.shadowOffset = CGSize(width: 0, height: 2)
         container.translatesAutoresizingMaskIntoConstraints = false
-
+        
+        // Use adaptive blur effect for Dark Mode support
+        let blurEffect = UIBlurEffect(style: .systemThinMaterial)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        blurView.translatesAutoresizingMaskIntoConstraints = false
+        blurView.layer.cornerRadius = 20
+        blurView.clipsToBounds = true
+        container.insertSubview(blurView, at: 0)
+        
+        NSLayoutConstraint.activate([
+            blurView.topAnchor.constraint(equalTo: container.topAnchor),
+            blurView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            blurView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            blurView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
         let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 14
+        stack.axis = .horizontal
+        stack.distribution = .fillEqually
+        stack.spacing = 16
         stack.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(stack)
-
-        // Brand colors matching the reference design
-        let potassiumColor = UIColor(red: 0.0,  green: 0.47, blue: 0.35, alpha: 1) // teal-green
-        let sodiumColor    = UIColor(red: 0.12, green: 0.31, blue: 0.55, alpha: 1) // dark blue
-        let proteinColor   = UIColor(red: 0.42, green: 0.30, blue: 0.05, alpha: 1) // warm brown
-
-        let potassiumProgress = potassiumGoal > 0 ? CGFloat(potassiumConsumed) / CGFloat(potassiumGoal) : 0
-        let potassiumRow = createNutrientRow(
-            name: "Potassium", value: "\(potassiumConsumed)", unit: "mg",
-            progress: potassiumProgress, color: potassiumColor, type: .potassium
-        )
-
-        let sodiumProgress = sodiumGoal > 0 ? CGFloat(sodiumConsumed) / CGFloat(sodiumGoal) : 0
-        let sodiumRow = createNutrientRow(
-            name: "Sodium", value: "\(sodiumConsumed)", unit: "mg",
-            progress: sodiumProgress, color: sodiumColor, type: .sodium
-        )
-
-        let proteinProgress = proteinGoal > 0 ? CGFloat(proteinConsumed) / CGFloat(proteinGoal) : 0
-        let proteinRow = createNutrientRow(
-            name: "Protein", value: "\(proteinConsumed)", unit: "g",
-            progress: proteinProgress, color: proteinColor, type: .protein
-        )
-
-        stack.addArrangedSubview(potassiumRow)
-        stack.addArrangedSubview(sodiumRow)
-        stack.addArrangedSubview(proteinRow)
-
+        
+        let potassiumProgress = CGFloat(potassiumConsumed) / CGFloat(potassiumGoal)
+        let potassiumItem = createNutrientItem(name: "Potassium", value: "\(potassiumConsumed)/\(potassiumGoal)mg", progress: potassiumProgress, color: .systemGreen, type: .potassium)
+        
+        let sodiumProgress = CGFloat(sodiumConsumed) / CGFloat(sodiumGoal)
+        let sodiumItem = createNutrientItem(name: "Sodium", value: "\(sodiumConsumed)/\(sodiumGoal)mg", progress: sodiumProgress, color: .systemOrange, type: .sodium)
+        
+        let proteinProgress = CGFloat(proteinConsumed) / CGFloat(proteinGoal)
+        let proteinItem = createNutrientItem(name: "Protein", value: "\(proteinConsumed)/\(proteinGoal)mg", progress: proteinProgress, color: .systemYellow, type: .protein)
+        
+        stack.addArrangedSubview(potassiumItem)
+        stack.addArrangedSubview(sodiumItem)
+        stack.addArrangedSubview(proteinItem)
+        
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 18),
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
             stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
-            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -18)
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -24)
         ])
-
+        
+        blurView.isUserInteractionEnabled = false
+        stack.isUserInteractionEnabled = false
+        
         return container
     }
-
+    
     private enum NutrientType {
         case potassium, sodium, protein
     }
-
-    /// Creates a single nutrient row: name(left) + bold-value + unit(right), bar below
-    private func createNutrientRow(name: String, value: String, unit: String,
-                                   progress: CGFloat, color: UIColor,
-                                   type: NutrientType) -> UIView {
-        let row = UIView()
-        row.translatesAutoresizingMaskIntoConstraints = false
-
-        // Name label (left)
+    
+    private func createNutrientItem(name: String, value: String, progress: CGFloat, color: UIColor, type: NutrientType) -> UIView {
+        let container = UIView()
+        
         let nameLabel = UILabel()
         nameLabel.text = name
-        nameLabel.font = UIFont.systemFont(ofSize: 13, weight: .regular)
-        nameLabel.textColor = .label
+        nameLabel.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        row.addSubview(nameLabel)
-
-        // Value label (right, bold)
-        let valueLabel = UILabel()
-        valueLabel.font = UIFont.systemFont(ofSize: 13, weight: .bold)
-        valueLabel.textColor = .label
-        valueLabel.translatesAutoresizingMaskIntoConstraints = false
-        row.addSubview(valueLabel)
-
-        // Unit label (right of value, smaller)
-        let unitLabel = UILabel()
-        unitLabel.text = unit
-        unitLabel.font = UIFont.systemFont(ofSize: 11, weight: .regular)
-        unitLabel.textColor = .secondaryLabel
-        unitLabel.translatesAutoresizingMaskIntoConstraints = false
-        row.addSubview(unitLabel)
-
-        // Progress track
+        container.addSubview(nameLabel)
+        
         let progressBar = UIView()
-        progressBar.backgroundColor = color.withAlphaComponent(0.18)
-        progressBar.layer.cornerRadius = 3
+        progressBar.backgroundColor = color.withAlphaComponent(0.25)
+        progressBar.layer.cornerRadius = 2.5
         progressBar.translatesAutoresizingMaskIntoConstraints = false
-        row.addSubview(progressBar)
-
-        // Progress fill
+        container.addSubview(progressBar)
+        
         let progressFill = UIView()
         progressFill.backgroundColor = color
-        progressFill.layer.cornerRadius = 3
+        progressFill.layer.cornerRadius = 2.5
         progressFill.translatesAutoresizingMaskIntoConstraints = false
         progressBar.addSubview(progressFill)
-
-        // Wire up references for later updates
+        
+        let valueLabel = UILabel()
+        valueLabel.text = value
+        valueLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+        valueLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(valueLabel)
+        
         switch type {
         case .potassium:
             potassiumValueLabel = valueLabel
@@ -1054,155 +1104,112 @@ class HomeDashboardViewController: UIViewController,
             proteinProgressFill = progressFill
             proteinProgressBar = progressBar
         }
-
-        // Initial text - format like "3,200"
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        valueLabel.text = formatter.string(from: NSNumber(value: Int(value) ?? 0)) ?? value
-
-        let clampedProgress = min(max(progress, 0), 1.0)
-
+        
         NSLayoutConstraint.activate([
-            // Name row
-            nameLabel.topAnchor.constraint(equalTo: row.topAnchor),
-            nameLabel.leadingAnchor.constraint(equalTo: row.leadingAnchor),
-
-            unitLabel.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
-            unitLabel.trailingAnchor.constraint(equalTo: row.trailingAnchor),
-
-            valueLabel.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
-            valueLabel.trailingAnchor.constraint(equalTo: unitLabel.leadingAnchor, constant: -3),
-
-            // Progress bar
-            progressBar.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 6),
-            progressBar.leadingAnchor.constraint(equalTo: row.leadingAnchor),
-            progressBar.trailingAnchor.constraint(equalTo: row.trailingAnchor),
+            nameLabel.topAnchor.constraint(equalTo: container.topAnchor),
+            nameLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            
+            progressBar.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 8),
+            progressBar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            progressBar.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             progressBar.heightAnchor.constraint(equalToConstant: 5),
-            progressBar.bottomAnchor.constraint(equalTo: row.bottomAnchor),
-
-            // Fill
+            
             progressFill.leadingAnchor.constraint(equalTo: progressBar.leadingAnchor),
             progressFill.topAnchor.constraint(equalTo: progressBar.topAnchor),
             progressFill.bottomAnchor.constraint(equalTo: progressBar.bottomAnchor),
-            progressFill.widthAnchor.constraint(equalTo: progressBar.widthAnchor, multiplier: clampedProgress)
+            progressFill.widthAnchor.constraint(equalTo: progressBar.widthAnchor, multiplier: progress),
+            
+            valueLabel.topAnchor.constraint(equalTo: progressBar.bottomAnchor, constant: 8),
+            valueLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            valueLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
-
-        return row
-    }
-    
-    // MARK: - Full-ring progress view used by Hydration & Medication summary cards
-    class FullCircularProgressView: UIView {
-        var progress: CGFloat = 0 { didSet { setNeedsDisplay() } }
-        var trackColor: UIColor = UIColor.systemGray4
-        var progressColor: UIColor = UIColor.systemBlue
-        private let lineWidth: CGFloat = 7
-
-        override func draw(_ rect: CGRect) {
-            let center = CGPoint(x: bounds.midX, y: bounds.midY)
-            let radius = (min(bounds.width, bounds.height) / 2) - lineWidth / 2
-            let start = -CGFloat.pi / 2
-            let end   = start + 2 * CGFloat.pi
-
-            // Track
-            let track = UIBezierPath(arcCenter: center, radius: radius,
-                                     startAngle: start, endAngle: end, clockwise: true)
-            track.lineWidth = lineWidth
-            trackColor.setStroke()
-            track.stroke()
-
-            // Fill
-            let fillEnd = start + 2 * CGFloat.pi * min(max(progress, 0), 1.0)
-            let fill = UIBezierPath(arcCenter: center, radius: radius,
-                                    startAngle: start, endAngle: fillEnd, clockwise: true)
-            fill.lineWidth = lineWidth
-            fill.lineCapStyle = .round
-            progressColor.setStroke()
-            fill.stroke()
-        }
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            backgroundColor = .clear; isOpaque = false
-        }
-        required init?(coder: NSCoder) {
-            super.init(coder: coder)
-            backgroundColor = .clear; isOpaque = false
-        }
-    }
-
-    /// Hydration card: full-circle ring left, title + subtitle right
-    private func createHydrationSummaryCard() -> UIView {
-        let container = makeCardContainer()
-
-        let ringSize: CGFloat = 72
-        let ring = FullCircularProgressView()
-        ring.translatesAutoresizingMaskIntoConstraints = false
-        ring.trackColor = UIColor(red: 0.12, green: 0.31, blue: 0.55, alpha: 0.18)
-        ring.progressColor = UIColor(red: 0.12, green: 0.31, blue: 0.55, alpha: 1)
-        ring.progress = waterGoal > 0 ? CGFloat(waterConsumed) / CGFloat(waterGoal) : 0
-        container.addSubview(ring)
-        waterRingView = ring   // stored for updateWaterCard()
-
-        // Center value label (liters)
-        let liters = String(format: "%.1f", Double(waterConsumed) / 1000.0)
-        let valLabel = UILabel()
-        valLabel.text = liters
-        valLabel.font = UIFont.systemFont(ofSize: 17, weight: .bold)
-        valLabel.textAlignment = .center
-        valLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(valLabel)
-        waterValueLabel = valLabel
-
-        let unitLabel = UILabel()
-        unitLabel.text = "Liters"
-        unitLabel.font = UIFont.systemFont(ofSize: 9, weight: .regular)
-        unitLabel.textColor = .secondaryLabel
-        unitLabel.textAlignment = .center
-        unitLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(unitLabel)
-
-        // Right side text
-        let titleLabel = UILabel()
-        titleLabel.text = "Hydration"
-        titleLabel.font = UIFont.systemFont(ofSize: 15, weight: .bold)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(titleLabel)
-
-        let pct = waterGoal > 0 ? Int(CGFloat(waterConsumed) / CGFloat(waterGoal) * 100) : 0
-        let subtitleLabel = UILabel()
-        subtitleLabel.text = "\(pct)% of daily goal"
-        subtitleLabel.font = UIFont.systemFont(ofSize: 13, weight: .regular)
-        subtitleLabel.textColor = .secondaryLabel
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(subtitleLabel)
-        waterTotalLabel = subtitleLabel
-
-        NSLayoutConstraint.activate([
-            ring.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            ring.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            ring.widthAnchor.constraint(equalToConstant: ringSize),
-            ring.heightAnchor.constraint(equalToConstant: ringSize),
-
-            valLabel.centerXAnchor.constraint(equalTo: ring.centerXAnchor),
-            valLabel.centerYAnchor.constraint(equalTo: ring.centerYAnchor, constant: -6),
-
-            unitLabel.centerXAnchor.constraint(equalTo: ring.centerXAnchor),
-            unitLabel.topAnchor.constraint(equalTo: valLabel.bottomAnchor, constant: 1),
-
-            titleLabel.leadingAnchor.constraint(equalTo: ring.trailingAnchor, constant: 18),
-            titleLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -10),
-
-            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 3)
-        ])
-
-        container.isUserInteractionEnabled = true
-        container.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(openHydrationStatus)))
+        
         return container
     }
-
+    
     private enum CardType {
         case water, medication
+    }
+    
+    private func createProgressCard(value: String, total: String, color: UIColor, progress: CGFloat, type: CardType) -> UIView {
+        let container = UIView()
+        container.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.4)
+        container.layer.cornerRadius = 20
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Use adaptive blur effect for Dark Mode support
+        let blurEffect = UIBlurEffect(style: .systemThinMaterial)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        blurView.translatesAutoresizingMaskIntoConstraints = false
+        blurView.layer.cornerRadius = 20
+        blurView.clipsToBounds = true
+        container.insertSubview(blurView, at: 0)
+        
+        NSLayoutConstraint.activate([
+            blurView.topAnchor.constraint(equalTo: container.topAnchor),
+            blurView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            blurView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            blurView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        let circularProgress = SemiCircularProgressView(frame: CGRect(x: 0, y: 0, width: 110, height: 70))
+        circularProgress.progress = progress
+        circularProgress.trackColor = color.withAlphaComponent(0.2)
+        circularProgress.progressColor = color
+        circularProgress.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(circularProgress)
+        
+        let valueLabel = UILabel()
+        valueLabel.text = value
+        valueLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        valueLabel.textAlignment = .center
+        valueLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(valueLabel)
+        
+        let totalLabel = UILabel()
+        totalLabel.text = total
+        totalLabel.font = UIFont.systemFont(ofSize: 13)
+        totalLabel.textAlignment = .center
+        totalLabel.numberOfLines = 2
+        totalLabel.textColor = .secondaryLabel
+        totalLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(totalLabel)
+        
+        switch type {
+        case .water:
+            waterValueLabel = valueLabel
+            waterTotalLabel = totalLabel
+            waterProgressView = circularProgress
+        case .medication:
+            break
+        }
+        
+        NSLayoutConstraint.activate([
+            circularProgress.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            circularProgress.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            circularProgress.widthAnchor.constraint(equalToConstant: 110),
+            circularProgress.heightAnchor.constraint(equalToConstant: 70),
+                    
+            valueLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            valueLabel.bottomAnchor.constraint(equalTo: circularProgress.bottomAnchor, constant: 0),
+                    
+            totalLabel.topAnchor.constraint(equalTo: circularProgress.bottomAnchor, constant: 8),
+            totalLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor)
+        ])
+        
+        // Add tap gesture for water card to open HydrationStatusViewController
+        if type == .water {
+            container.isUserInteractionEnabled = true
+            let tap = UITapGestureRecognizer(target: self, action: #selector(openHydrationStatus))
+            container.addGestureRecognizer(tap)
+            
+            blurView.isUserInteractionEnabled = false
+            circularProgress.isUserInteractionEnabled = false
+            valueLabel.isUserInteractionEnabled = false
+            totalLabel.isUserInteractionEnabled = false
+        }
+
+        return container
     }
     class SegmentedMedicationProgressView: UIView {
         
@@ -1343,128 +1350,113 @@ class HomeDashboardViewController: UIViewController,
         }
     }
     
-    private func createMedicationSummaryCard() -> UIView {
-        let container = makeCardContainer()
-
-        let ringSize: CGFloat = 72
-        let medBrown = UIColor(red: 0.42, green: 0.30, blue: 0.05, alpha: 1)
-
-        // Use a plain FullCircularProgressView for the ring
-        let ring = FullCircularProgressView()
-        ring.translatesAutoresizingMaskIntoConstraints = false
-        ring.trackColor = medBrown.withAlphaComponent(0.18)
-        ring.progressColor = medBrown
-        container.addSubview(ring)
-        medicationProgressView = ring  // reuse existing optional ref
-
-        // Center fraction label e.g. "2/8"
-        let store = MedicationStore.shared
-        let today = Date()
-        let mp = store.takenCount(for: .morning, date: today)
-        let ap = store.takenCount(for: .afternoon, date: today)
-        let np = store.takenCount(for: .night, date: today)
-        let totalTaken = mp.taken + ap.taken + np.taken
-        let totalDoses = mp.total + ap.total + np.total
-
-        let fracLabel = UILabel()
-        fracLabel.text = "\(totalTaken)/\(totalDoses)"
-        fracLabel.font = UIFont.systemFont(ofSize: 14, weight: .bold)
-        fracLabel.textAlignment = .center
-        fracLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(fracLabel)
-        medicationValueLabel = fracLabel
-
-        let unitLabel = UILabel()
-        unitLabel.text = "Doses"
-        unitLabel.font = UIFont.systemFont(ofSize: 9, weight: .regular)
-        unitLabel.textColor = .secondaryLabel
-        unitLabel.textAlignment = .center
-        unitLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(unitLabel)
-
-        // Progress
-        ring.progress = totalDoses > 0 ? CGFloat(totalTaken) / CGFloat(totalDoses) : 0
-
-        // Right side text
-        let titleLabel = UILabel()
-        titleLabel.text = "Medication"
-        titleLabel.font = UIFont.systemFont(ofSize: 15, weight: .bold)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(titleLabel)
-
-        let subtitleLabel = UILabel()
-        subtitleLabel.text = "Critical tracking"
-        subtitleLabel.font = UIFont.systemFont(ofSize: 13, weight: .regular)
-        subtitleLabel.textColor = .secondaryLabel
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(subtitleLabel)
-        medicationTotalLabel = subtitleLabel
-
-        NSLayoutConstraint.activate([
-            ring.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            ring.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            ring.widthAnchor.constraint(equalToConstant: ringSize),
-            ring.heightAnchor.constraint(equalToConstant: ringSize),
-
-            fracLabel.centerXAnchor.constraint(equalTo: ring.centerXAnchor),
-            fracLabel.centerYAnchor.constraint(equalTo: ring.centerYAnchor, constant: -6),
-
-            unitLabel.centerXAnchor.constraint(equalTo: ring.centerXAnchor),
-            unitLabel.topAnchor.constraint(equalTo: fracLabel.bottomAnchor, constant: 1),
-
-            titleLabel.leadingAnchor.constraint(equalTo: ring.trailingAnchor, constant: 18),
-            titleLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -10),
-
-            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 3)
-        ])
-
-        container.isUserInteractionEnabled = true
-        container.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(medicationCardTapped)))
-        return container
-    }
-
-    /// Shared card container style (white bg, rounded, subtle shadow)
-    private func makeCardContainer() -> UIView {
-        let v = UIView()
-        v.backgroundColor = UIColor.systemBackground
-        v.layer.cornerRadius = 20
-        v.layer.shadowColor = UIColor.black.cgColor
-        v.layer.shadowOpacity = 0.06
-        v.layer.shadowRadius = 8
-        v.layer.shadowOffset = CGSize(width: 0, height: 2)
-        v.translatesAutoresizingMaskIntoConstraints = false
-        return v
-    }
-
     private func createSegmentedMedicationCard() -> UIView {
-        // Kept for backward-compat; not used in new layout
-        return makeCardContainer()
+        let container = UIView()
+        container.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.4)
+        container.layer.cornerRadius = 20
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Use adaptive blur effect for Dark Mode support
+        let blurEffect = UIBlurEffect(style: .systemThinMaterial)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        blurView.translatesAutoresizingMaskIntoConstraints = false
+        blurView.layer.cornerRadius = 20
+        blurView.clipsToBounds = true
+        container.insertSubview(blurView, at: 0)
+        
+        NSLayoutConstraint.activate([
+            blurView.topAnchor.constraint(equalTo: container.topAnchor),
+            blurView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            blurView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            blurView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        // Segmented progress view - SAME SIZE AS WATER CARD
+        let segmentedProgress = SegmentedMedicationProgressView(frame: CGRect(x: 0, y: 0, width: 110, height: 70))
+        segmentedProgress.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(segmentedProgress)
+        medicationProgressView = segmentedProgress
+        
+        // COUNT LABEL - BOLD, centered in progress circle
+        let countLabel = UILabel()
+        countLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        countLabel.textAlignment = .center
+        countLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(countLabel)
+        medicationValueLabel = countLabel
+        
+        // "out of X doses" label - below progress, regular weight
+        let totalLabel = UILabel()
+        totalLabel.font = UIFont.systemFont(ofSize: 13)
+        totalLabel.textAlignment = .center
+        totalLabel.numberOfLines = 2
+        totalLabel.textColor = .secondaryLabel
+        totalLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(totalLabel)
+        medicationTotalLabel = totalLabel
+        
+        NSLayoutConstraint.activate([
+            segmentedProgress.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            segmentedProgress.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            segmentedProgress.widthAnchor.constraint(equalToConstant: 110),
+            segmentedProgress.heightAnchor.constraint(equalToConstant: 70),
+            
+            // Count label centered in the progress arc
+            countLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            countLabel.bottomAnchor.constraint(equalTo: segmentedProgress.bottomAnchor, constant: 0),
+            
+            // Total label below progress
+            totalLabel.topAnchor.constraint(equalTo: segmentedProgress.bottomAnchor, constant: 8),
+            totalLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            totalLabel.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 8),
+            totalLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -8)
+        ])
+        
+        updateSegmentedMedicationCard()
+        refreshHighlights()
+        
+        // Add tap gesture
+        container.isUserInteractionEnabled = true
+        let tap = UITapGestureRecognizer(target: self, action: #selector(medicationCardTapped))
+        container.addGestureRecognizer(tap)
+        
+        blurView.isUserInteractionEnabled = false
+        segmentedProgress.isUserInteractionEnabled = false
+        countLabel.isUserInteractionEnabled = false
+        totalLabel.isUserInteractionEnabled = false
+        
+        return container
     }
     
 
     private func updateSegmentedMedicationCard() {
         let store = MedicationStore.shared
         let today = Date()
-
-        let mp = store.takenCount(for: .morning, date: today)
-        let ap = store.takenCount(for: .afternoon, date: today)
-        let np = store.takenCount(for: .night, date: today)
-
-        let totalTaken = mp.taken + ap.taken + np.taken
-        let totalDoses = mp.total + ap.total + np.total
-
-        // Update the full-ring progress view
-        if let ring = medicationProgressView as? FullCircularProgressView {
-            ring.progress = totalDoses > 0 ? CGFloat(totalTaken) / CGFloat(totalDoses) : 0
+        
+        // Get progress for each time of day
+        let morningProgress = store.takenCount(for: .morning, date: today)
+        let afternoonProgress = store.takenCount(for: .afternoon, date: today)
+        let nightProgress = store.takenCount(for: .night, date: today)
+        
+        // Calculate segment values (0.0 to 1.0)
+        let morningValue: CGFloat = morningProgress.total > 0 ? CGFloat(morningProgress.taken) / CGFloat(morningProgress.total) : 0
+        let afternoonValue: CGFloat = afternoonProgress.total > 0 ? CGFloat(afternoonProgress.taken) / CGFloat(afternoonProgress.total) : 0
+        let nightValue: CGFloat = nightProgress.total > 0 ? CGFloat(nightProgress.taken) / CGFloat(nightProgress.total) : 0
+        
+        // Update the segmented view
+        if let segmentedView = medicationProgressView as? SegmentedMedicationProgressView {
+            segmentedView.setProgress(morning: morningValue, afternoon: afternoonValue, night: nightValue)
         }
-
-        // Fraction label e.g. "2/8"
-        medicationValueLabel?.text = "\(totalTaken)/\(totalDoses)"
-
-        // Subtitle (static in this design, but keep it live)
-        medicationTotalLabel?.text = "Critical tracking"
+        
+        // Update count - BOLD NUMBER like water card
+        let totalTaken = morningProgress.taken + afternoonProgress.taken + nightProgress.taken
+        let totalDoses = morningProgress.total + afternoonProgress.total + nightProgress.total
+        medicationValueLabel?.text = "\(totalTaken)"
+        
+        // Update total label
+        medicationTotalLabel?.text = "out of\n\(totalDoses) doses"
     }
+
     // MARK: - Fluid Quick-Add (button + editor)
 
     private func createFluidQuickAddButton() -> UIView {
@@ -1472,11 +1464,11 @@ class HomeDashboardViewController: UIViewController,
         container.backgroundColor = AppTheme.waterCardBase
         container.layer.cornerRadius = 14
         container.translatesAutoresizingMaskIntoConstraints = false
-        container.clipsToBounds = true
+        container.clipsToBounds = true 
 
         let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
         let iconView = UIImageView(image: UIImage(systemName: "drop.fill", withConfiguration: config))
-        iconView.tintColor = .black
+        iconView.tintColor = AppTheme.iconPrimary
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.contentMode = .scaleAspectFit
         iconView.tag = 201
@@ -1649,11 +1641,15 @@ class HomeDashboardViewController: UIViewController,
     }
 
     @objc private func fluidQuickAddSaveTapped(_ sender: UIButton) {
-        // Persist the individual fluid entry
+        // Add quantity to total water & log entry
+        let currentTotal = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
+        let newTotal = currentTotal + selectedFluidQuantity
+        updateWater(consumed: newTotal)
+
         let type = fluidTypes[selectedFluidTypeIndex]
         FluidLogStore.shared.addLog(type: type, quantity: selectedFluidQuantity)
-        updateWater()
         NotificationCenter.default.post(name: NSNotification.Name("fluidDidUpdate"), object: nil)
+        // collapse after save
         fluidButtonTapped()
     }
 
@@ -1794,9 +1790,13 @@ class HomeDashboardViewController: UIViewController,
         fluidQuantityDisplayLabel?.text = "\(selectedFluidQuantity) ml"
         fluidStepper?.value = Double(selectedFluidQuantity)
 
+        // update hydration + log
+        let currentTotal = UserDataManager.shared.loadInt("waterConsumed", uid: uid, defaultValue: 0)
+        let newTotal = currentTotal + selectedFluidQuantity
+        updateWater(consumed: newTotal)
+
         let finalType = fluidTypes[selectedFluidTypeIndex]
         FluidLogStore.shared.addLog(type: finalType, quantity: selectedFluidQuantity)
-        updateWater()
 
         view.endEditing(true)
         dismissFluidEditor()
@@ -1855,7 +1855,7 @@ class HomeDashboardViewController: UIViewController,
         
         // CAGradientLayer needs to have its CGColors manually updated specifically for the current trait collection
         backgroundGradientLayer?.colors = [
-            topColor.resolvedColor(with: traitCollection).cgColor, 
+            topColor.resolvedColor(with: traitCollection).cgColor,
             bottomColor.resolvedColor(with: traitCollection).cgColor
         ]
     }

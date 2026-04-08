@@ -158,28 +158,24 @@ class MedicationAdherenceViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
             
             dateEditContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             dateEditContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             dateEditContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
             dateEditContainer.heightAnchor.constraint(equalToConstant: 30),
             
-            // DATE LABEL CONSTRAINTS - FIXED WITH TRAILING CONSTRAINT
             dateLabel.leadingAnchor.constraint(equalTo: dateEditContainer.leadingAnchor),
             dateLabel.centerYAnchor.constraint(equalTo: dateEditContainer.centerYAnchor),
-            dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: editButton.leadingAnchor, constant: -8),
-            
-            // EDIT BUTTON CONSTRAINTS
-            editButton.trailingAnchor.constraint(equalTo: dateEditContainer.trailingAnchor),
-            editButton.centerYAnchor.constraint(equalTo: dateEditContainer.centerYAnchor),
-            editButton.widthAnchor.constraint(equalToConstant: 32),
-            editButton.heightAnchor.constraint(equalToConstant: 32),
+            dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: dateEditContainer.trailingAnchor, constant: -8),
             
             statusLabel.topAnchor.constraint(equalTo: dateEditContainer.bottomAnchor, constant: 16),
             statusLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
@@ -206,12 +202,16 @@ class MedicationAdherenceViewController: UIViewController {
             yourMedsLabel.topAnchor.constraint(equalTo: medicationListContainer.bottomAnchor, constant: 32),
             yourMedsLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             
-            addMedicationButton.topAnchor.constraint(equalTo: yourMedicationsCard!.bottomAnchor, constant: 20),
+            addMedicationButton.topAnchor.constraint(equalTo: yourMedicationsCard!.bottomAnchor, constant: 32),
             addMedicationButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             addMedicationButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
             addMedicationButton.heightAnchor.constraint(equalToConstant: 54),
-            addMedicationButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
-        ] + medsInfoCardConstraints)
+            addMedicationButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
+            
+            yourMedicationsCard!.topAnchor.constraint(equalTo: yourMedsLabel.bottomAnchor, constant: 16),
+            yourMedicationsCard!.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            yourMedicationsCard!.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+        ])
         
         updateStatus()
     }
