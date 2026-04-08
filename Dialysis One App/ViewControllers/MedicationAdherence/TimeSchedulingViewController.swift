@@ -30,7 +30,7 @@ class TimeSchedulingViewController: UIViewController {
     
     // MARK: - UI Setup
     private func setupUI() {
-        addTopGradientBackground()
+        view.backgroundColor = .systemBackground
         title = "Schedule"
         
         // Scroll view

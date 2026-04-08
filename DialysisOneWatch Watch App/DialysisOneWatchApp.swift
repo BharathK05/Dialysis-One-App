@@ -10,6 +10,8 @@ import SwiftUI
 @main
 struct DialysisOneWatch_Watch_AppApp: App {
 
+    @AppStorage("isDarkMode") var isDarkMode = false
+
     init() {
         _ = WatchConnectivityManager.shared
     }
@@ -17,6 +19,7 @@ struct DialysisOneWatch_Watch_AppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(isDarkMode ? .dark : .light)
                 .onAppear {
                     HealthKitManager.shared.requestAuthorization { authorized in
                         if authorized {

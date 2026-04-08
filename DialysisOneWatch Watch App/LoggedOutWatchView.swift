@@ -19,12 +19,13 @@ struct LoggedOutWatchView: View {
         VStack(spacing: 8) {
             Image(systemName: "iphone")
                 .font(.title2)
-
+            
             Text("Open Dialysis One on iPhone")
                 .font(.footnote)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
         }
         .padding()
+        .watchBackground()
     }
 }

@@ -28,12 +28,12 @@ class AddMedicationFlowViewController: UINavigationController {
         // Configure navigation bar appearance
         let appearance = UINavigationBarAppearance()
         appearance.configureWithDefaultBackground()
-        appearance.backgroundColor = UIColor(red: 0.78, green: 0.93, blue: 0.82, alpha: 1.0)
+        appearance.backgroundColor = .systemBackground
         appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
         
         navigationBar.standardAppearance = appearance
         navigationBar.scrollEdgeAppearance = appearance
-        navigationBar.tintColor = .systemBlue
+        navigationBar.tintColor = UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1.0)
         
         // Start flow
         let nameVC = MedicationNameViewController()

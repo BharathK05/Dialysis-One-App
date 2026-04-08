@@ -24,6 +24,8 @@ class HomeDashboardViewController: UIViewController,
     // MARK: - Properties
     let scrollView = UIScrollView()
     let contentView = UIView()
+    private let profileButton = UIButton(type: .custom)
+    
     private var dietButton: UIView!
     private var dietButtonWidthConstraint: NSLayoutConstraint!
     private var isExpanded = false
@@ -201,6 +203,24 @@ class HomeDashboardViewController: UIViewController,
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        
+        // Update profile picture dynamically
+        let localID = LocalUserManager.shared.getLocalUserID()
+        if let data = UserDefaults.standard.data(forKey: "profileImage_\(localID)"),
+           let img = UIImage(data: data) {
+            profileButton.setImage(img.withRenderingMode(.alwaysOriginal), for: .normal)
+            profileButton.imageView?.contentMode = .scaleAspectFill
+            profileButton.layer.cornerRadius = 20
+            profileButton.clipsToBounds = true
+        } else {
+            let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
+            profileButton.setImage(UIImage(systemName: "person.circle.fill", withConfiguration: config), for: .normal)
+            profileButton.tintColor = .systemBlue
+            profileButton.layer.cornerRadius = 0
+            profileButton.clipsToBounds = false
+        }
+        
+        let storedHydration = UserDefaults.standard.double(forKey: "currentHydrationValue_\(LocalUserManager.shared.getLocalUserID())")
         // Wrap in Task to ensure any in-flight async SwiftData saves from
         // LimitsManager have committed before we re-read goal values.
         Task { @MainActor in
@@ -511,7 +531,7 @@ class HomeDashboardViewController: UIViewController,
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(titleLabel)
         
-        let profileButton = UIButton(type: .system)
+        // Configuration fallback handled in viewWillAppear
         let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
         profileButton.setImage(UIImage(systemName: "person.circle.fill", withConfiguration: config), for: .normal)
         profileButton.tintColor = .systemBlue

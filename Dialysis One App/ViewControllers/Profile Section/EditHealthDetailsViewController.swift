@@ -11,14 +11,11 @@ import MobileCoreServices
 
 protocol EditHealthDetailsDelegate: AnyObject {
     /// Called when user saves changes (image optional)
-    func editHealthDetailsDidSave(firstName: String?,
-                                  lastName: String?,
+    func editHealthDetailsDidSave(name: String?,
                                   age: Int?,
                                   gender: String?,
                                   heightCm: Int?,
-                                  bloodGroup: String?,
-                                  ckdStage: String?,
-                                  dialysisFrequency: [String],
+                                  weightKg: Double?,
                                   profileImage: UIImage?)
 }
 
@@ -31,39 +28,23 @@ final class EditHealthDetailsViewController: UIViewController {
     private let content = UIStackView()
     private let profileImageView = UIImageView()
     private let nameStack = UIStackView()
-    private let firstNameField = UITextField()
-    private let lastNameField = UITextField()
+    private let nameField = UITextField()
 
     private let ageField = UITextField()
     private let heightField = UITextField()
+    private let weightField = UITextField()
     
     private let genderButton = UIButton(type: .system)
-    private let bloodGroupButton = UIButton(type: .system)
-    private let ckdStageButton = UIButton(type: .system)
-
-    // Frequency: multi select list
-    private let frequencyTitle = UILabel()
-    private var frequencyOptions: [String] = [
-        "Every Monday","Every Tuesday","Every Wednesday","Every Thursday","Every Friday","Every Saturday","Every Sunday"
-    ]
-    private var selectedFrequency = Set<String>()
-
-    private let frequencyStack = UIStackView()
 
     // Data model (local for now)
-    private var firstName: String?
-    private var lastName: String?
+    private var name: String?
     private var age: Int?
     private var heightCm: Int?
+    private var weightKg: Double?
     private var gender: String?
-    private var bloodGroup: String?
-    private var ckdStage: String?
     private var profileImage: UIImage?
 
-    // Pickers lists
     private let genders = ["Male","Female","Other"]
-    private let bloodGroups = ["A+","A-","B+","B-","AB+","AB-","O+","O-"]
-    private let ckdStages = ["Stage 1","Stage 2","Stage 3","Stage 4","Stage 5","Preventive"]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -91,34 +72,30 @@ final class EditHealthDetailsViewController: UIViewController {
 
     @objc private func saveTapped() {
         // collect values
-        firstName = firstNameField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
-        lastName = lastNameField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        name = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let a = Int(ageField.text ?? "") { age = a } else { age = nil }
         if let h = Int(heightField.text ?? "") { heightCm = h } else { heightCm = nil }
-        
-        let fullName = "\(firstName ?? "") \(lastName ?? "")".trimmingCharacters(in: .whitespaces)
+        if let w = Double(weightField.text ?? "") { weightKg = w } else { weightKg = nil }
 
         if let profile = ProfileManager.shared.currentProfile {
-            if !fullName.isEmpty { profile.name = fullName }
+            if let n = name, !n.isEmpty { profile.name = n }
             profile.gender = gender ?? profile.gender
             if let a = age { profile.age = a }
             if let h = heightCm {
                 profile.heightCm = Double(h)
             }
-            // Persist CKD stage to SwiftData
-            profile.ckdStage = ckdStage ?? ""
+            if let w = weightKg {
+                profile.weightKg = w
+            }
             ProfileManager.shared.updateProfile(profile)
         }
 
         // call delegate
-        delegate?.editHealthDetailsDidSave(firstName: firstName,
-                                          lastName: lastName,
+        delegate?.editHealthDetailsDidSave(name: name,
                                           age: age,
                                           gender: gender,
                                           heightCm: heightCm,
-                                          bloodGroup: bloodGroup,
-                                          ckdStage: ckdStage,
-                                          dialysisFrequency: Array(selectedFrequency),
+                                          weightKg: weightKg,
                                           profileImage: profileImage)
 
         dismiss(animated: true)
@@ -126,36 +103,26 @@ final class EditHealthDetailsViewController: UIViewController {
 
     private func loadSavedValuesIfAny() {
         if let profile = ProfileManager.shared.currentProfile {
-            // Split name into first and last
-            let parts = profile.name.components(separatedBy: .whitespaces)
-            firstName = parts.first
-            if parts.count > 1 {
-                lastName = parts.dropFirst().joined(separator: " ")
-            }
+            name = profile.name
             age = profile.age
             heightCm = Int(profile.heightCm)
+            weightKg = profile.weightKg
             gender = profile.gender
-            // Load CKD stage from SwiftData
-            if !profile.ckdStage.isEmpty {
-                ckdStage = profile.ckdStage
-            }
         }
         
-        if let data = UserDefaults.standard.data(forKey: "ProfileImageData_v1"),
+        let localID = LocalUserManager.shared.getLocalUserID()
+        if let data = UserDefaults.standard.data(forKey: "profileImage_\(localID)"),
            let img = UIImage(data: data) {
             profileImage = img
         }
 
         // populate fields
-        firstNameField.text = firstName
-        lastNameField.text = lastName
+        nameField.text = name
         ageField.text = age != nil ? "\(age!)" : ""
         heightField.text = heightCm != nil ? "\(heightCm!)" : ""
+        weightField.text = weightKg != nil ? "\(weightKg!)" : ""
         genderButton.setTitle(gender ?? "Gender", for: .normal)
-        bloodGroupButton.setTitle(bloodGroup ?? "Blood Group", for: .normal)
-        ckdStageButton.setTitle(ckdStage ?? "CKD Stage", for: .normal)
         updateProfileImageView()
-        buildFrequencyRows() // ensure selections visualized
     }
 
     // MARK: - UI Construction
@@ -229,84 +196,42 @@ final class EditHealthDetailsViewController: UIViewController {
         profileContainer.translatesAutoresizingMaskIntoConstraints = false
         content.addArrangedSubview(profileContainer)
 
-        // Name fields
-        let names = UIStackView()
-        names.axis = .horizontal
-        names.spacing = 12
-        names.distribution = .fillEqually
-        names.translatesAutoresizingMaskIntoConstraints = false
+        // Name field
+        nameField.placeholder = "Full Name"
+        nameField.borderStyle = .none
+        nameField.backgroundColor = .clear
+        nameField.font = UIFont.systemFont(ofSize: 16)
+        nameField.autocapitalizationType = .words
+        nameField.translatesAutoresizingMaskIntoConstraints = false
+        content.addArrangedSubview(wrapTextField(nameField))
 
-        firstNameField.placeholder = "First Name"
-        firstNameField.borderStyle = .none
-        firstNameField.backgroundColor = .clear
-        firstNameField.font = UIFont.systemFont(ofSize: 16)
-        firstNameField.autocapitalizationType = .words
-        firstNameField.translatesAutoresizingMaskIntoConstraints = false
-        addUnderline(to: firstNameField)
-
-        lastNameField.placeholder = "Last Name"
-        lastNameField.borderStyle = .none
-        lastNameField.font = UIFont.systemFont(ofSize: 16)
-        lastNameField.translatesAutoresizingMaskIntoConstraints = false
-
-        names.addArrangedSubview(wrapTextField(firstNameField))
-        names.addArrangedSubview(wrapTextField(lastNameField))
-
-        content.addArrangedSubview(names)
-
-        // Age + Height row
-        let rowAH = UIStackView()
-        rowAH.axis = .horizontal
-        rowAH.spacing = 12
-        rowAH.distribution = .fillEqually
-        rowAH.translatesAutoresizingMaskIntoConstraints = false
+        // Age + Height + Weight row
+        let rowAHW = UIStackView()
+        rowAHW.axis = .horizontal
+        rowAHW.spacing = 12
+        rowAHW.distribution = .fillEqually
+        rowAHW.translatesAutoresizingMaskIntoConstraints = false
 
         ageField.placeholder = "Age"
         ageField.keyboardType = .numberPad
         addUnderline(to: ageField)
+        
         heightField.placeholder = "Height (cm)"
         heightField.keyboardType = .numberPad
         addUnderline(to: heightField)
+        
+        weightField.placeholder = "Weight (kg)"
+        weightField.keyboardType = .decimalPad
+        addUnderline(to: weightField)
 
-        rowAH.addArrangedSubview(wrapTextField(ageField))
-        rowAH.addArrangedSubview(wrapTextField(heightField))
-        content.addArrangedSubview(rowAH)
+        rowAHW.addArrangedSubview(wrapTextField(ageField))
+        rowAHW.addArrangedSubview(wrapTextField(heightField))
+        rowAHW.addArrangedSubview(wrapTextField(weightField))
+        content.addArrangedSubview(rowAHW)
 
-        // Gender / Blood / CKD buttons
-        let rowButtons = UIStackView()
-        rowButtons.axis = .horizontal
-        rowButtons.spacing = 12
-        rowButtons.distribution = .fillEqually
-        rowButtons.translatesAutoresizingMaskIntoConstraints = false
-
+        // Gender button
         setupValueButton(genderButton, title: "Gender", action: #selector(genderTapped))
-        setupValueButton(bloodGroupButton, title: "Blood Group", action: #selector(bloodTapped))
-        setupValueButton(ckdStageButton, title: "CKD Stage", action: #selector(ckdTapped))
-
-        rowButtons.addArrangedSubview(genderButton)
-        rowButtons.addArrangedSubview(bloodGroupButton)
-        rowButtons.addArrangedSubview(ckdStageButton)
-        content.addArrangedSubview(rowButtons)
-
-        // Dialysis Frequency title
-        frequencyTitle.text = "Dialysis Details"
-        frequencyTitle.font = UIFont.boldSystemFont(ofSize: 16)
-        frequencyTitle.textColor = .darkGray
-        content.addArrangedSubview(frequencyTitle)
-
-        // Frequency card like your design
-        frequencyStack.axis = .vertical
-        frequencyStack.spacing = 8
-        frequencyStack.translatesAutoresizingMaskIntoConstraints = false
-        frequencyStack.backgroundColor = .white
-        frequencyStack.layer.cornerRadius = 16
-        frequencyStack.layoutMargins = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
-        frequencyStack.isLayoutMarginsRelativeArrangement = true
-
-        // Add frequency rows
-        buildFrequencyRows()
-
-        content.addArrangedSubview(frequencyStack)
+        content.addArrangedSubview(genderButton)
     }
 
     private func wrapTextField(_ tf: UITextField) -> UIView {
@@ -346,53 +271,6 @@ final class EditHealthDetailsViewController: UIViewController {
         btn.heightAnchor.constraint(equalToConstant: 48).isActive = true
     }
 
-    private func buildFrequencyRows() {
-        frequencyStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-        for option in frequencyOptions {
-            let row = UIStackView()
-            row.axis = .horizontal
-            row.alignment = .center
-            row.spacing = 12
-            row.translatesAutoresizingMaskIntoConstraints = false
-            row.heightAnchor.constraint(equalToConstant: 44).isActive = true
-
-            let check = UIImageView(image: UIImage(systemName: selectedFrequency.contains(option) ? "checkmark.circle.fill" : "circle"))
-            check.tintColor = selectedFrequency.contains(option) ? .systemBlue : .systemGray3
-            check.translatesAutoresizingMaskIntoConstraints = false
-            check.widthAnchor.constraint(equalToConstant: 24).isActive = true
-            check.heightAnchor.constraint(equalToConstant: 24).isActive = true
-
-            let lbl = UILabel()
-            lbl.text = option
-            lbl.font = UIFont.systemFont(ofSize: 15)
-            lbl.textColor = .label
-
-            row.addArrangedSubview(check)
-            row.addArrangedSubview(lbl)
-            row.addArrangedSubview(UIView()) // spacer
-
-            frequencyStack.addArrangedSubview(row)
-
-            // tap
-            let tap = UITapGestureRecognizer(target: self, action: #selector(frequencyRowTapped(_:)))
-            row.addGestureRecognizer(tap)
-            row.isUserInteractionEnabled = true
-        }
-    }
-
-    @objc private func frequencyRowTapped(_ g: UITapGestureRecognizer) {
-        guard let row = g.view as? UIStackView,
-              let lbl = (row.arrangedSubviews[1] as? UILabel),
-              let text = lbl.text else { return }
-
-        if selectedFrequency.contains(text) {
-            selectedFrequency.remove(text)
-        } else {
-            selectedFrequency.insert(text)
-        }
-        buildFrequencyRows()
-    }
 
     // MARK: - Pickers / Actions
 
@@ -429,19 +307,7 @@ final class EditHealthDetailsViewController: UIViewController {
         }
     }
 
-    @objc private func bloodTapped() {
-        showSingleChoicePicker(title: "Blood Group", options: bloodGroups) { [weak self] selection in
-            self?.bloodGroup = selection
-            self?.bloodGroupButton.setTitle(selection, for: .normal)
-        }
-    }
 
-    @objc private func ckdTapped() {
-        showSingleChoicePicker(title: "CKD Stage", options: ckdStages) { [weak self] selection in
-            self?.ckdStage = selection
-            self?.ckdStageButton.setTitle(selection, for: .normal)
-        }
-    }
 
     private func showSingleChoicePicker(title: String, options: [String], completion: @escaping (String)->Void) {
         let alert = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
@@ -457,8 +323,10 @@ final class EditHealthDetailsViewController: UIViewController {
         if let img = profileImage {
             profileImageView.image = img
             profileImageView.contentMode = .scaleAspectFill
-        } else {
-            profileImageView.image = UIImage(systemName: "person.circle")
+         } else {
+            let config = UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
+            profileImageView.image = UIImage(systemName: "person.circle", withConfiguration: config)
+            profileImageView.tintColor = .systemBlue
             profileImageView.contentMode = .center
         }
     }
@@ -477,14 +345,11 @@ extension EditHealthDetailsViewController: UIImagePickerControllerDelegate, UINa
             profileImage = chosen
             updateProfileImageView()
             // notify delegate immediately (optional) so the sheet updates while still open
-            delegate?.editHealthDetailsDidSave(firstName: nil,
-                                              lastName: nil,
+            delegate?.editHealthDetailsDidSave(name: nil,
                                               age: nil,
                                               gender: nil,
                                               heightCm: nil,
-                                              bloodGroup: nil,
-                                              ckdStage: nil,
-                                              dialysisFrequency: Array(selectedFrequency),
+                                              weightKg: nil,
                                               profileImage: profileImage)
         }
     }

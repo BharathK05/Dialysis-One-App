@@ -12,29 +12,27 @@ import WatchKit
 struct AddMedicationWatchView: View {
 
     @StateObject private var data = WatchDataManager.shared
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) private var dismiss
-
     private let times = ["morning", "afternoon", "night"]
-    
-        
-
 
     var body: some View {
-        VStack(spacing: 10) {
-
-            Picker("Time", selection: $data.selectedTimeOfDay) {
-                ForEach(times, id: \.self) {
-                    Text($0.capitalized)
+        ScrollView {
+            VStack(spacing: 12) {
+                Picker("Time", selection: $data.selectedTimeOfDay) {
+                    ForEach(times, id: \.self) {
+                        Text($0.capitalized)
+                    }
                 }
-            }
-            .pickerStyle(.wheel)
+                .pickerStyle(.wheel)
+                .frame(height: 50)
 
-            if data.medications.isEmpty {
-                Text("No medications")
-                    .foregroundColor(.secondary)
-            } else {
-                ScrollView {
-                    VStack(spacing: 6) {
+                if data.medications.isEmpty {
+                    Text("No medications")
+                        .foregroundColor(.secondary)
+                        .padding(.top, 20)
+                } else {
+                    VStack(spacing: 8) {
                         ForEach(data.medications) { med in
                             Button {
                                 WatchConnectivityManager.shared.sendAddMedication(
@@ -59,6 +57,12 @@ struct AddMedicationWatchView: View {
                                     Image(systemName: med.isTaken ? "checkmark.circle.fill" : "circle")
                                         .foregroundColor(med.isTaken ? .green : .gray)
                                 }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(WatchTheme.cardBackground(for: colorScheme))
+                                )
                             }
                             .disabled(med.isTaken)
                             .opacity(med.isTaken ? 0.5 : 1.0)
@@ -67,7 +71,8 @@ struct AddMedicationWatchView: View {
                     }
                 }
             }
+            .padding(.horizontal, 4)
         }
-        .padding()
+        .watchBackground()
     }
 }

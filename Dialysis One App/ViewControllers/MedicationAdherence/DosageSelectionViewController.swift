@@ -37,7 +37,7 @@ class DosageSelectionViewController: UIViewController {
     
     // MARK: - UI Setup
     private func setupUI() {
-        addTopGradientBackground()
+        view.backgroundColor = .systemBackground
         title = "Dosage"
         
         // Back button (default)

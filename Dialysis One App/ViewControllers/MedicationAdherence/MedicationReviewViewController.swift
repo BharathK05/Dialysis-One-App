@@ -22,7 +22,7 @@ class MedicationReviewViewController: UIViewController {
     
     // MARK: - UI Setup
     private func setupUI() {
-        addTopGradientBackground()
+        view.backgroundColor = .systemBackground
         title = "Review"
         
         scrollView.translatesAutoresizingMaskIntoConstraints = false

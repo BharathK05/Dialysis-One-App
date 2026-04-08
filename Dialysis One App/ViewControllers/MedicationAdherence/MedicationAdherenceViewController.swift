@@ -52,12 +52,14 @@ class MedicationAdherenceViewController: UIViewController {
         // Restore home's hidden nav bar on pop
         if isMovingFromParent {
             navigationController?.setNavigationBarHidden(true, animated: animated)
+        } else {
+            // If pushing to another screen (e.g. details), show the navigation bar
+            navigationController?.setNavigationBarHidden(false, animated: animated)
         }
     }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: false)
+
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
     }
     
     private func setupUI() {
@@ -70,12 +72,12 @@ class MedicationAdherenceViewController: UIViewController {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(titleLabel)
         
-        // Back button — circular with chevron (Apple HIG style)
+        // Back button — circular with chevron
         let backButton = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
         backButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
-        backButton.tintColor = .label
-        backButton.backgroundColor = UIColor.systemGray5
+        backButton.tintColor = .black
+        backButton.backgroundColor = .white
         backButton.layer.cornerRadius = 18
         backButton.clipsToBounds = true
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
@@ -97,7 +99,7 @@ class MedicationAdherenceViewController: UIViewController {
         // Date label
         dateLabel.font = MedicationDesignTokens.Typography.dateLabel
         dateLabel.textColor = MedicationDesignTokens.Colors.textSecondary
-        dateLabel.textAlignment = .left
+        dateLabel.textAlignment = .center
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
         dateEditContainer.addSubview(dateLabel)
         
@@ -198,9 +200,8 @@ class MedicationAdherenceViewController: UIViewController {
             dateEditContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
             dateEditContainer.heightAnchor.constraint(equalToConstant: 30),
             
-            dateLabel.leadingAnchor.constraint(equalTo: dateEditContainer.leadingAnchor),
+            dateLabel.centerXAnchor.constraint(equalTo: dateEditContainer.centerXAnchor),
             dateLabel.centerYAnchor.constraint(equalTo: dateEditContainer.centerYAnchor),
-            dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: dateEditContainer.trailingAnchor, constant: -8),
             
             statusLabel.topAnchor.constraint(equalTo: dateEditContainer.bottomAnchor, constant: 16),
             statusLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
@@ -640,7 +641,7 @@ class TimeSegmentedControl: UIView {
         guard let selectedButton = buttons[selectedTimeOfDay] else { return }
         
         let update = {
-            self.selectionIndicator.frame = selectedButton.frame
+            self.selectionIndicator.frame = self.stackView.convert(selectedButton.frame, to: self)
         }
         
         if animated {

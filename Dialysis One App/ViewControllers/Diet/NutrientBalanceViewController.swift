@@ -163,7 +163,7 @@ final class NutrientBalanceViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -254,13 +254,7 @@ final class NutrientBalanceViewController: UIViewController {
 
     // MARK: - Setup
     private func configureNavigationBar() {
-        // Use system navigation bar — gives native back button
-        self.title = "Nutrient Balance"
-        navigationItem.largeTitleDisplayMode = .never
-
-        // Move Edit button into the nav bar right item
         editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
-        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: editButton)
     }
 
     private func setupLayout() {
@@ -307,8 +301,8 @@ final class NutrientBalanceViewController: UIViewController {
 
         gradientView.addSubview(datePill)
         NSLayoutConstraint.activate([
-            // Anchor directly to safeArea since titleLabel is now hidden
-            datePill.topAnchor.constraint(equalTo: gradientView.safeAreaLayoutGuide.topAnchor, constant: 8),
+            // Anchor below titleLabel to prevent overlapping
+            datePill.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
             datePill.centerXAnchor.constraint(equalTo: gradientView.centerXAnchor),
             datePill.heightAnchor.constraint(equalToConstant: 34),
             datePill.widthAnchor.constraint(greaterThanOrEqualToConstant: 120)

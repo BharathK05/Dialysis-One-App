@@ -71,20 +71,6 @@ class MedicationStore: ObservableObject {
 
     init() {
         loadMedications()
-
-        // Default CKD medications for new installs
-        if medications.isEmpty {
-            medications = [
-                Medication(name: "Calcium Acetate",    description: "Phosphate binder - Take with meals",     times: [.morning, .afternoon, .night], dosage: "667mg"),
-                Medication(name: "Amlodipine",         description: "Blood pressure medication",               times: [.morning],                     dosage: "5mg"),
-                Medication(name: "Furosemide",         description: "Diuretic - Helps remove extra fluid",    times: [.morning],                     dosage: "40mg"),
-                Medication(name: "Sodium Polystyrene", description: "Helps control potassium levels",         times: [.morning, .night],              dosage: "15g"),
-                Medication(name: "Ferrous Sulfate",    description: "Iron supplement for anemia",             times: [.afternoon],                   dosage: "325mg"),
-                Medication(name: "Calcitriol",         description: "Active Vitamin D supplement",            times: [.morning],                     dosage: "0.25mcg"),
-                Medication(name: "Sevelamer",          description: "Non-calcium phosphate binder",           times: [.morning, .afternoon, .night], dosage: "800mg")
-            ]
-            saveMedications()
-        }
     }
 
     func addMedication(_ medication: Medication) {
